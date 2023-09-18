@@ -2,8 +2,9 @@
   "name": "clipper2js",
   "version": "0.0.1",
   "description": "A port of Clipper2(C#) to js/ts.",
-  "scripts":{
-    "lint": "eslint ."
+  "scripts": {
+    "lint": "eslint --cache src/",
+    "prettier": "prettier --write src/"
   },
   "repository": {
     "type": "git",
@@ -15,6 +16,8 @@
     "@typescript-eslint/eslint-plugin": "^6.7.0",
     "@typescript-eslint/parser": "^6.7.0",
     "eslint": "^8.49.0",
+    "eslint-config-prettier": "^9.0.0",
+    "prettier": "^3.0.3",
     "typescript": "^5.2.2"
   }
 }
