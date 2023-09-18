@@ -1,11 +1,15 @@
-import { Clipper } from "../Clipper2JS";
-import { InternalClipper } from "../Core/InternalClipper";
+import { OutPt2 } from "./OutPt2";
+import { getBounds } from "../Clipper";
+import {
+  crossProduct,
+  getIntersectPoint,
+  pointInPolygon,
+} from "../Core/InternalClipper";
 import { Path64 } from "../Core/Path64";
 import { Paths64 } from "../Core/Paths64";
 import { Point64 } from "../Core/Point64";
 import { Rect64 } from "../Core/Rect64";
 import { PointInPolygonResult } from "../Engine/EngineEnums";
-import { OutPt2 } from "./OutPt2";
 
 export const Location = {
   left: 0,
@@ -19,7 +23,7 @@ export type Location = (typeof Location)[keyof typeof Location];
 const path1ContainsPath2 = (path1: Path64, path2: Path64): boolean => {
   let ioCount = 0;
   for (const pt of path2) {
-    const pip = InternalClipper.pointInPolygon(pt, path1);
+    const pip = pointInPolygon(pt, path1);
     switch (pip) {
       case PointInPolygonResult.IsInside:
         ioCount--;
@@ -43,7 +47,7 @@ const isClockwise = (
   rectMidPoint: Point64,
 ): boolean => {
   if (areOpposites(prev, curr)) {
-    return InternalClipper.crossProduct(prevPt, rectMidPoint, currPt) < 0;
+    return crossProduct(prevPt, rectMidPoint, currPt) < 0;
   } else {
     return headingClockwise(prev, curr);
   }
@@ -228,8 +232,8 @@ const getSegmentIntersection = (
   p3: Point64,
   p4: Point64,
 ): { result: boolean; ip: Point64 } => {
-  const res1 = InternalClipper.crossProduct(p1, p3, p4);
-  const res2 = InternalClipper.crossProduct(p2, p3, p4);
+  const res1 = crossProduct(p1, p3, p4);
+  const res2 = crossProduct(p2, p3, p4);
   let ip: Point64;
   if (res1 === 0) {
     ip = { x: p1.x, y: p1.y };
@@ -262,8 +266,8 @@ const getSegmentIntersection = (
     return { result: false, ip };
   }
 
-  const res3 = InternalClipper.crossProduct(p3, p1, p2);
-  const res4 = InternalClipper.crossProduct(p4, p1, p2);
+  const res3 = crossProduct(p3, p1, p2);
+  const res4 = crossProduct(p4, p1, p2);
 
   if (res3 === 0) {
     ip = { x: p3.x, y: p3.y };
@@ -294,7 +298,7 @@ const getSegmentIntersection = (
     return { result: false, ip };
   }
 
-  return InternalClipper.getIntersectPoint(p1, p2, p3, p4);
+  return getIntersectPoint(p1, p2, p3, p4);
 };
 
 export class RectClip64 {
@@ -846,7 +850,7 @@ export class RectClip64 {
       if (path.length < 3) {
         continue;
       }
-      this._pathBounds = Clipper.getBounds64(path);
+      this._pathBounds = getBounds(path);
 
       if (!this._rect.intersects(this._pathBounds)) {
         continue;
@@ -893,13 +897,7 @@ export class RectClip64 {
       }
 
       do {
-        if (
-          InternalClipper.crossProduct(
-            op2!.prev!.pt,
-            op2!.pt,
-            op2!.next!.pt,
-          ) === 0
-        ) {
+        if (crossProduct(op2!.prev!.pt, op2!.pt, op2!.next!.pt) === 0) {
           if (op2 === op) {
             op2 = unlinkOpBack(op2!);
             if (op2 === undefined) {
@@ -1088,9 +1086,7 @@ export class RectClip64 {
     let op2: OutPt2 | undefined = op.next;
 
     while (op2 !== undefined && op2 !== op) {
-      if (
-        InternalClipper.crossProduct(op2.prev!.pt, op2.pt, op2.next!.pt) === 0
-      ) {
+      if (crossProduct(op2.prev!.pt, op2.pt, op2.next!.pt) === 0) {
         op = op2.prev;
         op2 = unlinkOp(op2);
       } else {

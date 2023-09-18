@@ -1,4 +1,4 @@
-import { InternalClipper } from "./InternalClipper";
+import { isAlmostZero } from "./InternalClipper";
 
 export type PointD = {
   x: number;
@@ -13,11 +13,9 @@ export const isPointD = (obj: Record<string, unknown>): obj is PointD =>
 
 export const PointD = {
   equals: (a: PointD, b: PointD) =>
-    InternalClipper.isAlmostZero(a.x - b.x) &&
-    InternalClipper.isAlmostZero(a.y - b.y),
+    isAlmostZero(a.x - b.x) && isAlmostZero(a.y - b.y),
   notEquals: (a: PointD, b: PointD) =>
-    !InternalClipper.isAlmostZero(a.x - b.x) ||
-    !InternalClipper.isAlmostZero(a.y - b.y),
+    !isAlmostZero(a.x - b.x) || !isAlmostZero(a.y - b.y),
   clone: (origin: PointD): PointD => ({ x: origin.x, y: origin.y }),
   toString(pt: PointD, precision: number = 2): string {
     return `${pt.x.toFixed(precision)},${pt.y.toFixed(precision)} `;

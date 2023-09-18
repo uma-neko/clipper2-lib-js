@@ -1,8 +1,8 @@
-import { Point64 } from "../Core/Point64";
 import { JoinWith } from "./EngineEnums";
 import { LocalMinima } from "./LocalMinima";
 import { OutRec } from "./OutRec";
 import { Vertex } from "./Vertex";
+import { Point64 } from "../Core/Point64";
 
 export type Active = {
   bot: Point64;

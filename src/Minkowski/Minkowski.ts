@@ -1,7 +1,13 @@
-import { Clipper } from "../Clipper2JS";
+import {
+  isPositive,
+  reversePath,
+  scalePath64,
+  scalePathsD,
+  union,
+} from "../Clipper";
 import { FillRule } from "../Core/CoreEnums";
-import { Path64 } from "../Core/Path64";
-import { PathD } from "../Core/PathD";
+import { Path64, isPath64 } from "../Core/Path64";
+import { PathD, isPathD } from "../Core/PathD";
 import { Paths64 } from "../Core/Paths64";
 import { PathsD } from "../Core/PathsD";
 
@@ -43,8 +49,8 @@ const minkowskiInternal = (
         tmp[i][j],
         tmp[g][j],
       ]);
-      if (!Clipper.isPositive(quad)) {
-        result.push(Clipper.reversePath(quad));
+      if (!isPositive(quad)) {
+        result.push(reversePath(quad));
       } else {
         result.push(quad);
       }
@@ -56,53 +62,89 @@ const minkowskiInternal = (
   return result;
 };
 
-export const minkowski = {
-  sum64: (pattern: Path64, path: Path64, isClosed: boolean): Paths64 => {
-    return Clipper.union(
+export function sum(pattern: Path64, path: Path64, isClosed: boolean): Paths64;
+export function sum(
+  pattern: PathD,
+  path: PathD,
+  isClosed: boolean,
+  decimalPlaces?: number,
+): PathsD;
+export function sum(
+  pattern: Path64 | PathD,
+  path: Path64 | PathD,
+  isClosed: boolean,
+  decimalPlaces?: number,
+): Paths64 | PathsD;
+
+export function sum(
+  pattern: Path64 | PathD,
+  path: Path64 | PathD,
+  isClosed: boolean,
+  decimalPlaces: number = 2,
+): Paths64 | PathsD {
+  if (isPath64(pattern) && isPath64(path)) {
+    return union(
       minkowskiInternal(pattern, path, true, isClosed),
       FillRule.NonZero,
     );
-  },
-  sumD: (
-    pattern: PathD,
-    path: PathD,
-    isClosed: boolean,
-    decimalPlaces: number = 2,
-  ): PathsD => {
+  } else if (isPathD(pattern) && isPathD(path)) {
     const scale = Math.pow(10, decimalPlaces);
-    const tmp = Clipper.union(
+    const tmp = union(
       minkowskiInternal(
-        Clipper.scalePath64(pattern, scale),
-        Clipper.scalePath64(path, scale),
+        scalePath64(pattern, scale),
+        scalePath64(path, scale),
         true,
         isClosed,
       ),
       FillRule.NonZero,
     );
-    return Clipper.scalePathsD(tmp, 1 / scale);
-  },
-  diff64: (pattern: Path64, path: Path64, isClosed: boolean): Paths64 => {
-    return Clipper.union(
+    return scalePathsD(tmp, 1 / scale);
+  }
+  throw new Error("todo: change message");
+}
+
+export function diff(pattern: Path64, path: Path64, isClosed: boolean): Paths64;
+export function diff(
+  pattern: PathD,
+  path: PathD,
+  isClosed: boolean,
+  decimalPlaces?: number,
+): PathsD;
+export function diff(
+  pattern: Path64 | PathD,
+  path: Path64 | PathD,
+  isClosed: boolean,
+  decimalPlaces?: number,
+): Paths64 | PathsD;
+
+export function diff(
+  pattern: Path64 | PathD,
+  path: Path64 | PathD,
+  isClosed: boolean,
+  decimalPlaces: number = 2,
+): Paths64 | PathsD {
+  if (isPath64(pattern) && isPath64(path)) {
+    return union(
       minkowskiInternal(pattern, path, false, isClosed),
       FillRule.NonZero,
     );
-  },
-  diffD: (
-    pattern: PathD,
-    path: PathD,
-    isClosed: boolean,
-    decimalPlaces: number = 2,
-  ): PathsD => {
+  } else if (isPathD(pattern) && isPathD(path)) {
     const scale = Math.pow(10, decimalPlaces);
-    const tmp = Clipper.union(
+    const tmp = union(
       minkowskiInternal(
-        Clipper.scalePath64(pattern, scale),
-        Clipper.scalePath64(path, scale),
+        scalePath64(pattern, scale),
+        scalePath64(path, scale),
         false,
         isClosed,
       ),
       FillRule.NonZero,
     );
-    return Clipper.scalePathsD(tmp, 1 / scale);
-  },
+    return scalePathsD(tmp, 1 / scale);
+  }
+  throw new Error("todo: change message");
+}
+
+export const Minkowski = {
+  sum,
+  diff,
 } as const;

@@ -1,5 +1,5 @@
-import { Point64 } from "../Core/Point64";
 import { VertexFlags } from "./EngineEnums";
+import { Point64 } from "../Core/Point64";
 
 export interface Vertex {
   pt: Point64;

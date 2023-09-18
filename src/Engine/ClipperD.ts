@@ -1,14 +1,14 @@
-import { Clipper } from "../Clipper2JS";
-import { InternalClipper } from "../Core/InternalClipper";
+import { ClipperBase } from "./ClipperBase";
+import { PolyTreeD } from "./PolyTreeD";
+import { scalePathD } from "../Clipper";
 import { ClipType, FillRule, PathType } from "../Core/CoreEnums";
+import { checkPrecision } from "../Core/InternalClipper";
 import { Path64Like } from "../Core/Path64Like";
 import { Paths64 } from "../Core/Paths64";
 import { Paths64Like } from "../Core/Paths64Like";
 import { PathsD } from "../Core/PathsD";
-import { ClipperBase } from "./ClipperBase";
-import { PolyTreeD } from "./PolyTreeD";
-import { PointD } from "../Core/PointD";
 import { Point64 } from "../Core/Point64";
+import { PointD } from "../Core/PointD";
 
 export class ClipperD extends ClipperBase {
   _scale: number;
@@ -16,7 +16,7 @@ export class ClipperD extends ClipperBase {
 
   constructor(roundingDecimalPrecision = 2) {
     super();
-    InternalClipper.checkPrecision(roundingDecimalPrecision);
+    checkPrecision(roundingDecimalPrecision);
 
     this._scale = Math.pow(10, roundingDecimalPrecision);
     this._invScale = 1 / this._scale;
@@ -112,7 +112,7 @@ export class ClipperD extends ClipperBase {
       this.clearSolutionOnly();
 
       for (const path of oPaths) {
-        solutionOpenOrOpenPaths.push(Clipper.scalePathD(path, this._invScale));
+        solutionOpenOrOpenPaths.push(scalePathD(path, this._invScale));
       }
     } else {
       const solClosed64: Paths64 = new Paths64();
@@ -127,11 +127,11 @@ export class ClipperD extends ClipperBase {
       this.clearSolutionOnly();
 
       for (const path of solClosed64) {
-        solutionClosedOrPolyTree.push(Clipper.scalePathD(path, this._invScale));
+        solutionClosedOrPolyTree.push(scalePathD(path, this._invScale));
       }
 
       for (const path of solOpen64) {
-        solutionOpenOrOpenPaths.push(Clipper.scalePathD(path, this._invScale));
+        solutionOpenOrOpenPaths.push(scalePathD(path, this._invScale));
       }
     }
 

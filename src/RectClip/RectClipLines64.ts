@@ -1,9 +1,9 @@
-import { Clipper } from "../Clipper2JS";
+import { OutPt2 } from "./OutPt2";
+import { Location, RectClip64, getLocation } from "./RectClip64";
+import { getBounds } from "../Clipper";
 import { Path64 } from "../Core/Path64";
 import { Paths64 } from "../Core/Paths64";
 import { Point64 } from "../Core/Point64";
-import { OutPt2 } from "./OutPt2";
-import { Location, RectClip64, getLocation } from "./RectClip64";
 
 export class RectClipLines64 extends RectClip64 {
   override execute(paths: Paths64): Paths64 {
@@ -17,7 +17,7 @@ export class RectClipLines64 extends RectClip64 {
         continue;
       }
 
-      this._pathBounds = Clipper.getBounds64(path);
+      this._pathBounds = getBounds(path);
       if (!this._rect.intersects(this._pathBounds)) {
         continue;
       }

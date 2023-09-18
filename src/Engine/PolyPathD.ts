@@ -1,7 +1,7 @@
-import { Clipper } from "../Clipper2JS";
+import { PolyPathBase } from "./PolyPathBase";
+import { area as clipperArea, scalePathD } from "../Clipper";
 import { Path64 } from "../Core/Path64";
 import { PathD } from "../Core/PathD";
-import { PolyPathBase } from "./PolyPathBase";
 
 export class PolyPathD extends PolyPathBase {
   scale: number;
@@ -15,13 +15,13 @@ export class PolyPathD extends PolyPathBase {
   override addChild(p: Path64): PolyPathBase {
     const newChild = new PolyPathD(this);
     newChild.scale = this.scale;
-    newChild.polygon = Clipper.scalePathD(p, 1 / this.scale);
+    newChild.polygon = scalePathD(p, 1 / this.scale);
     this._childs.push(newChild);
     return newChild;
   }
 
   area() {
-    let result = this.polygon === undefined ? 0 : Clipper.area(this.polygon);
+    let result = this.polygon === undefined ? 0 : clipperArea(this.polygon);
     for (const polyPathBase of this._childs) {
       result += (polyPathBase as PolyPathD).area();
     }

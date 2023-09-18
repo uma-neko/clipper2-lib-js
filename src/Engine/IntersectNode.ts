@@ -1,5 +1,5 @@
-import { Point64 } from "../Core/Point64";
 import { Active } from "./Active";
+import { Point64 } from "../Core/Point64";
 
 export type IntersectNode = {
   pt: Point64;
