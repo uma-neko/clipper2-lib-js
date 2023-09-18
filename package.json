@@ -1,10 +1,33 @@
 {
   "name": "clipper2js",
   "version": "0.0.1",
+  "type": "module",
+  "files": [
+    "build",
+    "LICENSE",
+    "README.md",
+    "package.json",
+    "src"
+  ],
+  "main": "./build/clipper2js.js",
+  "module": "./build/clipper2js.module.js",
+  "types": "./build/clipper2js.d.ts",
   "description": "A port of Clipper2(C#) to js/ts.",
   "scripts": {
-    "lint": "eslint --cache src/",
-    "prettier": "prettier --write src/"
+    "lint:all": "npm run lint:src && npm run lint:test",
+    "lint:src": "eslint --cache src/",
+    "lint:test": "eslint --cache test/",
+    "prettier:all": "npm run prettier:src && npm run prettier:test",
+    "prettier:src": "prettier --write src/",
+    "prettier:test": "prettier --write test/",
+    "prebuild": "npm run lint:all && npm run prettier:all && npm run test && npm run typecheck",
+    "typecheck": "tsc",
+    "build": "npm run build:src",
+    "build:src": "npm run vite build && npm run build:type",
+    "build:type": "tsc --project tsconfig.build.json --declaration --emitDeclarationOnly --noEmit false",
+    "vite": "vite",
+    "vitest": "vitest",
+    "test": "npm run lint:all && npm run vitest run"
   },
   "repository": {
     "type": "git",
@@ -12,12 +35,23 @@
   },
   "author": "uma-neko",
   "license": "BSL-1.0",
+  "bugs":{
+    "url": "https://github.com/uma-neko/Clipper2JS/issues"
+  },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.7.0",
     "@typescript-eslint/parser": "^6.7.0",
     "eslint": "^8.49.0",
     "eslint-config-prettier": "^9.0.0",
     "prettier": "^3.0.3",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vite": "^4.4.9",
+    "vitest": "^0.34.4"
+  },
+  "exports": {
+    ".": {
+      "import": "./build/clipper2js.module.js",
+      "require": "./build/clipper2js.cjs"
+    }
   }
 }

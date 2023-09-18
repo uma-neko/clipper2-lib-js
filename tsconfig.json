@@ -6,14 +6,13 @@
     "sourceMap": true,
     "module": "ESNext",
     "skipLibCheck": true,
-    "rootDir": "./src",
+    "rootDir": "./",
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "isolatedModules": true,
     "moduleResolution": "Node",
     "allowImportingTsExtensions": true,
-
-    "strict": true,
+    "strict": true
   },
-  "include": ["src"]
+  "include": ["./src", "./test"]
 }
