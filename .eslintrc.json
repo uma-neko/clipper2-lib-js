@@ -5,19 +5,30 @@
     "es2018":true
   },
   "parser":"@typescript-eslint/parser",
-  "extends":["eslint:recommended", "plugin:@typescript-eslint/recommended"],
+  "extends":[
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
+  ],
   "plugins":[
     "@typescript-eslint"
   ],
   "rules":{
     "no-throw-literal":["error"],
     "@typescript-eslint/ban-ts-comment": [
-      "error",
+      "warn",
       {"ts-ignore": "allow-with-description"}
     ],
     "no-constant-condition":[
       "error",
       {"checkLoops":false}
+    ],
+    "@typescript-eslint/no-unused-vars":[
+      "warn",{
+        "argsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_"
+      }
     ]
   }
 }
