@@ -440,13 +440,12 @@ export class ClipperOffset {
       return k;
     }
 
-    if (cosA > 0.999) {
-      this.doMiter(group, path, j, k, cosA);
-    } else if (cosA > -0.99 && sinA * this._groupDelta < 0) {
+    if (cosA > -0.99 && sinA * this._groupDelta < 0) {
       group.outPath.push(this.getPerpendic(path[j], this._normals[k]));
-
       group.outPath.push(path[j]);
       group.outPath.push(this.getPerpendic(path[j], this._normals[j]));
+    } else if (cosA > 0.999) {
+      this.doMiter(group, path, j, k, cosA);
     } else if (this._joinType === JoinType.Miter) {
       if (cosA > this._mitLimSqr - 1) {
         this.doMiter(group, path, j, k, cosA);
