@@ -1,10 +1,10 @@
+import { ClipperBase } from "./ClipperBase";
+import { PolyTree64 } from "./PolyTree64";
 import { ClipType, FillRule, PathType } from "../Core/CoreEnums";
 import { Path64Like } from "../Core/Path64Like";
 import { Paths64 } from "../Core/Paths64";
 import { Paths64Like } from "../Core/Paths64Like";
 import { Point64 } from "../Core/Point64";
-import { ClipperBase } from "./ClipperBase";
-import { PolyTree64 } from "./PolyTree64";
 
 export class Clipper64 extends ClipperBase {
   override addPath(

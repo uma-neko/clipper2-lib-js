@@ -1,5 +1,5 @@
-import { PathType } from "../Core/CoreEnums";
 import { Vertex } from "./Vertex";
+import { PathType } from "../Core/CoreEnums";
 
 export interface LocalMinima {
   vertex: Vertex;

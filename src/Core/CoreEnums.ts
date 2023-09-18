@@ -23,11 +23,3 @@ export const PathType = {
 } as const;
 
 export type PathType = (typeof PathType)[keyof typeof PathType];
-
-export const PipResult = {
-  Inside: 1,
-  Outside: 2,
-  OnEdge: 3,
-} as const;
-
-export type PipResult = (typeof PipResult)[keyof typeof PipResult];

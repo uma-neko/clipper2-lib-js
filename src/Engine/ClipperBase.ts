@@ -1,11 +1,5 @@
-import { InternalClipper } from "../Core/InternalClipper";
-import { ClipType, FillRule, PathType } from "../Core/CoreEnums";
-import { Path64 } from "../Core/Path64";
-import { Paths64 } from "../Core/Paths64";
-import { Point64 } from "../Core/Point64";
-import { Rect64 } from "../Core/Rect64";
 import { Active } from "./Active";
-import { ClipperEngine } from "./ClipperEngine";
+import { addPathsToVertexList } from "./ClipperEngine";
 import { JoinWith, PointInPolygonResult, VertexFlags } from "./EngineEnums";
 import { HorzJoin } from "./HorzJoin";
 import { HorzSegSorter, HorzSegment } from "./HorzSegment";
@@ -15,7 +9,21 @@ import { OutPt } from "./OutPt";
 import { OutRec } from "./OutRec";
 import { PolyPathBase } from "./PolyPathBase";
 import { Vertex } from "./Vertex";
-import { Clipper } from "../Clipper2JS";
+import { perpendicDistFromLineSqrd } from "../Clipper";
+import { ClipType, FillRule, PathType } from "../Core/CoreEnums";
+import {
+  crossProduct,
+  dotProduct,
+  getClosestPtOnSegment,
+  getIntersectPoint,
+  getIntersectPt,
+  pointInPolygon,
+  segsIntersect,
+} from "../Core/InternalClipper";
+import { Path64 } from "../Core/Path64";
+import { Paths64 } from "../Core/Paths64";
+import { Point64 } from "../Core/Point64";
+import { Rect64 } from "../Core/Rect64";
 
 const isOdd = (val: number) => {
   return (val & 1) !== 0;
@@ -358,32 +366,20 @@ const isValidAelOrder = (resident: Active, newcomer: Active): boolean => {
     return newcomer.curX > resident.curX;
   }
 
-  const d = InternalClipper.crossProduct(
-    resident.top,
-    newcomer.bot,
-    newcomer.top,
-  );
+  const d = crossProduct(resident.top, newcomer.bot, newcomer.top);
   if (d !== 0) {
     return d < 0;
   }
 
   if (!isMaxima(resident) && resident.top.y > newcomer.top.y) {
     return (
-      InternalClipper.crossProduct(
-        newcomer.bot,
-        resident.top,
-        nextVertex(resident).pt,
-      ) <= 0
+      crossProduct(newcomer.bot, resident.top, nextVertex(resident).pt) <= 0
     );
   }
 
   if (!isMaxima(newcomer) && newcomer.top.y > resident.top.y) {
     return (
-      InternalClipper.crossProduct(
-        newcomer.bot,
-        newcomer.top,
-        nextVertex(newcomer).pt,
-      ) >= 0
+      crossProduct(newcomer.bot, newcomer.top, nextVertex(newcomer).pt) >= 0
     );
   }
 
@@ -399,17 +395,13 @@ const isValidAelOrder = (resident: Active, newcomer: Active): boolean => {
   }
 
   if (
-    InternalClipper.crossProduct(
-      prevPrevVertex(resident).pt,
-      resident.bot,
-      resident.top,
-    ) === 0
+    crossProduct(prevPrevVertex(resident).pt, resident.bot, resident.top) === 0
   ) {
     return true;
   }
 
   return (
-    InternalClipper.crossProduct(
+    crossProduct(
       prevPrevVertex(resident).pt,
       newcomer.bot,
       prevPrevVertex(newcomer).pt,
@@ -719,7 +711,7 @@ const pointInOpPolygon = (pt: Point64, op: OutPt): PointInPolygonResult => {
       if (op2.prev.pt.x < pt.x && op2.pt.x < pt.x) {
         val = !val;
       } else {
-        const d = InternalClipper.crossProduct(op2.prev.pt, op2.pt, pt);
+        const d = crossProduct(op2.prev.pt, op2.pt, pt);
         if (d === 0) {
           return PointInPolygonResult.IsOn;
         }
@@ -734,7 +726,7 @@ const pointInOpPolygon = (pt: Point64, op: OutPt): PointInPolygonResult => {
   }
 
   if (isAbove !== startingAbove) {
-    const d = InternalClipper.crossProduct(op2.prev.pt, op2.pt, pt);
+    const d = crossProduct(op2.prev.pt, op2.pt, pt);
     if (d === 0) {
       return PointInPolygonResult.IsOn;
     }
@@ -774,9 +766,7 @@ const path1InsidePath2 = (op1: OutPt, op2: OutPt): boolean => {
   const mp = getBounds(getCleanPath(op1)).midPoint();
   const path2 = getCleanPath(op2);
 
-  return (
-    InternalClipper.pointInPolygon(mp, path2) !== PointInPolygonResult.IsOutside
-  );
+  return pointInPolygon(mp, path2) !== PointInPolygonResult.IsOutside;
 };
 
 const ptsReallyClose = (pt1: Point64, pt2: Point64): boolean =>
@@ -1003,7 +993,7 @@ export class ClipperBase {
     }
     this._isSortedMinimaList = false;
 
-    ClipperEngine.addPathsToVertexList(
+    addPathsToVertexList(
       paths,
       polytype,
       isOpen,
@@ -1834,12 +1824,7 @@ export class ClipperBase {
   addNewIntersectNode(ae1: Active, ae2: Active, topY: bigint) {
     let ip: Point64;
 
-    const resultIp = InternalClipper.getIntersectPt(
-      ae1.bot,
-      ae1.top,
-      ae2.bot,
-      ae2.top,
-    );
+    const resultIp = getIntersectPt(ae1.bot, ae1.top, ae2.bot, ae2.top);
     if (resultIp !== undefined) {
       ip = resultIp;
     } else {
@@ -1851,14 +1836,14 @@ export class ClipperBase {
       const absDx2 = Math.abs(ae2.dx);
       if (absDx1 > 100 && absDx2 > 100) {
         if (absDx1 > absDx2) {
-          ip = InternalClipper.getClosestPtOnSegment(ip, ae1.bot, ae1.top);
+          ip = getClosestPtOnSegment(ip, ae1.bot, ae1.top);
         } else {
-          ip = InternalClipper.getClosestPtOnSegment(ip, ae2.bot, ae2.top);
+          ip = getClosestPtOnSegment(ip, ae2.bot, ae2.top);
         }
       } else if (absDx1 > 100) {
-        ip = InternalClipper.getClosestPtOnSegment(ip, ae1.bot, ae1.top);
+        ip = getClosestPtOnSegment(ip, ae1.bot, ae1.top);
       } else if (absDx2 > 100) {
-        ip = InternalClipper.getClosestPtOnSegment(ip, ae2.bot, ae2.top);
+        ip = getClosestPtOnSegment(ip, ae2.bot, ae2.top);
       } else {
         if (ip.y < topY) {
           ip.y = topY;
@@ -2260,14 +2245,14 @@ export class ClipperBase {
     }
 
     if (checkCurrX) {
-      if (Clipper.perpendicDistFromLineSqrd(pt, prev.bot, prev.top) > 0.25) {
+      if (perpendicDistFromLineSqrd(pt, prev.bot, prev.top) > 0.25) {
         return;
       }
     } else if (e.curX !== prev.curX) {
       return;
     }
 
-    if (InternalClipper.crossProduct(e.top, pt, prev.top) !== 0) {
+    if (crossProduct(e.top, pt, prev.top) !== 0) {
       return;
     }
 
@@ -2304,14 +2289,14 @@ export class ClipperBase {
     }
 
     if (checkCurrX) {
-      if (Clipper.perpendicDistFromLineSqrd(pt, next.bot, next.top) > 0.25) {
+      if (perpendicDistFromLineSqrd(pt, next.bot, next.top) > 0.25) {
         return;
       }
     } else if (e.curX !== next.curX) {
       return;
     }
 
-    if (InternalClipper.crossProduct(e.top, pt, next.top) !== 0) {
+    if (crossProduct(e.top, pt, next.top) !== 0) {
       return;
     }
 
@@ -2485,12 +2470,11 @@ export class ClipperBase {
 
     while (true) {
       if (
-        InternalClipper.crossProduct(op2!.prev.pt, op2!.pt, op2!.next!.pt) ===
-          0 &&
+        crossProduct(op2!.prev.pt, op2!.pt, op2!.next!.pt) === 0 &&
         (Point64.equals(op2!.pt, op2!.prev.pt) ||
           Point64.equals(op2!.pt, op2!.next!.pt) ||
           !this.preserveCollinear ||
-          InternalClipper.dotProduct(op2!.prev.pt, op2!.pt, op2!.next!.pt) < 0)
+          dotProduct(op2!.prev.pt, op2!.pt, op2!.next!.pt) < 0)
       ) {
         if (op2 === outrec.pts) {
           outrec.pts = op2!.prev;
@@ -2521,7 +2505,7 @@ export class ClipperBase {
     const nextNextOp = splitOp.next!.next!;
     outrec.pts = prevOp;
 
-    const { ip } = InternalClipper.getIntersectPoint(
+    const { ip } = getIntersectPoint(
       prevOp.pt,
       splitOp.pt,
       splitOp.next!.pt,
@@ -2590,12 +2574,7 @@ export class ClipperBase {
       }
 
       if (
-        InternalClipper.segsIntersect(
-          op2.prev.pt,
-          op2.pt,
-          op2.next!.pt,
-          op2.next!.next!.pt,
-        )
+        segsIntersect(op2.prev.pt, op2.pt, op2.next!.pt, op2.next!.next!.pt)
       ) {
         this.doSplitOp(outrec, op2);
         if (outrec.pts === undefined) {

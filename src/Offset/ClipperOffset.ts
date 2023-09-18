@@ -1,6 +1,20 @@
-import { Clipper } from "../Clipper2JS";
-import { InternalClipper } from "../Core/InternalClipper";
+import { ClipperGroup } from "./ClipperGroup";
+import { EndType, JoinType } from "./OffsetEnums";
+import {
+  area,
+  ellipse,
+  getBounds,
+  reversePath,
+  sqr,
+  stripDuplicates,
+} from "../Clipper";
 import { ClipType, FillRule } from "../Core/CoreEnums";
+import {
+  crossProduct,
+  defaultArcTolerance,
+  dotProduct,
+  isAlmostZero,
+} from "../Core/InternalClipper";
 import { Path64 } from "../Core/Path64";
 import { PathD } from "../Core/PathD";
 import { Paths64 } from "../Core/Paths64";
@@ -9,8 +23,6 @@ import { PointD } from "../Core/PointD";
 import { Rect64 } from "../Core/Rect64";
 import { Clipper64 } from "../Engine/Clipper64";
 import { PolyTree64 } from "../Engine/PolyTree64";
-import { ClipperGroup } from "./ClipperGroup";
-import { EndType, JoinType } from "./OffsetEnums";
 
 export type DeltaCallback64 = (
   path: Path64,
@@ -101,8 +113,7 @@ export class ClipperOffset {
       }
     } else {
       this._delta = delta;
-      this._mitLimSqr =
-        this.miterLimit <= 1 ? 2.0 : 2.0 / Clipper.sqr(this.miterLimit);
+      this._mitLimSqr = this.miterLimit <= 1 ? 2.0 : 2.0 / sqr(this.miterLimit);
 
       for (const group of this._groupList) {
         this.doGroupOffset(group);
@@ -224,8 +235,8 @@ export class ClipperOffset {
     pt2a: PointD,
     pt2b: PointD,
   ): PointD {
-    if (InternalClipper.isAlmostZero(pt1a.x - pt1b.x)) {
-      if (InternalClipper.isAlmostZero(pt2a.x - pt2b.x)) {
+    if (isAlmostZero(pt1a.x - pt1b.x)) {
+      if (isAlmostZero(pt2a.x - pt2b.x)) {
         return { x: 0, y: 0 };
       }
       const m2 = (pt2b.y - pt2a.y) / (pt2b.x - pt2a.x);
@@ -233,7 +244,7 @@ export class ClipperOffset {
       return { x: pt1a.x, y: m2 * pt1a.x + b2 };
     }
 
-    if (InternalClipper.isAlmostZero(pt2a.x - pt2b.x)) {
+    if (isAlmostZero(pt2a.x - pt2b.x)) {
       const m1 = (pt1b.y - pt1a.y) / (pt1b.x - pt1a.x);
       const b1 = pt1a.y - m1 * pt1a.x;
       return { x: pt2a.x, y: m1 * pt2a.x + b1 };
@@ -242,7 +253,7 @@ export class ClipperOffset {
       const b1 = pt1a.y - m1 * pt1a.x;
       const m2 = (pt2b.y - pt2a.y) / (pt2b.x - pt2a.x);
       const b2 = pt2a.y - m2 * pt2a.x;
-      if (InternalClipper.isAlmostZero(m1 - m2)) {
+      if (isAlmostZero(m1 - m2)) {
         return { x: 0, y: 0 };
       }
       const x = (b2 - b1) / (m1 - m2);
@@ -358,7 +369,7 @@ export class ClipperOffset {
       const arcTol =
         this.arcTolerance > 0.01
           ? this.arcTolerance
-          : Math.log10(2 + absDelta) * InternalClipper.defaultArcTolerance;
+          : Math.log10(2 + absDelta) * defaultArcTolerance;
       const stepsPer360 = Math.PI / Math.acos(1 - arcTol / absDelta);
       this._stepSin = Math.sin((2 * Math.PI) / stepsPer360);
       this._stepCos = Math.cos((2 * Math.PI) / stepsPer360);
@@ -420,8 +431,8 @@ export class ClipperOffset {
   }
 
   offsetPoint(group: ClipperGroup, path: Path64, j: number, k: number): number {
-    let sinA = InternalClipper.crossProduct(this._normals[j], this._normals[k]);
-    const cosA = InternalClipper.dotProduct(this._normals[j], this._normals[k]);
+    let sinA = crossProduct(this._normals[j], this._normals[k]);
+    const cosA = dotProduct(this._normals[j], this._normals[k]);
     if (sinA > 1.0) {
       sinA = 1.0;
     } else if (sinA < -1.0) {
@@ -462,9 +473,9 @@ export class ClipperOffset {
   }
 
   offsetPolygon(group: ClipperGroup, path: Path64) {
-    const a = Clipper.area(path);
+    const a = area(path);
     if (a < 0 !== this._groupDelta < 0) {
-      const rec = Clipper.getBounds64(path);
+      const rec = getBounds(path);
       if (Math.abs(this._groupDelta) * 2 > rec.width) {
         return;
       }
@@ -482,7 +493,7 @@ export class ClipperOffset {
 
   offsetOpenJoined(group: ClipperGroup, path: Path64) {
     this.offsetPolygon(group, path);
-    path = Clipper.reversePath(path);
+    path = reversePath(path);
     this.bulidNormals(path);
     this.offsetPolygon(group, path);
   }
@@ -586,9 +597,9 @@ export class ClipperOffset {
         return;
       }
 
-      const area = Clipper.area(group.inPaths[lowestIdx]);
+      const calcedArea = area(group.inPaths[lowestIdx]);
 
-      group.pathsReversed = area < 0;
+      group.pathsReversed = calcedArea < 0;
 
       if (group.pathsReversed) {
         this._groupDelta = -this._delta;
@@ -611,7 +622,7 @@ export class ClipperOffset {
       const arcTol =
         this.arcTolerance > 0.01
           ? this.arcTolerance
-          : Math.log10(2 + absDelta) * InternalClipper.defaultArcTolerance;
+          : Math.log10(2 + absDelta) * defaultArcTolerance;
 
       const stepsPer360 = Math.PI / Math.acos(1 - arcTol / absDelta);
       this._stepSin = Math.sin((2 * Math.PI) / stepsPer360);
@@ -626,7 +637,7 @@ export class ClipperOffset {
       group.endType === EndType.Joined || group.endType === EndType.Polygon;
 
     for (const p of group.inPaths) {
-      const path = Clipper.stripDuplicates(p, isJoined);
+      const path = stripDuplicates(p, isJoined);
       const cnt = path.length;
       if (cnt === 0 || (cnt < 3 && this._endType === EndType.Polygon)) {
         continue;
@@ -637,7 +648,7 @@ export class ClipperOffset {
         if (group.endType === EndType.Round) {
           const r = absDelta;
           const steps = Math.ceil(this._stepsPerRad * 2 * Math.PI);
-          group.outPath = Clipper.ellipse(path[0], r, r, steps);
+          group.outPath = ellipse(path[0], r, r, steps);
         } else {
           const d = Math.ceil(this._groupDelta);
           const r = new Rect64(

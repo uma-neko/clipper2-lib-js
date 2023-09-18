@@ -1,6 +1,6 @@
-import { Clipper } from "../Clipper2JS";
-import { Path64 } from "../Core/Path64";
 import { PolyPathBase } from "./PolyPathBase";
+import { area as clipperArea } from "../Clipper";
+import { Path64 } from "../Core/Path64";
 
 export class PolyPath64 extends PolyPathBase {
   polygon?: Path64;
@@ -20,7 +20,7 @@ export class PolyPath64 extends PolyPathBase {
   }
 
   area() {
-    let result = this.polygon === undefined ? 0 : Clipper.area(this.polygon);
+    let result = this.polygon === undefined ? 0 : clipperArea(this.polygon);
     for (const polyPathBase of this._childs) {
       result += (polyPathBase as PolyPath64).area();
     }
