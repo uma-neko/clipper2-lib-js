@@ -1,0 +1,19 @@
+{
+  "root":true,
+  "env":{
+    "browser":true,
+    "es2018":true
+  },
+  "parser":"@typescript-eslint/parser",
+  "extends":["eslint:recommended", "plugin:@typescript-eslint/recommended"],
+  "plugins":[
+    "@typescript-eslint"
+  ],
+  "rules":{
+    "no-throw-literal":["error"],
+    "@typescript-eslint/ban-ts-comment": [
+      "error",
+      {"ts-ignore": "allow-with-description"}
+    ]
+  }
+}
