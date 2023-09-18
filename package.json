@@ -1,0 +1,13 @@
+{
+  "name": "clipper2js",
+  "version": "0.0.1",
+  "description": "A port of Clipper2(C#) to js/ts.",
+  "scripts":{
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uma-neko/Clipper2JS.git"
+  },
+  "author": "uma-neko",
+  "license": "BSL-1.0"
+}
