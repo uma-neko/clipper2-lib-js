@@ -21,7 +21,7 @@
     "prettier:all": "npm run prettier:src && npm run prettier:test",
     "prettier:src": "prettier --write src/",
     "prettier:test": "prettier --write test/",
-    "prebuild": "npm run lint:all && npm run prettier:all && npm run test || npm run typecheck || true",
+    "prebuild": "npm run lint:all || npm run prettier:all && npm run test || npm run typecheck || true",
     "typecheck": "tsc",
     "build": "npm run build:src",
     "build:src": "npm run vite build && npm run build:type",
