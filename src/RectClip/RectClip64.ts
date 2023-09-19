@@ -191,7 +191,7 @@ export const getLocation = (
   if (pt.y === rec.bottom && pt.x >= rec.left && pt.x <= rec.right) {
     return {
       result: false,
-      loc: Location.top,
+      loc: Location.bottom,
     };
   }
   if (pt.x < rec.left) {
@@ -329,7 +329,7 @@ export class RectClip64 {
     if (currIdx === 0 || startingNewPath) {
       result = {
         ownerIdx: currIdx,
-        pt: { x: pt.x, y: pt.y },
+        pt: Point64.clone(pt),
       };
       this._results.push(result);
       result.prev = result;
@@ -343,7 +343,7 @@ export class RectClip64 {
 
       result = {
         ownerIdx: currIdx,
-        pt: { x: pt.x, y: pt.y },
+        pt: Point64.clone(pt),
         next: prevOp!.next,
       };
 
@@ -701,13 +701,13 @@ export class RectClip64 {
       i = highI - 1;
       while (
         i >= 0 &&
-        !({ loc: prev } = getLocation(this._rect, path[highI])).result
+        !({ loc: prev } = getLocation(this._rect, path[i])).result
       ) {
         i--;
       }
       if (i < 0) {
         for (const pt of path) {
-          this.add(pt);
+          this.add(Point64.clone(pt));
         }
         return;
       }
@@ -814,7 +814,7 @@ export class RectClip64 {
           path1ContainsPath2(path, this._rectPath)
         ) {
           for (let j = 0; j < 4; j++) {
-            this.add(this._rectPath[j]);
+            this.add(Point64.clone(this._rectPath[j]));
             addToEdge(this._edges[j * 2], this._results[0]!);
           }
         }
@@ -829,13 +829,13 @@ export class RectClip64 {
           if (prev === loc2) {
             continue;
           }
-          this.addCornerRef(prev, headingClockwise(prev, loc2));
+          prev = this.addCornerRef(prev, headingClockwise(prev, loc2));
           prev = loc2;
         }
         loc = prev;
       }
       if (loc !== firstCross) {
-        this.addCornerRef(loc, headingClockwise(loc, firstCross));
+        loc = this.addCornerRef(loc, headingClockwise(loc, firstCross));
       }
     }
   }
@@ -857,7 +857,7 @@ export class RectClip64 {
       } else if (this._rect.contains(this._pathBounds)) {
         const clonedPath: Path64 = new Path64();
         for (const pt of path) {
-          clonedPath.push({ x: pt.x, y: pt.y });
+          clonedPath.push(Point64.clone(pt));
         }
         result.push(clonedPath);
         continue;
@@ -924,7 +924,7 @@ export class RectClip64 {
       op2 = op;
 
       do {
-        const edgeSet2 = getEdgesForPt(op!.pt, this._rect);
+        const edgeSet2 = getEdgesForPt(op2!.pt, this._rect);
         if (edgeSet2 !== 0 && op2!.edge === undefined) {
           const combinedSet = edgeSet1 & edgeSet2;
 
@@ -966,7 +966,7 @@ export class RectClip64 {
 
     while (i < cw.length) {
       p1 = cw[i];
-      if (p1 === undefined || p1.next == p1.prev) {
+      if (p1 === undefined || p1.next === p1.prev) {
         cw[i++] = undefined;
         j = 0;
         continue;
@@ -977,11 +977,11 @@ export class RectClip64 {
         j < jLim &&
         (ccw[j] === undefined || ccw[j]!.next === ccw[j]!.prev)
       ) {
-        ++j;
+        j++;
       }
 
       if (j === jLim) {
-        ++i;
+        i++;
         j = 0;
         continue;
       }
@@ -1011,6 +1011,24 @@ export class RectClip64 {
       if (isRejoining) {
         this._results[p2!.ownerIdx] = undefined;
         setNewOwner(p2!, p1!.ownerIdx);
+      }
+
+      if (cwIsTowardLarger) {
+        p1!.next = p2;
+        p2!.prev = p1;
+        p1a!.prev = p2a;
+        p2a!.next = p1a;
+      } else {
+        p1!.prev = p2;
+        p2!.next = p1;
+        p1a!.next = p2a;
+        p2a!.prev = p1a;
+      }
+
+      if (!isRejoining) {
+        const new_idx = this._results.length;
+        this._results.push(p1a);
+        setNewOwner(p1a!, new_idx);
       }
 
       if (cwIsTowardLarger) {
@@ -1078,9 +1096,8 @@ export class RectClip64 {
   }
 
   getPath(op: OutPt2 | undefined): Path64 {
-    const result: Path64 = new Path64();
     if (op === undefined || op.prev === op.next) {
-      return result;
+      return new Path64();
     }
 
     let op2: OutPt2 | undefined = op.next;
@@ -1095,14 +1112,15 @@ export class RectClip64 {
     }
 
     if (op2 === undefined) {
-      return result;
+      return new Path64();
     }
 
-    result.push(op!.pt);
+    const result: Path64 = new Path64();
+    result.push(Point64.clone(op!.pt));
     op2 = op!.next;
 
     while (op2 !== op) {
-      result.push(op2!.pt);
+      result.push(Point64.clone(op2!.pt));
       op2 = op2!.next;
     }
 
