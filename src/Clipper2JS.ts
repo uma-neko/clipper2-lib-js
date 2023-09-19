@@ -1,5 +1,5 @@
 export { ClipType, FillRule, PathType } from "./Core/CoreEnums";
-export * from "./Clipper";
+export { Clipper } from "./Clipper";
 export { InternalClipper } from "./Core/InternalClipper";
 export { Path64, isPath64 } from "./Core/Path64";
 export { PathD, isPathD } from "./Core/PathD";
