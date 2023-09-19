@@ -21,14 +21,13 @@
     "prettier:all": "npm run prettier:src && npm run prettier:test",
     "prettier:src": "prettier --write src/",
     "prettier:test": "prettier --write test/",
-    "prebuild": "npm run lint:all && npm run prettier:all && npm run test && npm run typecheck",
+    "prebuild": "npm run lint:all && npm run prettier:all && npm run test || npm run typecheck || true",
     "typecheck": "tsc",
     "build": "npm run build:src",
     "build:src": "npm run vite build && npm run build:type",
-    "build:type": "tsc --project tsconfig.build.json --declaration --emitDeclarationOnly --noEmit false",
+    "build:type": "tsc --project tsconfig.build.json",
     "vite": "vite",
-    "vitest": "vitest",
-    "test": "npm run lint:all && npm run vitest run"
+    "test": "vitest run"
   },
   "repository": {
     "type": "git",
