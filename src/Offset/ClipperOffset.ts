@@ -395,20 +395,18 @@ export class ClipperOffset {
       y: pt.y + BigInt(offsetVec.y),
     });
 
-    if (angle > -Math.PI + 0.01) {
-      const steps = Math.ceil(this._stepsPerRad * Math.abs(angle));
+    const steps = Math.ceil(this._stepsPerRad * Math.abs(angle));
 
-      for (let i = 1; i < steps; i++) {
-        offsetVec = {
-          x: offsetVec.x * this._stepCos - this._stepSin * offsetVec.y,
-          y: offsetVec.x * this._stepSin - offsetVec.y * this._stepCos,
-        };
+    for (let i = 1; i < steps; i++) {
+      offsetVec = {
+        x: offsetVec.x * this._stepCos - this._stepSin * offsetVec.y,
+        y: offsetVec.x * this._stepSin - offsetVec.y * this._stepCos,
+      };
 
-        group.outPath.push({
-          x: BigInt(Math.round(Number(pt.x) + offsetVec.x)),
-          y: BigInt(Math.round(Number(pt.y) + offsetVec.y)),
-        });
-      }
+      group.outPath.push({
+        x: BigInt(Math.round(Number(pt.x) + offsetVec.x)),
+        y: BigInt(Math.round(Number(pt.y) + offsetVec.y)),
+      });
     }
 
     group.outPath.push(this.getPerpendic(pt, this._normals[j]));
@@ -476,7 +474,8 @@ export class ClipperOffset {
     const a = area(path);
     if (a < 0 !== this._groupDelta < 0) {
       const rec = getBounds(path);
-      if (Math.abs(this._groupDelta) * 2 > rec.width) {
+      const offsetMinDim = Math.abs(this._groupDelta) * 2;
+      if (offsetMinDim > rec.width || offsetMinDim > rec.height) {
         return;
       }
     }

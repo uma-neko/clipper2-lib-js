@@ -77,32 +77,6 @@ export function dotProduct(
   throw new Error("todo: change message");
 }
 
-export const getIntersectPt = (
-  ln1a: Point64,
-  ln1b: Point64,
-  ln2a: Point64,
-  ln2b: Point64,
-): Point64 | undefined => {
-  const dy1 = Number(ln1b.y - ln1a.y);
-  const dx1 = Number(ln1b.x - ln1a.x);
-  const dy2 = Number(ln2b.y - ln2a.y);
-  const dx2 = Number(ln2b.x - ln2a.x);
-  const det = dy1 * dx2 - dy2 * dx1;
-  if (det == 0.0) {
-    return undefined;
-  }
-
-  const t =
-    (Number(ln1a.x - ln2a.x) * dy2 - Number(ln1a.y - ln2a.y) * dx2) / det;
-  if (t <= 0.0) return { x: ln1a.x, y: ln1a.y };
-  else if (t >= 1.0) return { x: ln1b.x, y: ln1b.y };
-  else
-    return {
-      x: ln1a.x + BigInt(Math.round(t * dx1)),
-      y: ln1a.y + BigInt(Math.round(t * dy1)),
-    };
-};
-
 export const getIntersectPoint = (
   ln1a: Point64,
   ln1b: Point64,
