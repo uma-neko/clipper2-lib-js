@@ -16,7 +16,6 @@ import {
   dotProduct,
   getClosestPtOnSegment,
   getIntersectPoint,
-  getIntersectPt,
   pointInPolygon,
   segsIntersect,
 } from "../Core/InternalClipper";
@@ -1823,11 +1822,8 @@ export class ClipperBase {
 
   addNewIntersectNode(ae1: Active, ae2: Active, topY: bigint) {
     let ip: Point64;
-
-    const resultIp = getIntersectPt(ae1.bot, ae1.top, ae2.bot, ae2.top);
-    if (resultIp !== undefined) {
-      ip = resultIp;
-    } else {
+    
+    if (!({ip} = getIntersectPoint(ae1.bot, ae1.top, ae2.bot, ae2.top)).result) {
       ip = { x: ae1.curX, y: topY };
     }
 
