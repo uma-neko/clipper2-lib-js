@@ -17,6 +17,15 @@ export type TestCases = {
         type: "d";
         paths: string[][];
       };
+  subjects_open:
+    | {
+        type: "64";
+        paths: number[][];
+      }
+    | {
+        type: "d";
+        paths: string[][];
+      };
   clips:
     | {
         type: "64";
