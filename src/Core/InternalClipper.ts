@@ -95,9 +95,9 @@ export const getIntersectPoint = (
   const t =
     (Number(ln1a.x - ln2a.x) * dy2 - Number(ln1a.y - ln2a.y) * dx2) / det;
   if (t <= 0.0) {
-    return { result: true, ip: { x: ln1a.x, y: ln1a.y } };
+    return { result: true, ip: Point64.clone(ln1a) };
   } else if (t >= 1.0) {
-    return { result: true, ip: { x: ln2a.x, y: ln2a.y } };
+    return { result: true, ip: Point64.clone(ln1b) };
   } else {
     return {
       result: true,
@@ -138,7 +138,7 @@ export const getClosestPtOnSegment = (
   seg1: Point64,
   seg2: Point64,
 ): Point64 => {
-  if (seg1.x === seg2.x && seg1.y === seg2.y) return { x: seg1.x, y: seg1.y };
+  if (seg1.x === seg2.x && seg1.y === seg2.y) return Point64.clone(seg1);
   const dx = Number(seg2.x - seg1.x);
   const dy = Number(seg2.y - seg1.y);
   let q =
@@ -211,7 +211,7 @@ export const pointInPolygon = (
 
     if (curr.y === pt.y) {
       if (
-        curr.y === pt.x ||
+        curr.x === pt.x ||
         (curr.y === prev.y && pt.x < prev.x !== pt.x < curr.x)
       ) {
         return PointInPolygonResult.IsOn;

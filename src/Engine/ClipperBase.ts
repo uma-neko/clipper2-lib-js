@@ -1822,8 +1822,10 @@ export class ClipperBase {
 
   addNewIntersectNode(ae1: Active, ae2: Active, topY: bigint) {
     let ip: Point64;
-    
-    if (!({ip} = getIntersectPoint(ae1.bot, ae1.top, ae2.bot, ae2.top)).result) {
+
+    if (
+      !({ ip } = getIntersectPoint(ae1.bot, ae1.top, ae2.bot, ae2.top)).result
+    ) {
       ip = { x: ae1.curX, y: topY };
     }
 
