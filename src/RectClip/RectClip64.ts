@@ -236,7 +236,7 @@ const getSegmentIntersection = (
   const res2 = crossProduct(p2, p3, p4);
   let ip: Point64;
   if (res1 === 0) {
-    ip = { x: p1.x, y: p1.y };
+    ip = Point64.clone(p1);
     let result: boolean;
     if (res2 === 0) {
       result = false;
@@ -249,7 +249,7 @@ const getSegmentIntersection = (
     }
     return { result, ip };
   } else if (res2 === 0) {
-    ip = { x: p2.x, y: p2.y };
+    ip = Point64.clone(p2);
     let result: boolean;
     if (Point64.equals(p2, p3) || Point64.equals(p2, p4)) {
       result = true;
@@ -270,7 +270,7 @@ const getSegmentIntersection = (
   const res4 = crossProduct(p4, p1, p2);
 
   if (res3 === 0) {
-    ip = { x: p3.x, y: p3.y };
+    ip = Point64.clone(p3);
     let result: boolean;
     if (Point64.equals(p3, p1) || Point64.equals(p3, p2)) {
       result = true;
@@ -281,7 +281,7 @@ const getSegmentIntersection = (
     }
     return { result, ip };
   } else if (res4 === 0) {
-    ip = { x: p4.x, y: p4.y };
+    ip = Point64.clone(p4);
     let result: boolean;
     if (Point64.equals(p4, p1) || Point64.equals(p4, p2)) {
       result = true;
