@@ -47,7 +47,7 @@ describe(
           ClipType[testCase.clipType],
           FillRule[testCase.fillRule],
           solution,
-          solution_open
+          solution_open,
         );
         const mesuredCount = solution.length + solution_open.length;
         const mesuredArea = Clipper.area(solution);
