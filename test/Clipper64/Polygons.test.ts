@@ -6,7 +6,7 @@ import {
   ClipType,
   FillRule,
   Paths64,
-} from "../../src/Clipper2js";
+} from "../../src/clipper2lib";
 import { TestCases } from "../Common/testCases";
 
 describe(
@@ -49,9 +49,14 @@ describe(
         const countDiff = Math.abs(solutionCount - mesuredCount);
         const areaDiff = Math.abs(solutionArea - mesuredArea);
         const areaRatio = solutionArea <= 0 ? 0 : areaDiff / solutionArea;
-
-        expect(countDiff).toBeLessThanOrEqual(toleranceCountDiff);
-        expect(areaRatio).toBeLessThanOrEqual(toleranceAreaRatio);
+        expect(
+          countDiff,
+          `count:{mesured:${mesuredCount}, solution:${solutionCount}}`,
+        ).toBeLessThanOrEqual(toleranceCountDiff);
+        expect(
+          areaRatio,
+          `area:{mesured:${mesuredArea}, solution:${solutionArea}}`,
+        ).toBeLessThanOrEqual(toleranceAreaRatio);
       });
     }
   },

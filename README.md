@@ -1,4 +1,4 @@
-# Clipper2JS
+# clipper2-lib-js
 A port of _[Clipper2](https://github.com/AngusJohnson/Clipper2)_(C#) to js/ts.
 
 ## todo

@@ -1,6 +1,6 @@
 {
-  "name": "clipper2js",
-  "version": "0.0.1",
+  "name": "clipper2-lib-js",
+  "version": "0.0.2",
   "type": "module",
   "files": [
     "build",
@@ -10,9 +10,9 @@
     "test",
     "src"
   ],
-  "main": "./build/clipper2js.js",
-  "module": "./build/clipper2js.module.js",
-  "types": "./build/clipper2js.d.ts",
+  "main": "./build/clipper2lib.js",
+  "module": "./build/clipper2lib.module.js",
+  "types": "./build/clipper2lib.d.ts",
   "description": "A port of Clipper2(C#) to js/ts.",
   "scripts": {
     "lint:all": "npm run lint:src && npm run lint:test",
@@ -31,12 +31,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/uma-neko/Clipper2JS.git"
+    "url": "https://github.com/uma-neko/clipper2-lib-js.git"
   },
   "author": "uma-neko",
   "license": "BSL-1.0",
   "bugs":{
-    "url": "https://github.com/uma-neko/Clipper2JS/issues"
+    "url": "https://github.com/uma-neko/clipper2-lib-js/issues"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.7.0",
@@ -50,8 +50,8 @@
   },
   "exports": {
     ".": {
-      "import": "./build/clipper2js.module.js",
-      "require": "./build/clipper2js.cjs"
+      "import": "./build/clipper2lib.module.js",
+      "require": "./build/clipper2lib.cjs"
     }
   }
 }

@@ -1,4 +1,4 @@
-import { ClipType, FillRule } from "../../src/Clipper2js";
+import { ClipType, FillRule } from "../../src/clipper2lib";
 
 export type TestCases = {
   caption: string;
