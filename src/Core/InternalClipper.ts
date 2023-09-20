@@ -1,6 +1,6 @@
 import { Path64 } from "./Path64";
-import { Point64 } from "./Point64";
-import { PointD } from "./PointD";
+import { Point64, isPoint64 } from "./Point64";
+import { PointD, isPointD } from "./PointD";
 import { PointInPolygonResult } from "../Engine/EngineEnums";
 import { numberToBigInt } from "../Clipper";
 
@@ -23,21 +23,13 @@ export function crossProduct(
   pt2OrVec2: Point64 | PointD,
   pt3?: Point64,
 ) {
-  if (
-    typeof pt1OrVec1.x === "number" &&
-    typeof pt1OrVec1.y === "number" &&
-    typeof pt2OrVec2.x === "number" &&
-    typeof pt2OrVec2.y === "number"
-  ) {
+  if (isPointD(pt1OrVec1) && isPointD(pt2OrVec2)) {
     return pt1OrVec1.y * pt2OrVec2.x - pt2OrVec2.y * pt1OrVec1.x;
   } else if (
-    typeof pt1OrVec1.x === "bigint" &&
-    typeof pt1OrVec1.y === "bigint" &&
-    typeof pt2OrVec2.x === "bigint" &&
-    typeof pt2OrVec2.y === "bigint" &&
+    isPoint64(pt1OrVec1) &&
+    isPoint64(pt2OrVec2) &&
     pt3 !== undefined &&
-    typeof pt3.x === "bigint" &&
-    typeof pt3.y === "bigint"
+    isPoint64(pt3)
   ) {
     return (
       Number((pt2OrVec2.x - pt1OrVec1.x) * (pt3.y - pt2OrVec2.y)) -
@@ -54,22 +46,9 @@ export function dotProduct(
   pt2OrVec2: Point64 | PointD,
   pt3?: Point64,
 ) {
-  if (
-    typeof pt1OrVec1.x === "number" &&
-    typeof pt1OrVec1.y === "number" &&
-    typeof pt2OrVec2.x === "number" &&
-    typeof pt2OrVec2.y === "number"
-  ) {
+  if (isPointD(pt1OrVec1) && isPointD(pt2OrVec2)) {
     return pt1OrVec1.x * pt2OrVec2.x + pt1OrVec1.y * pt2OrVec2.y;
-  } else if (
-    typeof pt1OrVec1.x === "bigint" &&
-    typeof pt1OrVec1.y === "bigint" &&
-    typeof pt2OrVec2.x === "bigint" &&
-    typeof pt2OrVec2.y === "bigint" &&
-    pt3 !== undefined &&
-    typeof pt3.x === "bigint" &&
-    typeof pt3.y === "bigint"
-  ) {
+  } else if (isPoint64(pt1OrVec1) && isPoint64(pt2OrVec2) && isPoint64(pt3)) {
     return (
       Number((pt2OrVec2.x - pt1OrVec1.x) * (pt3.x - pt2OrVec2.x)) +
       Number((pt2OrVec2.y - pt1OrVec1.y) * (pt3.y - pt2OrVec2.y))

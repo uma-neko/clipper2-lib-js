@@ -1,16 +1,17 @@
 import { numberToBigInt } from "../Clipper";
+import { isNotNullish } from "../CommonUtils";
 
 export type Point64 = {
   x: bigint;
   y: bigint;
 };
 
-export const isPoint64 = (obj: Record<string, unknown>): obj is Point64 =>
+export const isPoint64 = (obj: unknown): obj is Point64 =>
+  isNotNullish(obj) &&
   "x" in obj &&
   typeof obj.x === "bigint" &&
   "y" in obj &&
   typeof obj.y === "bigint";
-
 export const Point64 = {
   equals: (a: Point64, b: Point64) => a.x === b.x && a.y === b.y,
   notEquals: (a: Point64, b: Point64) => a.x !== b.x || a.y !== b.y,
