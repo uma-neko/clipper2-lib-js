@@ -271,7 +271,10 @@
     "toleranceAreaRatio": 0.075,
     "solutionCount": 2,
     "toleranceCountDiff": 0,
-    "subjects": { "type": "64", "paths": [[-103, -219, -103, -136, -115, -136]] },
+    "subjects": {
+      "type": "64",
+      "paths": [[-103, -219, -103, -136, -115, -136]]
+    },
     "clips": { "type": "64", "paths": [[-110, -174, -70, -174, -110, -155]] }
   },
 

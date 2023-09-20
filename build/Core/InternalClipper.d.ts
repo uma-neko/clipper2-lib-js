@@ -9,7 +9,6 @@ export declare function crossProduct(pt1: Point64, pt2: Point64, pt3: Point64): 
 export declare function crossProduct(vec1: PointD, vec2: PointD): number;
 export declare function dotProduct(vec1: PointD, vec2: PointD): number;
 export declare function dotProduct(pt1: Point64, pt2: Point64, pt3: Point64): number;
-export declare const getIntersectPt: (ln1a: Point64, ln1b: Point64, ln2a: Point64, ln2b: Point64) => Point64 | undefined;
 export declare const getIntersectPoint: (ln1a: Point64, ln1b: Point64, ln2a: Point64, ln2b: Point64) => {
     result: boolean;
     ip: Point64;

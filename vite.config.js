@@ -6,8 +6,8 @@ export default defineConfig({
     target:"es2020",
     minify:false,
     lib: {
-      entry: resolve(__dirname, 'src/Clipper2js.ts'),
-      name: 'clipper2js',
+      entry: resolve(__dirname, 'src/clipper2lib.ts'),
+      name: 'clipper2lib',
       fileName: (format, entryname) => {
         switch(format){
           case 'es':

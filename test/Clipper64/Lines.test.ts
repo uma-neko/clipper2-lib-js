@@ -6,7 +6,7 @@ import {
   ClipType,
   FillRule,
   Paths64,
-} from "../../src/Clipper2js";
+} from "../../src/clipper2lib";
 import { TestCases } from "../Common/testCases";
 
 describe(

@@ -1,11 +1,9 @@
-"use strict";
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => {
   __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
   return value;
 };
-Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 const FillRule = {
   EvenOdd: 0,
   NonZero: 1,
@@ -22,6 +20,19 @@ const ClipType = {
 const PathType = {
   Subject: 1,
   Clip: 2
+};
+const isPoint64 = (obj) => "x" in obj && typeof obj.x === "bigint" && "y" in obj && typeof obj.y === "bigint";
+const Point64 = {
+  equals: (a, b) => a.x === b.x && a.y === b.y,
+  notEquals: (a, b) => a.x !== b.x || a.y !== b.y,
+  clone: (origin) => ({ x: origin.x, y: origin.y }),
+  createScaledPoint: (x, y, scale) => ({
+    x: numberToBigInt(x * scale),
+    y: numberToBigInt(y * scale)
+  }),
+  toString(pt) {
+    return `${pt.x}d,${pt.y}d `;
+  }
 };
 const PointInPolygonResult = {
   IsOn: 0,
@@ -64,26 +75,6 @@ function dotProduct(pt1OrVec1, pt2OrVec2, pt3) {
   }
   throw new Error("todo: change message");
 }
-const getIntersectPt = (ln1a, ln1b, ln2a, ln2b) => {
-  const dy1 = Number(ln1b.y - ln1a.y);
-  const dx1 = Number(ln1b.x - ln1a.x);
-  const dy2 = Number(ln2b.y - ln2a.y);
-  const dx2 = Number(ln2b.x - ln2a.x);
-  const det = dy1 * dx2 - dy2 * dx1;
-  if (det == 0) {
-    return void 0;
-  }
-  const t = (Number(ln1a.x - ln2a.x) * dy2 - Number(ln1a.y - ln2a.y) * dx2) / det;
-  if (t <= 0)
-    return { x: ln1a.x, y: ln1a.y };
-  else if (t >= 1)
-    return { x: ln1b.x, y: ln1b.y };
-  else
-    return {
-      x: ln1a.x + BigInt(Math.round(t * dx1)),
-      y: ln1a.y + BigInt(Math.round(t * dy1))
-    };
-};
 const getIntersectPoint = (ln1a, ln1b, ln2a, ln2b) => {
   const dy1 = Number(ln1b.y - ln1a.y);
   const dx1 = Number(ln1b.x - ln1a.x);
@@ -95,15 +86,15 @@ const getIntersectPoint = (ln1a, ln1b, ln2a, ln2b) => {
   }
   const t = (Number(ln1a.x - ln2a.x) * dy2 - Number(ln1a.y - ln2a.y) * dx2) / det;
   if (t <= 0) {
-    return { result: true, ip: { x: ln1a.x, y: ln1a.y } };
+    return { result: true, ip: Point64.clone(ln1a) };
   } else if (t >= 1) {
-    return { result: true, ip: { x: ln2a.x, y: ln2a.y } };
+    return { result: true, ip: Point64.clone(ln1b) };
   } else {
     return {
       result: true,
       ip: {
-        x: ln1a.x + BigInt(Math.round(t * dx1)),
-        y: ln1a.y + BigInt(Math.round(t * dy1))
+        x: numberToBigInt(Number(ln1a.x) + t * dx1),
+        y: numberToBigInt(Number(ln1a.y) + t * dy1)
       }
     };
   }
@@ -125,7 +116,7 @@ const segsIntersect = (seg1a, seg1b, seg2a, seg2b, inclusive = false) => {
 };
 const getClosestPtOnSegment = (offPt, seg1, seg2) => {
   if (seg1.x === seg2.x && seg1.y === seg2.y)
-    return { x: seg1.x, y: seg1.y };
+    return Point64.clone(seg1);
   const dx = Number(seg2.x - seg1.x);
   const dy = Number(seg2.y - seg1.y);
   let q = (Number(offPt.x - seg1.x) * dx + Number(offPt.y - seg1.y) * dy) / (dx * dx + dy * dy);
@@ -135,8 +126,8 @@ const getClosestPtOnSegment = (offPt, seg1, seg2) => {
     q = 1;
   }
   return {
-    x: seg1.x + BigInt(Math.round(q * dx)),
-    y: seg1.y + BigInt(Math.round(q * dy))
+    x: numberToBigInt(Number(seg1.x) + q * dx),
+    y: numberToBigInt(Number(seg1.y) + q * dy)
   };
 };
 const pointInPolygon$1 = (pt, polygon) => {
@@ -183,7 +174,7 @@ const pointInPolygon$1 = (pt, polygon) => {
     const curr = polygon[i];
     const prev = i > 0 ? polygon[i - 1] : polygon[len - 1];
     if (curr.y === pt.y) {
-      if (curr.y === pt.x || curr.y === prev.y && pt.x < prev.x !== pt.x < curr.x) {
+      if (curr.x === pt.x || curr.y === prev.y && pt.x < prev.x !== pt.x < curr.x) {
         return PointInPolygonResult.IsOn;
       }
       i++;
@@ -233,19 +224,6 @@ const pointInPolygon$1 = (pt, polygon) => {
 const InternalClipper = {
   getClosestPtOnSegment,
   pointInPolygon: pointInPolygon$1
-};
-const isPoint64 = (obj) => "x" in obj && typeof obj.x === "bigint" && "y" in obj && typeof obj.y === "bigint";
-const Point64 = {
-  equals: (a, b) => a.x === b.x && a.y === b.y,
-  notEquals: (a, b) => a.x !== b.x || a.y !== b.y,
-  clone: (origin) => ({ x: origin.x, y: origin.y }),
-  createScaledPoint: (x, y, scale) => ({
-    x: BigInt(Math.round(x * scale)),
-    y: BigInt(Math.round(y * scale))
-  }),
-  toString(pt) {
-    return `${pt.x}d,${pt.y}d `;
-  }
 };
 const isPath64 = (obj) => {
   return obj instanceof Path64 && obj.type === Path64TypeName;
@@ -429,10 +407,10 @@ class Rect64 {
     }
   }
   scale(scale) {
-    this.top = BigInt(Math.round(Number(this.top) * scale));
-    this.bottom = BigInt(Math.round(Number(this.bottom) * scale));
-    this.left = BigInt(Math.round(Number(this.left) * scale));
-    this.right = BigInt(Math.round(Number(this.right) * scale));
+    this.top = numberToBigInt(Number(this.top) * scale);
+    this.bottom = numberToBigInt(Number(this.bottom) * scale);
+    this.left = numberToBigInt(Number(this.left) * scale);
+    this.right = numberToBigInt(Number(this.right) * scale);
   }
   isEmpty() {
     return this.bottom <= this.top || this.right <= this.left;
@@ -675,7 +653,7 @@ const topX = (ae, currentY) => {
   } else if (currentY === ae.bot.y) {
     return ae.bot.x;
   }
-  return ae.bot.x + BigInt(Math.round(ae.dx * Number(currentY - ae.bot.y)));
+  return ae.bot.x + BigInt(roundToEven(ae.dx * Number(currentY - ae.bot.y)));
 };
 const isHorizontal$1 = (ae) => {
   return ae.top.y === ae.bot.y;
@@ -2089,10 +2067,7 @@ class ClipperBase {
   }
   addNewIntersectNode(ae1, ae2, topY) {
     let ip;
-    const resultIp = getIntersectPt(ae1.bot, ae1.top, ae2.bot, ae2.top);
-    if (resultIp !== void 0) {
-      ip = resultIp;
-    } else {
+    if (!({ ip } = getIntersectPoint(ae1.bot, ae1.top, ae2.bot, ae2.top)).result) {
       ip = { x: ae1.curX, y: topY };
     }
     if (ip.y > this._currentBotY || ip.y < topY) {
@@ -3329,14 +3304,14 @@ class ClipperOffset {
   }
   getPerpendic(pt, norm) {
     return {
-      x: BigInt(Math.round(Number(pt.x) + norm.x * this._groupDelta)),
-      y: BigInt(Math.round(Number(pt.y) + norm.y * this._groupDelta))
+      x: numberToBigInt(Number(pt.x) + norm.x * this._groupDelta),
+      y: numberToBigInt(Number(pt.y) + norm.y * this._groupDelta)
     };
   }
   getPerpendicD(pt, norm) {
     return {
-      x: Math.round(Number(pt.x) + norm.x * this._groupDelta),
-      y: Math.round(Number(pt.y) + norm.y * this._groupDelta)
+      x: awayFromZeroRounding(Number(pt.x) + norm.x * this._groupDelta),
+      y: awayFromZeroRounding(Number(pt.y) + norm.y * this._groupDelta)
     };
   }
   doSquare(group, path, j, k) {
@@ -3371,39 +3346,35 @@ class ClipperOffset {
       const pt = this.intersectPoint(pt1, pt2, pt3, pt4);
       const rPt = this.reflectPoint(pt, ptQ);
       group.outPath.push({
-        x: BigInt(Math.round(rPt.x)),
-        y: BigInt(Math.round(rPt.y))
+        x: numberToBigInt(rPt.x),
+        y: numberToBigInt(rPt.y)
       });
       group.outPath.push({
-        x: BigInt(Math.round(pt.x)),
-        y: BigInt(Math.round(pt.y))
+        x: numberToBigInt(pt.x),
+        y: numberToBigInt(pt.y)
       });
     } else {
       const pt4 = this.getPerpendicD(path[j], this._normals[k]);
       const pt = this.intersectPoint(pt1, pt2, pt3, pt4);
       const rPt = this.reflectPoint(pt, ptQ);
       group.outPath.push({
-        x: BigInt(Math.round(pt.x)),
-        y: BigInt(Math.round(pt.y))
+        x: numberToBigInt(pt.x),
+        y: numberToBigInt(pt.y)
       });
       group.outPath.push({
-        x: BigInt(Math.round(rPt.x)),
-        y: BigInt(Math.round(rPt.y))
+        x: numberToBigInt(rPt.x),
+        y: numberToBigInt(rPt.y)
       });
     }
   }
   doMiter(group, path, j, k, cosA) {
     const q = this._groupDelta / (cosA + 1);
     group.outPath.push({
-      x: BigInt(
-        Math.round(
-          Number(path[j].x) + (this._normals[k].x + this._normals[j].x) * q
-        )
+      x: numberToBigInt(
+        Number(path[j].x) + (this._normals[k].x + this._normals[j].x) * q
       ),
-      y: BigInt(
-        Math.round(
-          Number(path[j].y) + (this._normals[k].y + this._normals[j].y) * q
-        )
+      y: numberToBigInt(
+        Number(path[j].y) + (this._normals[k].y + this._normals[j].y) * q
       )
     });
   }
@@ -3432,18 +3403,16 @@ class ClipperOffset {
       x: pt.x + BigInt(offsetVec.x),
       y: pt.y + BigInt(offsetVec.y)
     });
-    if (angle > -Math.PI + 0.01) {
-      const steps = Math.ceil(this._stepsPerRad * Math.abs(angle));
-      for (let i = 1; i < steps; i++) {
-        offsetVec = {
-          x: offsetVec.x * this._stepCos - this._stepSin * offsetVec.y,
-          y: offsetVec.x * this._stepSin - offsetVec.y * this._stepCos
-        };
-        group.outPath.push({
-          x: BigInt(Math.round(Number(pt.x) + offsetVec.x)),
-          y: BigInt(Math.round(Number(pt.y) + offsetVec.y))
-        });
-      }
+    const steps = Math.ceil(this._stepsPerRad * Math.abs(angle));
+    for (let i = 1; i < steps; i++) {
+      offsetVec = {
+        x: offsetVec.x * this._stepCos - this._stepSin * offsetVec.y,
+        y: offsetVec.x * this._stepSin - offsetVec.y * this._stepCos
+      };
+      group.outPath.push({
+        x: numberToBigInt(Number(pt.x) + offsetVec.x),
+        y: numberToBigInt(Number(pt.y) + offsetVec.y)
+      });
     }
     group.outPath.push(this.getPerpendic(pt, this._normals[j]));
   }
@@ -3502,7 +3471,8 @@ class ClipperOffset {
     const a = area(path);
     if (a < 0 !== this._groupDelta < 0) {
       const rec = getBounds(path);
-      if (Math.abs(this._groupDelta) * 2 > rec.width) {
+      const offsetMinDim = Math.abs(this._groupDelta) * 2;
+      if (offsetMinDim > rec.width || offsetMinDim > rec.height) {
         return;
       }
     }
@@ -3532,15 +3502,11 @@ class ClipperOffset {
       switch (this._endType) {
         case EndType.Butt:
           group.outPath.push({
-            x: BigInt(
-              Math.round(
-                Number(path[0].x) - this._normals[0].x * this._groupDelta
-              )
+            x: numberToBigInt(
+              Number(path[0].x) - this._normals[0].x * this._groupDelta
             ),
-            y: BigInt(
-              Math.round(
-                Number(path[0].y) - this._normals[0].y * this._groupDelta
-              )
+            y: numberToBigInt(
+              Number(path[0].y) - this._normals[0].y * this._groupDelta
             )
           });
           group.outPath.push(this.getPerpendic(path[0], this._normals[0]));
@@ -3572,15 +3538,11 @@ class ClipperOffset {
       switch (this._endType) {
         case EndType.Butt:
           group.outPath.push({
-            x: BigInt(
-              Math.round(
-                Number(path[highI].x) - this._normals[highI].x * this._groupDelta
-              )
+            x: numberToBigInt(
+              Number(path[highI].x) - this._normals[highI].x * this._groupDelta
             ),
-            y: BigInt(
-              Math.round(
-                Number(path[highI].y) - this._normals[highI].y * this._groupDelta
-              )
+            y: numberToBigInt(
+              Number(path[highI].y) - this._normals[highI].y * this._groupDelta
             )
           });
           group.outPath.push(
@@ -3819,7 +3781,7 @@ const getLocation = (rec, pt) => {
   if (pt.y === rec.bottom && pt.x >= rec.left && pt.x <= rec.right) {
     return {
       result: false,
-      loc: Location.top
+      loc: Location.bottom
     };
   }
   if (pt.x < rec.left) {
@@ -3942,7 +3904,7 @@ class RectClip64 {
     if (currIdx === 0 || startingNewPath) {
       result = {
         ownerIdx: currIdx,
-        pt: { x: pt.x, y: pt.y }
+        pt: Point64.clone(pt)
       };
       this._results.push(result);
       result.prev = result;
@@ -3955,7 +3917,7 @@ class RectClip64 {
       }
       result = {
         ownerIdx: currIdx,
-        pt: { x: pt.x, y: pt.y },
+        pt: Point64.clone(pt),
         next: prevOp.next
       };
       prevOp.next.prev = result;
@@ -4243,12 +4205,12 @@ class RectClip64 {
     let loc;
     if (!({ loc } = getLocation(this._rect, path[highI])).result) {
       i = highI - 1;
-      while (i >= 0 && !({ loc: prev } = getLocation(this._rect, path[highI])).result) {
+      while (i >= 0 && !({ loc: prev } = getLocation(this._rect, path[i])).result) {
         i--;
       }
       if (i < 0) {
         for (const pt of path) {
-          this.add(pt);
+          this.add(Point64.clone(pt));
         }
         return;
       }
@@ -4342,7 +4304,7 @@ class RectClip64 {
       if (startingLoc !== Location.inside) {
         if (this._pathBounds.contains(this._rect) && path1ContainsPath2(path, this._rectPath)) {
           for (let j = 0; j < 4; j++) {
-            this.add(this._rectPath[j]);
+            this.add(Point64.clone(this._rectPath[j]));
             addToEdge(this._edges[j * 2], this._results[0]);
           }
         }
@@ -4354,13 +4316,13 @@ class RectClip64 {
           if (prev === loc2) {
             continue;
           }
-          this.addCornerRef(prev, headingClockwise(prev, loc2));
+          prev = this.addCornerRef(prev, headingClockwise(prev, loc2));
           prev = loc2;
         }
         loc = prev;
       }
       if (loc !== firstCross) {
-        this.addCornerRef(loc, headingClockwise(loc, firstCross));
+        loc = this.addCornerRef(loc, headingClockwise(loc, firstCross));
       }
     }
   }
@@ -4379,7 +4341,7 @@ class RectClip64 {
       } else if (this._rect.contains(this._pathBounds)) {
         const clonedPath = new Path64();
         for (const pt of path) {
-          clonedPath.push({ x: pt.x, y: pt.y });
+          clonedPath.push(Point64.clone(pt));
         }
         result.push(clonedPath);
         continue;
@@ -4435,7 +4397,7 @@ class RectClip64 {
       let edgeSet1 = getEdgesForPt(op.prev.pt, this._rect);
       op2 = op;
       do {
-        const edgeSet2 = getEdgesForPt(op.pt, this._rect);
+        const edgeSet2 = getEdgesForPt(op2.pt, this._rect);
         if (edgeSet2 !== 0 && op2.edge === void 0) {
           const combinedSet = edgeSet1 & edgeSet2;
           for (let j = 0; j < 4; ++j) {
@@ -4469,17 +4431,17 @@ class RectClip64 {
     let op2;
     while (i < cw.length) {
       p1 = cw[i];
-      if (p1 === void 0 || p1.next == p1.prev) {
+      if (p1 === void 0 || p1.next === p1.prev) {
         cw[i++] = void 0;
         j = 0;
         continue;
       }
       const jLim = ccw.length;
       while (j < jLim && (ccw[j] === void 0 || ccw[j].next === ccw[j].prev)) {
-        ++j;
+        j++;
       }
       if (j === jLim) {
-        ++i;
+        i++;
         j = 0;
         continue;
       }
@@ -4502,6 +4464,22 @@ class RectClip64 {
       if (isRejoining) {
         this._results[p2.ownerIdx] = void 0;
         setNewOwner(p2, p1.ownerIdx);
+      }
+      if (cwIsTowardLarger) {
+        p1.next = p2;
+        p2.prev = p1;
+        p1a.prev = p2a;
+        p2a.next = p1a;
+      } else {
+        p1.prev = p2;
+        p2.next = p1;
+        p1a.next = p2a;
+        p2a.prev = p1a;
+      }
+      if (!isRejoining) {
+        const new_idx = this._results.length;
+        this._results.push(p1a);
+        setNewOwner(p1a, new_idx);
       }
       if (cwIsTowardLarger) {
         op = p2;
@@ -4558,9 +4536,8 @@ class RectClip64 {
     }
   }
   getPath(op) {
-    const result = new Path64();
     if (op === void 0 || op.prev === op.next) {
-      return result;
+      return new Path64();
     }
     let op2 = op.next;
     while (op2 !== void 0 && op2 !== op) {
@@ -4572,12 +4549,13 @@ class RectClip64 {
       }
     }
     if (op2 === void 0) {
-      return result;
+      return new Path64();
     }
-    result.push(op.pt);
+    const result = new Path64();
+    result.push(Point64.clone(op.pt));
     op2 = op.next;
     while (op2 !== op) {
-      result.push(op2.pt);
+      result.push(Point64.clone(op2.pt));
       op2 = op2.next;
     }
     return result;
@@ -4691,6 +4669,19 @@ class RectClipLines64 extends RectClip64 {
 const clonePoint = (pt) => {
   return { x: pt.x, y: pt.y };
 };
+const roundToEven = (num) => {
+  if (Number.isInteger(num)) {
+    return num;
+  } else if (Number.isInteger(num * 2)) {
+    const truncated = Math.trunc(num);
+    return truncated + truncated % 2;
+  }
+  return awayFromZeroRounding(num);
+};
+const awayFromZeroRounding = (num) => Math.trunc(num) + Math.trunc(num * 2) % 2;
+function numberToBigInt(num) {
+  return BigInt(awayFromZeroRounding(num));
+}
 function perpendicDistFromLineSqrd(pt, line1, line2) {
   let x1;
   let y1;
@@ -4991,8 +4982,8 @@ function offsetPath(path, dx, dy) {
 }
 function scalePoint64(pt, scale) {
   return {
-    x: BigInt(Math.round(Number(pt.x) * scale)),
-    y: BigInt(Math.round(Number(pt.y) * scale))
+    x: numberToBigInt(Number(pt.x) * scale),
+    y: numberToBigInt(Number(pt.y) * scale)
   };
 }
 function scalePointD(pt, scale) {
@@ -5003,10 +4994,10 @@ function scalePointD(pt, scale) {
 }
 function scaleRect(rec, scale) {
   return new Rect64(
-    BigInt(Math.round(Number(rec.left) * scale)),
-    BigInt(Math.round(Number(rec.top) * scale)),
-    BigInt(Math.round(Number(rec.right) * scale)),
-    BigInt(Math.round(Number(rec.bottom) * scale))
+    numberToBigInt(Number(rec.left) * scale),
+    numberToBigInt(Number(rec.top) * scale),
+    numberToBigInt(Number(rec.right) * scale),
+    numberToBigInt(Number(rec.bottom) * scale)
   );
 }
 function scalePath(path, scale) {
@@ -5017,8 +5008,8 @@ function scalePath(path, scale) {
     const result = new Path64();
     for (const pt of path) {
       result.push({
-        x: BigInt(Math.round(Number(pt.x) * scale)),
-        y: BigInt(Math.round(Number(pt.y) * scale))
+        x: numberToBigInt(Number(pt.x) * scale),
+        y: numberToBigInt(Number(pt.y) * scale)
       });
     }
     return result;
@@ -5046,8 +5037,8 @@ function scalePaths(paths, scale) {
       const tmpPath = new Path64();
       for (const pt of path) {
         tmpPath.push({
-          x: BigInt(Math.round(Number(pt.x) * scale)),
-          y: BigInt(Math.round(Number(pt.y) * scale))
+          x: numberToBigInt(Number(pt.x) * scale),
+          y: numberToBigInt(Number(pt.y) * scale)
         });
       }
       result.push(tmpPath);
@@ -5073,8 +5064,8 @@ function scalePath64(path, scale) {
   const result = new Path64();
   for (const pt of path) {
     result.push({
-      x: BigInt(Math.round(Number(pt.x) * scale)),
-      y: BigInt(Math.round(Number(pt.y) * scale))
+      x: numberToBigInt(Number(pt.x) * scale),
+      y: numberToBigInt(Number(pt.y) * scale)
     });
   }
   return result;
@@ -5641,11 +5632,11 @@ function ellipse(center, radiusX, radiusY = 0, steps = 0) {
     const centerX = Number(center.x);
     const centerY = Number(center.y);
     const result = new Path64();
-    result.push({ x: BigInt(Math.round(centerX + radiusX)), y: center.y });
+    result.push({ x: numberToBigInt(centerX + radiusX), y: center.y });
     for (let i = 1; i < steps; i++) {
       result.push({
-        x: BigInt(Math.round(centerX + radiusX * dx)),
-        y: BigInt(Math.round(centerY + radiusY * dy))
+        x: numberToBigInt(centerX + radiusX * dx),
+        y: numberToBigInt(centerY + radiusY * dy)
       });
       const x = dx * co - dy * si;
       dy = dy * co + dx * si;
@@ -5741,96 +5732,39 @@ const Clipper = {
   ellipse,
   showPolyTreeStructure
 };
-exports.ClipType = ClipType;
-exports.Clipper = Clipper;
-exports.Clipper64 = Clipper64;
-exports.ClipperBase = ClipperBase;
-exports.ClipperD = ClipperD;
-exports.ClipperOffset = ClipperOffset;
-exports.EndType = EndType;
-exports.FillRule = FillRule;
-exports.InternalClipper = InternalClipper;
-exports.JoinType = JoinType;
-exports.Minkowski = Minkowski;
-exports.Path64 = Path64;
-exports.PathD = PathD;
-exports.PathType = PathType;
-exports.Paths64 = Paths64;
-exports.PathsD = PathsD;
-exports.Point64 = Point64;
-exports.PointD = PointD;
-exports.PointInPolygonResult = PointInPolygonResult;
-exports.PolyPath64 = PolyPath64;
-exports.PolyPathBase = PolyPathBase;
-exports.PolyPathD = PolyPathD;
-exports.PolyTree64 = PolyTree64;
-exports.PolyTreeD = PolyTreeD;
-exports.Rect64 = Rect64;
-exports.RectClip64 = RectClip64;
-exports.RectClipLines64 = RectClipLines64;
-exports.RectD = RectD;
-exports.addPolyNodeToPaths = addPolyNodeToPaths;
-exports.addPolyNodeToPathsD = addPolyNodeToPathsD;
-exports.area = area;
-exports.booleanOp = booleanOp;
-exports.difference = difference;
-exports.ellipse = ellipse;
-exports.getBounds = getBounds;
-exports.getNext = getNext;
-exports.getPrior = getPrior;
-exports.inflatePaths = inflatePaths;
-exports.intersect = intersect;
-exports.invalidRect64 = invalidRect64;
-exports.invalidRectD = invalidRectD;
-exports.isPath64 = isPath64;
-exports.isPathD = isPathD;
-exports.isPaths64 = isPaths64;
-exports.isPathsD = isPathsD;
-exports.isPoint64 = isPoint64;
-exports.isPointD = isPointD;
-exports.isPositive = isPositive;
-exports.makePath64 = makePath64;
-exports.makePathD = makePathD;
-exports.minkowskiDiff = minkowskiDiff;
-exports.minkowskiSum = minkowskiSum;
-exports.offsetPath = offsetPath;
-exports.path64 = path64;
-exports.path64ToString = path64ToString;
-exports.pathD = pathD;
-exports.pathDToString = pathDToString;
-exports.paths64 = paths64;
-exports.paths64ToString = paths64ToString;
-exports.pathsD = pathsD;
-exports.pathsDToString = pathsDToString;
-exports.perpendicDistFromLineSqrd = perpendicDistFromLineSqrd;
-exports.pointInPolygon = pointInPolygon;
-exports.pointsNearEqual = pointsNearEqual;
-exports.polyTreeToPaths64 = polyTreeToPaths64;
-exports.polyTreeToPathsD = polyTreeToPathsD;
-exports.ramerDouglasPeucker = ramerDouglasPeucker;
-exports.rdp = rdp;
-exports.rectClip = rectClip;
-exports.rectClipLines = rectClipLines;
-exports.reversePath = reversePath;
-exports.reversePaths = reversePaths;
-exports.scalePath = scalePath;
-exports.scalePath64 = scalePath64;
-exports.scalePathD = scalePathD;
-exports.scalePaths = scalePaths;
-exports.scalePaths64 = scalePaths64;
-exports.scalePathsD = scalePathsD;
-exports.scalePoint64 = scalePoint64;
-exports.scalePointD = scalePointD;
-exports.scaleRect = scaleRect;
-exports.showPolyPathStructure = showPolyPathStructure;
-exports.showPolyTreeStructure = showPolyTreeStructure;
-exports.simplifyPath = simplifyPath;
-exports.simplifyPaths = simplifyPaths;
-exports.sqr = sqr;
-exports.stripDuplicates = stripDuplicates;
-exports.stripNearDuplicates = stripNearDuplicates;
-exports.translatePath = translatePath;
-exports.translatePaths = translatePaths;
-exports.trimCollinear = trimCollinear;
-exports.union = union;
-exports.xor = xor;
+export {
+  ClipType,
+  Clipper,
+  Clipper64,
+  ClipperBase,
+  ClipperD,
+  ClipperOffset,
+  EndType,
+  FillRule,
+  InternalClipper,
+  JoinType,
+  Minkowski,
+  Path64,
+  PathD,
+  PathType,
+  Paths64,
+  PathsD,
+  Point64,
+  PointD,
+  PointInPolygonResult,
+  PolyPath64,
+  PolyPathBase,
+  PolyPathD,
+  PolyTree64,
+  PolyTreeD,
+  Rect64,
+  RectClip64,
+  RectClipLines64,
+  RectD,
+  isPath64,
+  isPathD,
+  isPaths64,
+  isPathsD,
+  isPoint64,
+  isPointD
+};
