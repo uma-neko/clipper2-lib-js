@@ -1,3 +1,4 @@
+import { isNotNullish } from "../CommonUtils";
 import { isAlmostZero } from "./InternalClipper";
 
 export type PointD = {
@@ -5,7 +6,8 @@ export type PointD = {
   y: number;
 };
 
-export const isPointD = (obj: Record<string, unknown>): obj is PointD =>
+export const isPointD = (obj: unknown): obj is PointD =>
+  isNotNullish(obj) &&
   "x" in obj &&
   typeof obj.x === "number" &&
   "y" in obj &&

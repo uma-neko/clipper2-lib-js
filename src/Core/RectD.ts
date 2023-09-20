@@ -1,8 +1,20 @@
+import { isNotNullish } from "../CommonUtils";
 import { PathD } from "./PathD";
-import { PointD } from "./PointD";
+import { PointD, isPointD } from "./PointD";
+
+export const isRectD = (obj: unknown): obj is RectD =>
+  isNotNullish(obj) &&
+  obj.type === RectDTypeName &&
+  typeof obj.left === "number" &&
+  typeof obj.top === "number" &&
+  typeof obj.right === "number" &&
+  typeof obj.bottom === "number";
+
+export const RectDTypeName = "RectD";
 
 export class RectD {
   readonly isRectD: true;
+  readonly type: typeof RectDTypeName;
   left: number;
   top: number;
   right: number;
@@ -20,6 +32,7 @@ export class RectD {
     bottom?: number,
   ) {
     this.isRectD = true;
+    this.type = RectDTypeName;
     if (leftOrIsValidOrRec === undefined) {
       this.left = 0;
       this.top = 0;
@@ -47,10 +60,7 @@ export class RectD {
         this.right = -Infinity;
         this.bottom = -Infinity;
       }
-    } else if (
-      typeof leftOrIsValidOrRec === "object" &&
-      "isRectD" in leftOrIsValidOrRec
-    ) {
+    } else if (isRectD(leftOrIsValidOrRec)) {
       this.left = leftOrIsValidOrRec.left;
       this.top = leftOrIsValidOrRec.top;
       this.right = leftOrIsValidOrRec.right;
@@ -93,19 +103,14 @@ export class RectD {
   contains(rec: RectD): boolean;
 
   contains(ptOrRec: PointD | RectD) {
-    if (
-      "x" in ptOrRec &&
-      "y" in ptOrRec &&
-      typeof "x" === "number" &&
-      typeof "y" === "number"
-    ) {
+    if (isPointD(ptOrRec)) {
       return (
         ptOrRec.x > this.left &&
         ptOrRec.x < this.right &&
         ptOrRec.y > this.top &&
         ptOrRec.y < this.bottom
       );
-    } else if ("isRectD" in ptOrRec) {
+    } else if (isRectD(ptOrRec)) {
       return (
         ptOrRec.left >= this.left &&
         ptOrRec.right <= this.right &&

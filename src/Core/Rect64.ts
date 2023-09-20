@@ -1,9 +1,21 @@
 import { numberToBigInt } from "../Clipper";
+import { isNotNullish } from "../CommonUtils";
 import { Path64 } from "./Path64";
-import { Point64 } from "./Point64";
+import { Point64, isPoint64 } from "./Point64";
+
+export const isRect64 = (obj: unknown): obj is Rect64 =>
+  isNotNullish(obj) &&
+  obj.type === Rect64TypeName &&
+  typeof obj.left === "bigint" &&
+  typeof obj.top === "bigint" &&
+  typeof obj.right === "bigint" &&
+  typeof obj.bottom === "bigint";
+
+export const Rect64TypeName = "Rect64";
 
 export class Rect64 {
   readonly isRect64: true;
+  readonly type: typeof Rect64TypeName;
   left: bigint;
   top: bigint;
   right: bigint;
@@ -21,6 +33,7 @@ export class Rect64 {
     bottom?: bigint,
   ) {
     this.isRect64 = true;
+    this.type = Rect64TypeName;
     if (leftOrIsValidOrRec === undefined) {
       this.left = 0n;
       this.top = 0n;
@@ -48,10 +61,7 @@ export class Rect64 {
         this.right = -9223372036854775808n;
         this.bottom = -9223372036854775808n;
       }
-    } else if (
-      typeof leftOrIsValidOrRec === "object" &&
-      "isRect64" in leftOrIsValidOrRec
-    ) {
+    } else if (isRect64(leftOrIsValidOrRec)) {
       this.left = leftOrIsValidOrRec.left;
       this.top = leftOrIsValidOrRec.top;
       this.right = leftOrIsValidOrRec.right;
@@ -97,19 +107,14 @@ export class Rect64 {
   contains(rec: Rect64): boolean;
 
   contains(ptOrRec: Point64 | Rect64) {
-    if (
-      "x" in ptOrRec &&
-      "y" in ptOrRec &&
-      typeof ptOrRec.x === "bigint" &&
-      typeof ptOrRec.y === "bigint"
-    ) {
+    if (isPoint64(ptOrRec)) {
       return (
         ptOrRec.x > this.left &&
         ptOrRec.x < this.right &&
         ptOrRec.y > this.top &&
         ptOrRec.y < this.bottom
       );
-    } else if ("isRect64" in ptOrRec) {
+    } else if (isRect64(ptOrRec)) {
       return (
         ptOrRec.left >= this.left &&
         ptOrRec.right <= this.right &&
