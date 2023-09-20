@@ -6,7 +6,7 @@ import {
   ClipType,
   FillRule,
   Paths64,
-} from "../../src/Clipper2js";
+} from "../../src/clipper2lib";
 import { TestCases } from "../Common/testCases";
 
 describe(
@@ -47,7 +47,7 @@ describe(
           ClipType[testCase.clipType],
           FillRule[testCase.fillRule],
           solution,
-          solution_open
+          solution_open,
         );
         const mesuredCount = solution.length + solution_open.length;
         const mesuredArea = Clipper.area(solution);
