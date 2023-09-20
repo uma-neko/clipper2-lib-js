@@ -31,6 +31,27 @@ const clonePoint = <TPoint extends Point64 | PointD>(pt: TPoint): TPoint => {
   return { x: pt.x, y: pt.y } as TPoint;
 };
 
+// If cast double to long, truncated. (ex. 0.5 => 0, 1.5 => 1)
+// If use C# round or std::nearbyint, round half to even. (ex. 0.5 => 0, 1.5 => 2)
+// If use javascript round, round half toward positive infinity. (ex. 0.5 => 1, -0.5 => 0)
+
+export const roundToEven = (num: number): number => {
+  if (Number.isInteger(num)) {
+    return num;
+  } else if (Number.isInteger(num * 2)) {
+    const truncated = Math.trunc(num);
+    return truncated + (truncated % 2);
+  }
+  return awayFromZeroRounding(num);
+};
+
+export const awayFromZeroRounding = (num: number): number =>
+  Math.trunc(num) + (Math.trunc(num * 2) % 2);
+
+export function numberToBigInt(num: number): bigint {
+  return BigInt(awayFromZeroRounding(num));
+}
+
 export function perpendicDistFromLineSqrd<TPoint extends Point64 | PointD>(
   pt: TPoint,
   line1: TPoint,
@@ -553,8 +574,8 @@ export function offsetPath(path: Path64, dx: bigint, dy: bigint): Path64 {
 
 export function scalePoint64(pt: Point64, scale: number): Point64 {
   return {
-    x: BigInt(Math.round(Number(pt.x) * scale)),
-    y: BigInt(Math.round(Number(pt.y) * scale)),
+    x: numberToBigInt(Number(pt.x) * scale),
+    y: numberToBigInt(Number(pt.y) * scale),
   };
 }
 
@@ -567,10 +588,10 @@ export function scalePointD(pt: Point64, scale: number): PointD {
 
 export function scaleRect(rec: RectD, scale: number): Rect64 {
   return new Rect64(
-    BigInt(Math.round(Number(rec.left) * scale)),
-    BigInt(Math.round(Number(rec.top) * scale)),
-    BigInt(Math.round(Number(rec.right) * scale)),
-    BigInt(Math.round(Number(rec.bottom) * scale)),
+    numberToBigInt(Number(rec.left) * scale),
+    numberToBigInt(Number(rec.top) * scale),
+    numberToBigInt(Number(rec.right) * scale),
+    numberToBigInt(Number(rec.bottom) * scale),
   );
 }
 
@@ -586,8 +607,8 @@ export function scalePath<TPath extends Path64 | PathD>(
 
     for (const pt of path) {
       result.push({
-        x: BigInt(Math.round(Number(pt.x) * scale)),
-        y: BigInt(Math.round(Number(pt.y) * scale)),
+        x: numberToBigInt(Number(pt.x) * scale),
+        y: numberToBigInt(Number(pt.y) * scale),
       });
     }
     return result as TPath;
@@ -622,8 +643,8 @@ export function scalePaths<TPaths extends Paths64 | PathsD>(
       const tmpPath: Path64 = new Path64();
       for (const pt of path) {
         tmpPath.push({
-          x: BigInt(Math.round(Number(pt.x) * scale)),
-          y: BigInt(Math.round(Number(pt.y) * scale)),
+          x: numberToBigInt(Number(pt.x) * scale),
+          y: numberToBigInt(Number(pt.y) * scale),
         });
       }
       result.push(tmpPath);
@@ -654,8 +675,8 @@ export function scalePath64(path: PathD, scale: number): Path64 {
   const result: Path64 = new Path64();
   for (const pt of path) {
     result.push({
-      x: BigInt(Math.round(Number(pt.x) * scale)),
-      y: BigInt(Math.round(Number(pt.y) * scale)),
+      x: numberToBigInt(Number(pt.x) * scale),
+      y: numberToBigInt(Number(pt.y) * scale),
     });
   }
   return result;
@@ -1429,11 +1450,11 @@ export function ellipse(
     const centerX = Number(center.x);
     const centerY = Number(center.y);
     const result: Path64 = new Path64();
-    result.push({ x: BigInt(Math.round(centerX + radiusX)), y: center.y });
+    result.push({ x: numberToBigInt(centerX + radiusX), y: center.y });
     for (let i = 1; i < steps; i++) {
       result.push({
-        x: BigInt(Math.round(centerX + radiusX * dx)),
-        y: BigInt(Math.round(centerY + radiusY * dy)),
+        x: numberToBigInt(centerX + radiusX * dx),
+        y: numberToBigInt(centerY + radiusY * dy),
       });
       const x = dx * co - dy * si;
       dy = dy * co + dx * si;

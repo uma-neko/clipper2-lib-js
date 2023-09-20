@@ -1,3 +1,4 @@
+import { numberToBigInt } from "../Clipper";
 import { Path64 } from "./Path64";
 import { Point64 } from "./Point64";
 
@@ -121,10 +122,10 @@ export class Rect64 {
   }
 
   scale(scale: number) {
-    this.top = BigInt(Math.round(Number(this.top) * scale));
-    this.bottom = BigInt(Math.round(Number(this.bottom) * scale));
-    this.left = BigInt(Math.round(Number(this.left) * scale));
-    this.right = BigInt(Math.round(Number(this.right) * scale));
+    this.top = numberToBigInt(Number(this.top) * scale);
+    this.bottom = numberToBigInt(Number(this.bottom) * scale);
+    this.left = numberToBigInt(Number(this.left) * scale);
+    this.right = numberToBigInt(Number(this.right) * scale);
   }
 
   isEmpty() {

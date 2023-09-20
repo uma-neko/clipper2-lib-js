@@ -2,6 +2,7 @@ import { Path64 } from "./Path64";
 import { Point64 } from "./Point64";
 import { PointD } from "./PointD";
 import { PointInPolygonResult } from "../Engine/EngineEnums";
+import { numberToBigInt } from "../Clipper";
 
 const floatingPointTolerance = 1e-12;
 
@@ -102,8 +103,8 @@ export const getIntersectPoint = (
     return {
       result: true,
       ip: {
-        x: ln1a.x + BigInt(Math.round(t * dx1)),
-        y: ln1a.y + BigInt(Math.round(t * dy1)),
+        x: numberToBigInt(Number(ln1a.x) + t * dx1),
+        y: numberToBigInt(Number(ln1a.y) + t * dy1),
       },
     };
   }
@@ -150,8 +151,8 @@ export const getClosestPtOnSegment = (
     q = 1;
   }
   return {
-    x: seg1.x + BigInt(Math.round(q * dx)),
-    y: seg1.y + BigInt(Math.round(q * dy)),
+    x: numberToBigInt(Number(seg1.x) + q * dx),
+    y: numberToBigInt(Number(seg1.y) + q * dy),
   };
 };
 

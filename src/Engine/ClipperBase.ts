@@ -9,7 +9,7 @@ import { OutPt } from "./OutPt";
 import { OutRec } from "./OutRec";
 import { PolyPathBase } from "./PolyPathBase";
 import { Vertex } from "./Vertex";
-import { perpendicDistFromLineSqrd } from "../Clipper";
+import { roundToEven, perpendicDistFromLineSqrd } from "../Clipper";
 import { ClipType, FillRule, PathType } from "../Core/CoreEnums";
 import {
   crossProduct,
@@ -79,8 +79,7 @@ const topX = (ae: Active, currentY: bigint): bigint => {
   } else if (currentY === ae.bot.y) {
     return ae.bot.x;
   }
-
-  return ae.bot.x + BigInt(Math.round(ae.dx * Number(currentY - ae.bot.y)));
+  return ae.bot.x + BigInt(roundToEven(ae.dx * Number(currentY - ae.bot.y)));
 };
 
 const isHorizontal = (ae: Active) => {
@@ -1988,7 +1987,6 @@ export class ClipperBase {
     const vertex_max = horzIsOpen
       ? getCurrYMaximaVertex_Open(horz)
       : getCurrYMaximaVertex(horz);
-
     if (
       vertex_max !== undefined &&
       !horzIsOpen &&

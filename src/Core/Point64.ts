@@ -1,3 +1,5 @@
+import { numberToBigInt } from "../Clipper";
+
 export type Point64 = {
   x: bigint;
   y: bigint;
@@ -14,8 +16,8 @@ export const Point64 = {
   notEquals: (a: Point64, b: Point64) => a.x !== b.x || a.y !== b.y,
   clone: (origin: Point64): Point64 => ({ x: origin.x, y: origin.y }),
   createScaledPoint: (x: number, y: number, scale: number): Point64 => ({
-    x: BigInt(Math.round(x * scale)),
-    y: BigInt(Math.round(y * scale)),
+    x: numberToBigInt(x * scale),
+    y: numberToBigInt(y * scale),
   }),
   toString(pt: Point64): string {
     return `${pt.x}d,${pt.y}d `;
