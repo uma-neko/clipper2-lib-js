@@ -2,8 +2,10 @@ import { ClipperGroup } from "./ClipperGroup";
 import { EndType, JoinType } from "./OffsetEnums";
 import {
   area,
+  awayFromZeroRounding,
   ellipse,
   getBounds,
+  numberToBigInt,
   reversePath,
   sqr,
   stripDuplicates,
@@ -263,15 +265,15 @@ export class ClipperOffset {
 
   getPerpendic(pt: Point64, norm: PointD): Point64 {
     return {
-      x: BigInt(Math.round(Number(pt.x) + norm.x * this._groupDelta)),
-      y: BigInt(Math.round(Number(pt.y) + norm.y * this._groupDelta)),
+      x: numberToBigInt(Number(pt.x) + norm.x * this._groupDelta),
+      y: numberToBigInt(Number(pt.y) + norm.y * this._groupDelta),
     };
   }
 
   getPerpendicD(pt: Point64, norm: PointD): PointD {
     return {
-      x: Math.round(Number(pt.x) + norm.x * this._groupDelta),
-      y: Math.round(Number(pt.y) + norm.y * this._groupDelta),
+      x: awayFromZeroRounding(Number(pt.x) + norm.x * this._groupDelta),
+      y: awayFromZeroRounding(Number(pt.y) + norm.y * this._groupDelta),
     };
   }
 
@@ -312,12 +314,12 @@ export class ClipperOffset {
       const pt = this.intersectPoint(pt1, pt2, pt3, pt4);
       const rPt = this.reflectPoint(pt, ptQ);
       group.outPath.push({
-        x: BigInt(Math.round(rPt.x)),
-        y: BigInt(Math.round(rPt.y)),
+        x: numberToBigInt(rPt.x),
+        y: numberToBigInt(rPt.y),
       });
       group.outPath.push({
-        x: BigInt(Math.round(pt.x)),
-        y: BigInt(Math.round(pt.y)),
+        x: numberToBigInt(pt.x),
+        y: numberToBigInt(pt.y),
       });
     } else {
       const pt4 = this.getPerpendicD(path[j], this._normals[k]);
@@ -325,12 +327,12 @@ export class ClipperOffset {
       const rPt = this.reflectPoint(pt, ptQ);
 
       group.outPath.push({
-        x: BigInt(Math.round(pt.x)),
-        y: BigInt(Math.round(pt.y)),
+        x: numberToBigInt(pt.x),
+        y: numberToBigInt(pt.y),
       });
       group.outPath.push({
-        x: BigInt(Math.round(rPt.x)),
-        y: BigInt(Math.round(rPt.y)),
+        x: numberToBigInt(rPt.x),
+        y: numberToBigInt(rPt.y),
       });
     }
   }
@@ -344,15 +346,11 @@ export class ClipperOffset {
   ) {
     const q = this._groupDelta / (cosA + 1);
     group.outPath.push({
-      x: BigInt(
-        Math.round(
-          Number(path[j].x) + (this._normals[k].x + this._normals[j].x) * q,
-        ),
+      x: numberToBigInt(
+        Number(path[j].x) + (this._normals[k].x + this._normals[j].x) * q,
       ),
-      y: BigInt(
-        Math.round(
-          Number(path[j].y) + (this._normals[k].y + this._normals[j].y) * q,
-        ),
+      y: numberToBigInt(
+        Number(path[j].y) + (this._normals[k].y + this._normals[j].y) * q,
       ),
     });
   }
@@ -404,8 +402,8 @@ export class ClipperOffset {
       };
 
       group.outPath.push({
-        x: BigInt(Math.round(Number(pt.x) + offsetVec.x)),
-        y: BigInt(Math.round(Number(pt.y) + offsetVec.y)),
+        x: numberToBigInt(Number(pt.x) + offsetVec.x),
+        y: numberToBigInt(Number(pt.y) + offsetVec.y),
       });
     }
 
@@ -511,15 +509,11 @@ export class ClipperOffset {
       switch (this._endType) {
         case EndType.Butt:
           group.outPath.push({
-            x: BigInt(
-              Math.round(
-                Number(path[0].x) - this._normals[0].x * this._groupDelta,
-              ),
+            x: numberToBigInt(
+              Number(path[0].x) - this._normals[0].x * this._groupDelta,
             ),
-            y: BigInt(
-              Math.round(
-                Number(path[0].y) - this._normals[0].y * this._groupDelta,
-              ),
+            y: numberToBigInt(
+              Number(path[0].y) - this._normals[0].y * this._groupDelta,
             ),
           });
           group.outPath.push(this.getPerpendic(path[0], this._normals[0]));
@@ -555,17 +549,11 @@ export class ClipperOffset {
       switch (this._endType) {
         case EndType.Butt:
           group.outPath.push({
-            x: BigInt(
-              Math.round(
-                Number(path[highI].x) -
-                  this._normals[highI].x * this._groupDelta,
-              ),
+            x: numberToBigInt(
+              Number(path[highI].x) - this._normals[highI].x * this._groupDelta,
             ),
-            y: BigInt(
-              Math.round(
-                Number(path[highI].y) -
-                  this._normals[highI].y * this._groupDelta,
-              ),
+            y: numberToBigInt(
+              Number(path[highI].y) - this._normals[highI].y * this._groupDelta,
             ),
           });
           group.outPath.push(
