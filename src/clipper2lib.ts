@@ -7,8 +7,8 @@ export { Paths64, isPaths64 } from "./Core/Paths64";
 export { PathsD, isPathsD } from "./Core/PathsD";
 export { Point64, isPoint64 } from "./Core/Point64";
 export { PointD, isPointD } from "./Core/PointD";
-export { Rect64 } from "./Core/Rect64";
-export { RectD } from "./Core/RectD";
+export { Rect64, isRect64 } from "./Core/Rect64";
+export { RectD, isRectD } from "./Core/RectD";
 
 export { ClipperBase } from "./Engine/ClipperBase";
 export { Clipper64 } from "./Engine/Clipper64";

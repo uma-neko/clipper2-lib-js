@@ -11,7 +11,7 @@ import { Paths64, isPaths64 } from "./Core/Paths64";
 import { PathsD, isPathsD } from "./Core/PathsD";
 import { Point64, isPoint64 } from "./Core/Point64";
 import { PointD, isPointD } from "./Core/PointD";
-import { Rect64 } from "./Core/Rect64";
+import { Rect64, isRect64 } from "./Core/Rect64";
 import { RectD } from "./Core/RectD";
 import { Clipper64 } from "./Engine/Clipper64";
 import { ClipperD } from "./Engine/ClipperD";
@@ -372,7 +372,7 @@ export function rectClip(
   pathOrPaths: Paths64 | Path64 | PathsD | PathD,
   precision: number = 2,
 ): Paths64 & PathsD {
-  if (rect instanceof Rect64) {
+  if (isRect64(rect)) {
     if (rect.isEmpty() || pathOrPaths.length === 0) {
       return new Paths64() as Paths64 & PathsD;
     }
@@ -440,7 +440,7 @@ export function rectClipLines(
   pathOrPaths: Paths64 | Path64 | PathsD | PathD,
   precision: number = 2,
 ): Paths64 & PathsD {
-  if (rect instanceof Rect64) {
+  if (isRect64(rect)) {
     if (rect.isEmpty() || pathOrPaths.length === 0) {
       return new Paths64() as Paths64 & PathsD;
     }
