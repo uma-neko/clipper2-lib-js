@@ -91,12 +91,12 @@ export class RectD {
   }
 
   asPath(): PathD {
-    return new PathD([
+    return new PathD(
       { x: this.left, y: this.top },
       { x: this.right, y: this.top },
       { x: this.right, y: this.bottom },
       { x: this.left, y: this.bottom },
-    ]);
+    );
   }
 
   contains(pt: PointD): boolean;

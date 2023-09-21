@@ -95,12 +95,12 @@ export class Rect64 {
   }
 
   asPath(): Path64 {
-    return new Path64([
+    return new Path64(
       { x: this.left, y: this.top },
       { x: this.right, y: this.top },
       { x: this.right, y: this.bottom },
       { x: this.left, y: this.bottom },
-    ]);
+    );
   }
 
   contains(pt: Point64): boolean;
