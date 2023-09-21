@@ -109,7 +109,7 @@ export class ClipperOffset {
     if (Math.abs(delta) < 0.5) {
       for (const group of this._groupList) {
         for (const path of group.inPaths) {
-          this._solution.push(path);
+          this._solution.pushRange([path]);
         }
       }
     } else {

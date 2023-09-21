@@ -27,10 +27,6 @@ import { EndType, JoinType } from "./Offset/OffsetEnums";
 import { RectClip64 } from "./RectClip/RectClip64";
 import { RectClipLines64 } from "./RectClip/RectClipLines64";
 
-const clonePoint = <TPoint extends Point64 | PointD>(pt: TPoint): TPoint => {
-  return { x: pt.x, y: pt.y } as TPoint;
-};
-
 // If cast double to long, truncated. (ex. 0.5 => 0, 1.5 => 1)
 // If use C# round or std::nearbyint, round half to even. (ex. 0.5 => 0, 1.5 => 2)
 // If use javascript round, round half toward positive infinity. (ex. 0.5 => 1, -0.5 => 0)
@@ -377,22 +373,14 @@ export function rectClip(
       return new Paths64() as Paths64 & PathsD;
     }
 
-    const paths: Paths64 = new Paths64() as Paths64 & PathsD;
+    let paths: Paths64;
 
     if (isPaths64(pathOrPaths)) {
-      for (const path of pathOrPaths) {
-        const clonedPath: Path64 = new Path64();
-        for (const pt of path) {
-          clonedPath.push(clonePoint(pt));
-        }
-        paths.push(clonedPath);
-      }
+      paths = Paths64.clone(pathOrPaths);
+    } else if (isPath64(pathOrPaths)) {
+      paths = Paths64.clone([pathOrPaths]);
     } else {
-      const clonedPath: Path64 = new Path64();
-      for (const pt of pathOrPaths as Path64) {
-        clonedPath.push(clonePoint(pt));
-      }
-      paths.push(clonedPath);
+      throw Error("todo: change message");
     }
 
     const rc = new RectClip64(rect);
@@ -509,16 +497,16 @@ export function area(pathOrPaths: Path64 | PathD | Paths64 | PathsD): number {
 
     let prevPt = pathOrPaths[pathOrPaths.length - 1];
 
-    for (const pt of pathOrPaths) {
-      if (isPoint64(pt)) {
-        resultArea += Number(
-          ((prevPt.y as bigint) + pt.y) * ((prevPt.x as bigint) - pt.x),
-        );
-      } else {
-        resultArea +=
-          ((prevPt.y as number) + pt.y) * ((prevPt.x as number) - pt.x);
+    if (isPoint64(prevPt)) {
+      for (const pt of pathOrPaths as Path64) {
+        resultArea += Number((prevPt.y + pt.y) * (prevPt.x - pt.x));
+        prevPt = pt;
       }
-      prevPt = pt;
+    } else {
+      for (const pt of pathOrPaths as PathD) {
+        resultArea += (prevPt.y + pt.y) * (prevPt.x - pt.x);
+        prevPt = pt;
+      }
     }
 
     resultArea *= 0.5;
@@ -601,7 +589,7 @@ export function scalePath<TPath extends Path64 | PathD>(
 ): TPath {
   if (isPath64(path)) {
     if (isAlmostZero(scale - 1)) {
-      return new Path64(...path) as TPath;
+      return Path64.clone(path) as TPath;
     }
     const result: Path64 = new Path64();
 
@@ -613,13 +601,10 @@ export function scalePath<TPath extends Path64 | PathD>(
     }
     return result as TPath;
   } else {
-    const result: PathD = new PathD();
     if (isAlmostZero(scale - 1)) {
-      for (const pt of path as PathD) {
-        result.push(clonePoint(pt));
-      }
-      return result as TPath;
+      return PathD.clone(path) as TPath;
     }
+    const result: PathD = new PathD();
 
     for (const pt of path as PathD) {
       result.push({ x: pt.x * scale, y: pt.y * scale });
@@ -634,7 +619,8 @@ export function scalePaths<TPaths extends Paths64 | PathsD>(
 ): TPaths {
   if (isPaths64(paths)) {
     if (isAlmostZero(scale - 1)) {
-      return new Paths64(...paths) as TPaths;
+      const resultPaths = new Paths64();
+      return resultPaths as TPaths;
     }
 
     const result = new Paths64();
@@ -653,7 +639,7 @@ export function scalePaths<TPaths extends Paths64 | PathsD>(
     return result as TPaths;
   } else if (isPathsD(paths)) {
     if (isAlmostZero(scale - 1)) {
-      return new PathsD(...paths) as TPaths;
+      return PathsD.clone(paths) as TPaths;
     }
 
     const result = new PathsD();
@@ -780,13 +766,13 @@ export function reversePath<TPath extends Path64 | PathD>(path: TPath): TPath {
   if (isPath64(path)) {
     const result = new Path64();
     for (let i = path.length - 1; i >= 0; i--) {
-      result.push(clonePoint(path[i]));
+      result.push(path[i]);
     }
     return result as TPath;
   } else if (isPathD(path)) {
     const result = new PathD();
     for (let i = path.length - 1; i >= 0; i--) {
-      result.push(clonePoint(path[i]));
+      result.push(path[i]);
     }
     return result as TPath;
   }
@@ -932,11 +918,11 @@ export function stripNearDuplicates(
   if (cnt === 0) {
     return result;
   }
-  let lastPt = clonePoint(path[0]);
+  let lastPt = path[0];
   result.push(lastPt);
   for (let i = 1; i < cnt; i++) {
     if (!pointsNearEqual(lastPt, path[i], minEdgeLenSqrd)) {
-      lastPt = clonePoint(path[i]);
+      lastPt = path[i];
       result.push(lastPt);
     }
   }
@@ -953,11 +939,11 @@ export function stripDuplicates(path: Path64, isClosedPath: boolean): Path64 {
   if (cnt === 0) {
     return result;
   }
-  let lastPt = clonePoint(path[0]);
+  let lastPt = path[0];
   result.push(lastPt);
   for (let i = 1; i < cnt; i++) {
     if (Point64.notEquals(lastPt, path[i])) {
-      lastPt = clonePoint(path[i]);
+      lastPt = path[i];
       result.push(lastPt);
     }
   }
@@ -1028,7 +1014,7 @@ export function ramerDouglasPeucker<
   } else if (isPath64(pathOrPaths)) {
     const len = pathOrPaths.length;
     if (len < 5) {
-      return new Path64(...pathOrPaths) as TPathOrPaths;
+      return Path64.clone(pathOrPaths) as TPathOrPaths;
     }
     const result = new Path64();
     const flags = Array.from(
@@ -1039,7 +1025,7 @@ export function ramerDouglasPeucker<
 
     for (let i = 0; i < len; i++) {
       if (flags[i]) {
-        result.push(clonePoint(pathOrPaths[i]));
+        result.push(pathOrPaths[i]);
       }
     }
 
@@ -1047,7 +1033,7 @@ export function ramerDouglasPeucker<
   } else if (isPathD(pathOrPaths)) {
     const len = pathOrPaths.length;
     if (len < 5) {
-      return new PathD(...pathOrPaths) as TPathOrPaths;
+      return PathD.clone(pathOrPaths) as TPathOrPaths;
     }
     const result = new PathD();
     const flags = Array.from(
@@ -1058,7 +1044,7 @@ export function ramerDouglasPeucker<
 
     for (let i = 0; i < len; i++) {
       if (flags[i]) {
-        result.push(clonePoint(pathOrPaths[i]));
+        result.push(pathOrPaths[i]);
       }
     }
 
@@ -1143,9 +1129,9 @@ export function simplifyPath<TPath extends Path64 | PathD>(
 
   if (len < 4) {
     if (isPath64(path)) {
-      return new Path64(...path) as TPath;
+      return Path64.clone(path) as TPath;
     } else if (isPathD(path)) {
-      return new PathD(...path) as TPath;
+      return PathD.clone(path) as TPath;
     }
     throw new Error("todo: change message");
   }
@@ -1224,7 +1210,7 @@ export function simplifyPath<TPath extends Path64 | PathD>(
     const result = new Path64();
     for (let i = 0; i < len; i++) {
       if (!flags[i]) {
-        result.push(clonePoint(path[i]));
+        result.push(path[i]);
       }
     }
     return result as TPath;
@@ -1232,7 +1218,7 @@ export function simplifyPath<TPath extends Path64 | PathD>(
     const result = new PathD();
     for (let i = 0; i < len; i++) {
       if (!flags[i]) {
-        result.push(clonePoint(path[i]));
+        result.push(path[i]);
       }
     }
     return result as TPath;
@@ -1307,57 +1293,41 @@ export function trimCollinear<TPath extends Path64 | PathD>(
     if (!isOpen) {
       while (
         i < len - 1 &&
-        crossProduct(
-          path[len - 1] as Point64,
-          path[i] as Point64,
-          path[i + 1] as Point64,
-        ) === 0
+        crossProduct(path[len - 1], path[i], path[i + 1]) === 0
       ) {
         i++;
       }
       while (
         i < len - 1 &&
-        crossProduct(
-          path[len - 2] as Point64,
-          path[len - 1] as Point64,
-          path[i] as Point64,
-        ) === 0
+        crossProduct(path[len - 2], path[len - 1], path[i]) === 0
       ) {
         len--;
       }
     }
 
     if (len - 1 < 3) {
-      if (
-        !isOpen ||
-        len < 2 ||
-        Point64.equals(path[0] as Point64, path[1] as Point64)
-      ) {
+      if (!isOpen || len < 2 || Point64.equals(path[0], path[1])) {
         return new Path64() as TPath;
       }
 
-      return new Path64(...path) as TPath;
+      return Path64.clone(path) as TPath;
     }
     const result: Path64 = new Path64();
 
-    let last = path[i] as Point64;
+    let last = path[i];
 
     for (i++; i < len - 1; i++) {
-      if (
-        crossProduct(last, path[i] as Point64, path[i + 1] as Point64) === 0
-      ) {
+      if (crossProduct(last, path[i], path[i + 1]) === 0) {
         continue;
       }
-      last = path[i] as Point64;
-      result.push(clonePoint(last));
+      last = path[i];
+      result.push(last);
     }
 
     if (isOpen) {
-      result.push(clonePoint(path[len - 1] as Point64));
-    } else if (
-      crossProduct(last, path[len - 1] as Point64, result[0] as Point64) !== 0
-    ) {
-      result.push(clonePoint(path[len - 1] as Point64));
+      result.push(path[len - 1]);
+    } else if (crossProduct(last, path[len - 1], result[0]) !== 0) {
+      result.push(path[len - 1]);
     } else {
       while (
         result.length > 2 &&

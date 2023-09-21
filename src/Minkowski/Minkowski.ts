@@ -43,12 +43,8 @@ const minkowskiInternal = (
   let h = patLen - 1;
   for (let i = delta; i < pathLen; i++) {
     for (let j = 0; j < patLen; j++) {
-      const quad: Path64 = new Path64(
-        tmp[g][h],
-        tmp[i][h],
-        tmp[i][j],
-        tmp[g][j],
-      );
+      const quad: Path64 = new Path64();
+      quad.pushRange([tmp[g][h], tmp[i][h], tmp[i][j], tmp[g][j]]);
       if (!isPositive(quad)) {
         result.push(reversePath(quad));
       } else {

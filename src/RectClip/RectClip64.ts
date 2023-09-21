@@ -707,7 +707,7 @@ export class RectClip64 {
       }
       if (i < 0) {
         for (const pt of path) {
-          this.add(Point64.clone(pt));
+          this.add(pt);
         }
         return;
       }
@@ -814,7 +814,7 @@ export class RectClip64 {
           path1ContainsPath2(path, this._rectPath)
         ) {
           for (let j = 0; j < 4; j++) {
-            this.add(Point64.clone(this._rectPath[j]));
+            this.add(this._rectPath[j]);
             addToEdge(this._edges[j * 2], this._results[0]!);
           }
         }
@@ -855,11 +855,7 @@ export class RectClip64 {
       if (!this._rect.intersects(this._pathBounds)) {
         continue;
       } else if (this._rect.contains(this._pathBounds)) {
-        const clonedPath: Path64 = new Path64();
-        for (const pt of path) {
-          clonedPath.push(Point64.clone(pt));
-        }
-        result.push(clonedPath);
+        result.push(path);
         continue;
       }
 
@@ -1116,11 +1112,11 @@ export class RectClip64 {
     }
 
     const result: Path64 = new Path64();
-    result.push(Point64.clone(op!.pt));
+    result.push(op!.pt);
     op2 = op!.next;
 
     while (op2 !== op) {
-      result.push(Point64.clone(op2!.pt));
+      result.push(op2!.pt);
       op2 = op2!.next;
     }
 

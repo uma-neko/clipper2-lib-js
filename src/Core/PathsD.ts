@@ -1,4 +1,4 @@
-import { PathD } from "./PathD";
+import { PathD, isPathD } from "./PathD";
 import { PointD } from "./PointD";
 
 export const isPathsD = (obj: unknown): obj is PathsD => {
@@ -11,19 +11,33 @@ export class PathsD extends Array<PathD> {
   readonly type: typeof PathsDTypeName;
 
   constructor();
-  constructor(...paths: Iterable<PointD>[]);
   constructor(arrayLength: number);
-
-  constructor(...args: Iterable<PointD>[] | [number]) {
-    if (args.length === 0) {
+  constructor(...paths: PathD[]);
+  constructor(...args: [] | [number] | PathD[]);
+  constructor(...args: [] | [number] | PathD[]) {
+    const len = args.length;
+    if (len === 0) {
       super();
     } else if (typeof args[0] === "number") {
       super(args[0]);
     } else {
-      super();
-      this.push(...args as Iterable<PointD>[]);
+      super(len);
+      for (let i = 0; i < len; i++) {
+        const path = args[i];
+        if (isPathD(path)) {
+          this[i] = PathD.clone(path);
+        } else {
+          throw Error("todo: change message");
+        }
+      }
     }
     this.type = PathsDTypeName;
+  }
+
+  static clone(paths: Iterable<Iterable<PointD>>): PathsD {
+    const result = new PathsD();
+    result.pushRange(paths);
+    return result;
   }
 
   clear() {
@@ -35,7 +49,14 @@ export class PathsD extends Array<PathD> {
 
   override push(...paths: Iterable<PointD>[]) {
     for (const path of paths) {
-      super.push(new PathD(...path));
+      super.push(PathD.clone(path));
+    }
+    return this.length;
+  }
+
+  pushRange(paths: Iterable<Iterable<PointD>>) {
+    for (const path of paths) {
+      super.push(PathD.clone(path));
     }
     return this.length;
   }
