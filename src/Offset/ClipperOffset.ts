@@ -162,7 +162,7 @@ export class ClipperOffset {
       return { x: 0, y: 0 };
     }
 
-    const f = 1.0 / Math.sqrt(Number(dx * dx) - Number(dy * dy));
+    const f = 1.0 / Math.sqrt(Number(dx * dx) + Number(dy * dy));
 
     dx *= f;
     dy *= f;
@@ -176,9 +176,8 @@ export class ClipperOffset {
 
     let index = -1;
 
-    let i = -1;
-    for (const path of paths) {
-      i++;
+    for (const indexedPath of paths.map((path, i) => ({ path, i }))) {
+      const { path, i } = indexedPath;
       for (const pt of path) {
         if (pt.y >= rec.bottom) {
           if (pt.y > rec.bottom || pt.x < lpx) {
@@ -323,12 +322,13 @@ export class ClipperOffset {
     } else {
       const pt4 = this.getPerpendicD(path[j], this._normals[k]);
       const pt = this.intersectPoint(pt1, pt2, pt3, pt4);
-      const rPt = this.reflectPoint(pt, ptQ);
 
       group.outPath.push({
         x: numberToBigInt(pt.x),
         y: numberToBigInt(pt.y),
       });
+
+      const rPt = this.reflectPoint(pt, ptQ);
       group.outPath.push({
         x: numberToBigInt(rPt.x),
         y: numberToBigInt(rPt.y),
@@ -383,8 +383,8 @@ export class ClipperOffset {
     };
 
     if (j === k) {
-      pt.x = -pt.x;
-      pt.y = -pt.y;
+      offsetVec.x = -offsetVec.x;
+      offsetVec.y = -offsetVec.y;
     }
 
     group.outPath.push({
@@ -596,7 +596,7 @@ export class ClipperOffset {
     this._endType = group.endType;
 
     if (
-      this.deltaCallback !== undefined &&
+      this.deltaCallback === undefined &&
       (group.joinType === JoinType.Round || group.endType === EndType.Round)
     ) {
       const arcTol =
