@@ -2,7 +2,6 @@ import { ClipperGroup } from "./ClipperGroup";
 import { EndType, JoinType } from "./OffsetEnums";
 import {
   area,
-  awayFromZeroRounding,
   ellipse,
   getBounds,
   numberToBigInt,
@@ -151,7 +150,7 @@ export class ClipperOffset {
 
     c.execute(
       ClipType.Union,
-      this._groupList[0].pathsReversed ? FillRule.Positive : FillRule.Negative,
+      this._groupList[0].pathsReversed ? FillRule.Negative : FillRule.Positive,
       solutionOrPolyTree as Paths64 & PolyTree64,
     );
   }
@@ -272,8 +271,8 @@ export class ClipperOffset {
 
   getPerpendicD(pt: Point64, norm: PointD): PointD {
     return {
-      x: awayFromZeroRounding(Number(pt.x) + norm.x * this._groupDelta),
-      y: awayFromZeroRounding(Number(pt.y) + norm.y * this._groupDelta),
+      x: Number(pt.x) + norm.x * this._groupDelta,
+      y: Number(pt.y) + norm.y * this._groupDelta,
     };
   }
 
@@ -389,8 +388,8 @@ export class ClipperOffset {
     }
 
     group.outPath.push({
-      x: pt.x + BigInt(offsetVec.x),
-      y: pt.y + BigInt(offsetVec.y),
+      x: numberToBigInt(Number(pt.x) + offsetVec.x),
+      y: numberToBigInt(Number(pt.y) + offsetVec.y),
     });
 
     const steps = Math.ceil(this._stepsPerRad * Math.abs(angle));
@@ -398,7 +397,7 @@ export class ClipperOffset {
     for (let i = 1; i < steps; i++) {
       offsetVec = {
         x: offsetVec.x * this._stepCos - this._stepSin * offsetVec.y,
-        y: offsetVec.x * this._stepSin - offsetVec.y * this._stepCos,
+        y: offsetVec.x * this._stepSin + offsetVec.y * this._stepCos,
       };
 
       group.outPath.push({
@@ -413,15 +412,9 @@ export class ClipperOffset {
   bulidNormals(path: Path64) {
     const cnt = path.length;
     this._normals.length = 0;
-    let currPt: Point64 | undefined = undefined;
-    let prevPt: Point64 | undefined = undefined;
 
-    for (const pt of path) {
-      prevPt = currPt;
-      currPt = pt;
-      if (prevPt !== undefined) {
-        this._normals.push(this.getUnitNormal(prevPt, currPt));
-      }
+    for (let i = 0; i < cnt - 1; i++) {
+      this._normals.push(this.getUnitNormal(path[i], path[i + 1]));
     }
     this._normals.push(this.getUnitNormal(path[cnt - 1], path[0]));
   }
@@ -536,8 +529,8 @@ export class ClipperOffset {
         x: -this._normals[i - 1].x,
         y: -this._normals[i - 1].y,
       };
-      this._normals[0] = this._normals[highI];
     }
+    this._normals[0] = this._normals[highI];
 
     if (this.deltaCallback !== undefined) {
       this._groupDelta = this.deltaCallback(path, this._normals, highI, highI);
@@ -639,13 +632,14 @@ export class ClipperOffset {
         } else {
           const d = Math.ceil(this._groupDelta);
           const r = new Rect64(
-            BigInt(Number(path[0].x) - d),
-            BigInt(Number(path[0].y) - d),
-            BigInt(Number(path[0].x) - d),
-            BigInt(Number(path[0].y) - d),
+            numberToBigInt(Number(path[0].x) - d),
+            numberToBigInt(Number(path[0].y) - d),
+            numberToBigInt(Number(path[0].x) - d),
+            numberToBigInt(Number(path[0].y) - d),
           );
           group.outPath = r.asPath();
         }
+        group.outPaths.push(group.outPath);
       } else {
         if (cnt == 2 && group.endType === EndType.Joined) {
           if (group.joinType === JoinType.Round) {
