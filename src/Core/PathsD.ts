@@ -9,15 +9,21 @@ export const PathsDTypeName = "PathsD";
 
 export class PathsD extends Array<PathD> {
   readonly type: typeof PathsDTypeName;
-  constructor(paths?: Iterable<Iterable<PointD>>) {
-    super();
+
+  constructor();
+  constructor(...paths: Iterable<PointD>[]);
+  constructor(arrayLength: number);
+
+  constructor(...args: Iterable<PointD>[] | [number]) {
+    if (args.length === 0) {
+      super();
+    } else if (typeof args[0] === "number") {
+      super(args[0]);
+    } else {
+      super();
+      this.push(...args as Iterable<PointD>[]);
+    }
     this.type = PathsDTypeName;
-    if (paths === undefined) {
-      return;
-    }
-    for (const path of paths) {
-      this.push(path);
-    }
   }
 
   clear() {
@@ -29,7 +35,7 @@ export class PathsD extends Array<PathD> {
 
   override push(...paths: Iterable<PointD>[]) {
     for (const path of paths) {
-      super.push(new PathD(path));
+      super.push(new PathD(...path));
     }
     return this.length;
   }

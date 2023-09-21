@@ -601,7 +601,7 @@ export function scalePath<TPath extends Path64 | PathD>(
 ): TPath {
   if (isPath64(path)) {
     if (isAlmostZero(scale - 1)) {
-      return new Path64(path) as TPath;
+      return new Path64(...path) as TPath;
     }
     const result: Path64 = new Path64();
 
@@ -634,7 +634,7 @@ export function scalePaths<TPaths extends Paths64 | PathsD>(
 ): TPaths {
   if (isPaths64(paths)) {
     if (isAlmostZero(scale - 1)) {
-      return new Paths64(paths) as TPaths;
+      return new Paths64(...paths) as TPaths;
     }
 
     const result = new Paths64();
@@ -653,7 +653,7 @@ export function scalePaths<TPaths extends Paths64 | PathsD>(
     return result as TPaths;
   } else if (isPathsD(paths)) {
     if (isAlmostZero(scale - 1)) {
-      return new PathsD(paths) as TPaths;
+      return new PathsD(...paths) as TPaths;
     }
 
     const result = new PathsD();
@@ -1028,7 +1028,7 @@ export function ramerDouglasPeucker<
   } else if (isPath64(pathOrPaths)) {
     const len = pathOrPaths.length;
     if (len < 5) {
-      return new Path64(pathOrPaths) as TPathOrPaths;
+      return new Path64(...pathOrPaths) as TPathOrPaths;
     }
     const result = new Path64();
     const flags = Array.from(
@@ -1047,7 +1047,7 @@ export function ramerDouglasPeucker<
   } else if (isPathD(pathOrPaths)) {
     const len = pathOrPaths.length;
     if (len < 5) {
-      return new PathD(pathOrPaths) as TPathOrPaths;
+      return new PathD(...pathOrPaths) as TPathOrPaths;
     }
     const result = new PathD();
     const flags = Array.from(
@@ -1143,9 +1143,9 @@ export function simplifyPath<TPath extends Path64 | PathD>(
 
   if (len < 4) {
     if (isPath64(path)) {
-      return new Path64(path) as TPath;
+      return new Path64(...path) as TPath;
     } else if (isPathD(path)) {
-      return new PathD(path) as TPath;
+      return new PathD(...path) as TPath;
     }
     throw new Error("todo: change message");
   }
@@ -1336,7 +1336,7 @@ export function trimCollinear<TPath extends Path64 | PathD>(
         return new Path64() as TPath;
       }
 
-      return new Path64(path) as TPath;
+      return new Path64(...path) as TPath;
     }
     const result: Path64 = new Path64();
 

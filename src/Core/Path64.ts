@@ -8,15 +8,22 @@ export const Path64TypeName = "Path64";
 
 export class Path64 extends Array<Point64> {
   readonly type: typeof Path64TypeName;
-  constructor(path?: Iterable<Point64>) {
-    super();
+  
+  constructor();
+  constructor(...paths: Point64[]);
+  constructor(arrayLength: number);
+  constructor(...args:Point64[] | [number]) {
+    if (args.length === 0) {
+      super();
+    } else if (typeof args[0] === "number") {
+      super(args[0]);
+    } else {
+      super();
+      for (const pt of args as Point64[]) {
+        this.push(Point64.clone(pt));
+      }
+    }
     this.type = Path64TypeName;
-    if (path === undefined) {
-      return;
-    }
-    for (const pt of path) {
-      this.push(Point64.clone(pt));
-    }
   }
 
   clear() {
