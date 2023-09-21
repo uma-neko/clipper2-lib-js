@@ -9,7 +9,7 @@ import { OutPt } from "./OutPt";
 import { OutRec } from "./OutRec";
 import { PolyPathBase } from "./PolyPathBase";
 import { Vertex } from "./Vertex";
-import { roundToEven, perpendicDistFromLineSqrd } from "../Clipper";
+import { perpendicDistFromLineSqrd, numberToBigInt, roundToEven } from "../Clipper";
 import { ClipType, FillRule, PathType } from "../Core/CoreEnums";
 import {
   crossProduct,
@@ -632,7 +632,7 @@ const getCleanPath = (op: OutPt): Path64 => {
     op2 = op2.next!;
   }
 
-  result.push(Point64.clone(op2.pt));
+  result.push(op2.pt);
 
   let prevOp = op2;
   op2 = op2.next!;
@@ -642,7 +642,7 @@ const getCleanPath = (op: OutPt): Path64 => {
       (op2.pt.x !== op2.next!.pt.x || op2.pt.x !== prevOp.pt.x) &&
       (op2.pt.y !== op2.next!.pt.y || op2.pt.y !== prevOp.pt.y)
     ) {
-      result.push(Point64.clone(op2.pt));
+      result.push(op2.pt);
       prevOp = op2;
     }
     op2 = op2.next!;
@@ -803,18 +803,18 @@ const buildPath = (
   let op2: OutPt;
 
   if (reverse) {
-    lastPt = Point64.clone(op.pt);
+    lastPt = op.pt;
     op2 = op.prev;
   } else {
     op = op.next!;
-    lastPt = Point64.clone(op.pt);
+    lastPt = op.pt;
     op2 = op.next!;
   }
   path.push(lastPt);
 
   while (op2 !== op) {
     if (Point64.notEquals(op2.pt, lastPt)) {
-      lastPt = Point64.clone(op2.pt);
+      lastPt = op2.pt;
       path.push(lastPt);
     }
     if (reverse) {

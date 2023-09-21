@@ -15,7 +15,7 @@ export class ClipperGroup {
     joinType: JoinType,
     endType: EndType = EndType.Polygon,
   ) {
-    this.inPaths = new Paths64(...paths);
+    this.inPaths = Paths64.clone(paths);
     this.joinType = joinType;
     this.endType = endType;
     this.outPath = new Path64();
