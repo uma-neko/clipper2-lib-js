@@ -619,8 +619,7 @@ export function scalePaths<TPaths extends Paths64 | PathsD>(
 ): TPaths {
   if (isPaths64(paths)) {
     if (isAlmostZero(scale - 1)) {
-      const resultPaths = new Paths64();
-      return resultPaths as TPaths;
+      return Paths64.clone(paths) as TPaths;
     }
 
     const result = new Paths64();
