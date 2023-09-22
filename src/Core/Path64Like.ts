@@ -16,7 +16,7 @@ export class Path64Like implements Iterable<Point64> {
   *[Symbol.iterator]() {
     for (const w1 of this._wrapedObject) {
       if (isPoint64(w1)) {
-        yield w1;
+        yield Point64.clone(w1);
       } else {
         yield Point64.createScaledPoint(w1.x, w1.y, this._scale);
       }
