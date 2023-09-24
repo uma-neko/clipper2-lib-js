@@ -42,7 +42,7 @@ export const roundToEven = (num: number): number => {
 };
 
 export const awayFromZeroRounding = (num: number): number =>
-  Math.trunc(num) + (Math.trunc(num * 2) % 2);
+  num >= 0 ? Math.trunc(num + 0.5) : Math.trunc(num - 0.5);
 
 export function numberToBigInt(num: number): bigint {
   return BigInt(awayFromZeroRounding(num));
@@ -53,28 +53,27 @@ export function perpendicDistFromLineSqrd<TPoint extends Point64 | PointD>(
   line1: TPoint,
   line2: TPoint,
 ): number {
-  let x1: number;
-  let y1: number;
-  let x2: number;
-  let y2: number;
-
   if (isPoint64(pt) && isPoint64(line1) && isPoint64(line2)) {
-    x1 = Number(pt.x - line1.x);
-    y1 = Number(pt.y - line1.y);
-    x2 = Number(line2.x - line1.x);
-    y2 = Number(line2.y - line1.y);
+    const x2 = line2.x - line1.x;
+    const y2 = line2.y - line1.y;
+    if (x2 === 0n && y2 === 0n) {
+      return 0;
+    }
+    const x1 = pt.x - line1.x;
+    const y1 = pt.y - line1.y;
+    return sqr(Number(x1 * y2 - x2 * y1)) / (Number(x2 * x2 + y2 * y2));
   } else if (isPointD(pt) && isPointD(line1) && isPointD(line2)) {
-    x1 = pt.x - line1.x;
-    y1 = pt.y - line1.y;
-    x2 = line2.x - line1.x;
-    y2 = line2.y - line1.y;
+    const x2 = line2.x - line1.x;
+    const y2 = line2.y - line1.y;
+    if (x2 === 0 && y2 === 0) {
+      return 0;
+    }
+    const x1 = pt.x - line1.x;
+    const y1 = pt.y - line1.y;
+    return sqr(x1 * y2 - x2 * y1) / (x2 * x2 + y2 * y2);
   } else {
     throw new Error("todo: change message");
   }
-  if (x2 === 0 && y2 === 0) {
-    return 0;
-  }
-  return sqr(x1 * y2 - x2 * y1) / (x2 * x2 + y2 * y2);
 }
 
 export function sqr(value: number): number {

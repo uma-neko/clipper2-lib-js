@@ -9,7 +9,7 @@ import { OutPt } from "./OutPt";
 import { OutRec } from "./OutRec";
 import { PolyPathBase } from "./PolyPathBase";
 import { Vertex } from "./Vertex";
-import { perpendicDistFromLineSqrd, numberToBigInt, roundToEven } from "../Clipper";
+import { numberToBigInt, perpendicDistFromLineSqrd } from "../Clipper";
 import { ClipType, FillRule, PathType } from "../Core/CoreEnums";
 import {
   crossProduct64,
@@ -79,7 +79,7 @@ const topX = (ae: Active, currentY: bigint): bigint => {
   } else if (currentY === ae.bot.y) {
     return ae.bot.x;
   }
-  return ae.bot.x + BigInt(roundToEven(ae.dx * Number(currentY - ae.bot.y)));
+  return ae.bot.x + numberToBigInt(ae.dx * Number(currentY - ae.bot.y));
 };
 
 const isHorizontal = (ae: Active) => {
@@ -929,10 +929,8 @@ export class ClipperBase {
   }
 
   insertScanLine(y: bigint) {
-    if (this._scanlineList.find((value) => value === y) === undefined) {
-      this._scanlineList.push(y);
-      this._scanlineList.sort((a, b) => (a === b ? 0 : a > b ? 1 : -1));
-    }
+    const index = this._scanlineList.findIndex((value) => y <= value);
+    this._scanlineList.splice(index, 0, y);
   }
 
   popScanline(): { result: boolean; y: bigint } {
@@ -1268,28 +1266,21 @@ export class ClipperBase {
         };
         setDx(rightBound);
       }
-
-      if (leftBound !== undefined && rightBound !== undefined) {
+      if (leftBound === undefined) {
+        leftBound = rightBound;
+        rightBound = undefined;
+      } else if (rightBound !== undefined) {
         if (isHorizontal(leftBound)) {
           if (isHeadingRightHorz(leftBound)) {
-            const tmp = rightBound;
-            rightBound = leftBound;
-            leftBound = tmp;
+            [leftBound, rightBound] = [rightBound, leftBound];
           }
         } else if (isHorizontal(rightBound)) {
           if (isHeadingLeftHorz(rightBound)) {
-            const tmp = rightBound;
-            rightBound = leftBound;
-            leftBound = tmp;
+            [leftBound, rightBound] = [rightBound, leftBound];
           }
         } else if (leftBound.dx < rightBound.dx) {
-          const tmp = rightBound;
-          rightBound = leftBound;
-          leftBound = tmp;
+          [leftBound, rightBound] = [rightBound, leftBound];
         }
-      } else if (leftBound === undefined) {
-        leftBound = rightBound;
-        rightBound = undefined;
       }
 
       let contributing: boolean;
@@ -1523,9 +1514,7 @@ export class ClipperBase {
         return undefined;
       }
       if (isOpen(ae2)) {
-        const tmp = ae2;
-        ae2 = ae1;
-        ae1 = tmp;
+        [ae1, ae2] = [ae2, ae1];
       }
       if (isJoined(ae2)) {
         this.split(ae2, pt);
@@ -1931,9 +1920,11 @@ export class ClipperBase {
         while (!edgesAdjacentInAEL(this._intersectList[j])) {
           j++;
         }
-        const tmp = this._intersectList[j];
-        this._intersectList[j] = this._intersectList[i];
-        this._intersectList[i] = tmp;
+
+        [this._intersectList[i], this._intersectList[j]] = [
+          this._intersectList[j],
+          this._intersectList[i],
+        ];
       }
 
       const node = this._intersectList[i];
@@ -2268,10 +2259,10 @@ export class ClipperBase {
     const next = e.nextInAEL;
 
     if (
+      next === undefined ||
       isOpen(e) ||
       !isHotEdge(e) ||
       isJoined(e) ||
-      next === undefined ||
       isOpen(next) ||
       !isHotEdge(next)
     ) {
@@ -2330,8 +2321,8 @@ export class ClipperBase {
         const hs2 = this._horzSegList[j];
 
         if (
-          hs2.leftOp!.pt.x >= hs1.rightOp!.pt.x ||
           hs2.leftToRight === hs1.leftToRight ||
+          hs2.leftOp!.pt.x >= hs1.rightOp!.pt.x ||
           hs2.rightOp!.pt.x <= hs1.leftOp!.pt.x
         ) {
           continue;

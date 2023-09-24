@@ -108,13 +108,13 @@ export const getClosestPtOnSegment = (
   if (seg1.x === seg2.x && seg1.y === seg2.y) return Point64.clone(seg1);
   const dx = Number(seg2.x - seg1.x);
   const dy = Number(seg2.y - seg1.y);
-  let q =
+  const q =
     (Number(offPt.x - seg1.x) * dx + Number(offPt.y - seg1.y) * dy) /
     (dx * dx + dy * dy);
   if (q < 0) {
-    q = 0;
+    return Point64.clone(seg1);
   } else if (q > 1) {
-    q = 1;
+    return Point64.clone(seg2);
   }
   return {
     x: numberToBigInt(Number(seg1.x) + q * dx),
