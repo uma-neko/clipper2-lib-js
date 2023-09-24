@@ -12,7 +12,7 @@ import { PathsD, isPathsD } from "./Core/PathsD";
 import { Point64, isPoint64 } from "./Core/Point64";
 import { PointD, isPointD } from "./Core/PointD";
 import { Rect64, isRect64 } from "./Core/Rect64";
-import { RectD } from "./Core/RectD";
+import { RectD, isRectD } from "./Core/RectD";
 import { Clipper64 } from "./Engine/Clipper64";
 import { ClipperD } from "./Engine/ClipperD";
 import { PointInPolygonResult } from "./Engine/EngineEnums";
@@ -48,6 +48,21 @@ export function numberToBigInt(num: number): bigint {
   return BigInt(awayFromZeroRounding(num));
 }
 
+export function perpendicDistFromLineSqrd(
+  pt: Point64,
+  line1: Point64,
+  line2: Point64,
+): number;
+export function perpendicDistFromLineSqrd(
+  pt: PointD,
+  line1: PointD,
+  line2: PointD,
+): number;
+export function perpendicDistFromLineSqrd(
+  pt: PointD | Point64,
+  line1: PointD | Point64,
+  line2: PointD | Point64,
+): number;
 export function perpendicDistFromLineSqrd<TPoint extends Point64 | PointD>(
   pt: TPoint,
   line1: TPoint,
@@ -131,19 +146,19 @@ export function intersect(
   fillRule: FillRule,
   precision?: number,
 ): PathsD;
-export function intersect<TPaths extends Paths64 | PathsD>(
-  subject: TPaths,
-  clip: TPaths,
+export function intersect(
+  subject: Paths64 | PathsD,
+  clip: Paths64 | PathsD,
   fillRule: FillRule,
   precision: number = 2,
-): TPaths {
+): Paths64 | PathsD {
   return booleanOp(
     ClipType.Intersection,
     subject,
     clip,
     fillRule,
     precision,
-  ) as TPaths;
+  ) as Paths64 | PathsD;
 }
 
 export function union(subject: Paths64, fillRule: FillRule): Paths64;
@@ -159,12 +174,12 @@ export function union(
   fillRule: FillRule,
   precision?: number,
 ): PathsD;
-export function union<TPaths extends Paths64 | PathsD>(
-  subject: TPaths,
-  fillRuleOrClip: TPaths | FillRule,
+export function union(
+  subject: Paths64 | PathsD,
+  fillRuleOrClip: Paths64 | PathsD | FillRule,
   fillRule?: FillRule,
   precision: number = 2,
-): TPaths {
+): Paths64 | PathsD {
   if (typeof fillRuleOrClip === "number") {
     return booleanOp(
       ClipType.Union,
@@ -172,7 +187,7 @@ export function union<TPaths extends Paths64 | PathsD>(
       undefined,
       fillRuleOrClip as FillRule,
       precision,
-    ) as TPaths;
+    ) as Paths64 | PathsD;
   } else {
     return booleanOp(
       ClipType.Union,
@@ -180,7 +195,7 @@ export function union<TPaths extends Paths64 | PathsD>(
       fillRuleOrClip,
       fillRule!,
       precision,
-    ) as TPaths;
+    ) as Paths64 | PathsD;
   }
 }
 
@@ -195,19 +210,19 @@ export function difference(
   fillRule: FillRule,
   precision?: number,
 ): PathsD;
-export function difference<TPaths extends Paths64 | PathsD>(
-  subject: TPaths,
-  clip: TPaths,
+export function difference(
+  subject: Paths64 | PathsD,
+  clip: Paths64 | PathsD,
   fillRule: FillRule,
   precision: number = 2,
-): TPaths {
+): Paths64 | PathsD {
   return booleanOp(
     ClipType.Difference,
     subject,
     clip,
     fillRule,
     precision,
-  ) as TPaths;
+  ) as Paths64 | PathsD;
 }
 
 export function xor(
@@ -221,13 +236,13 @@ export function xor(
   fillRule: FillRule,
   precision?: number,
 ): PathsD;
-export function xor<TPaths extends Paths64 | PathsD>(
-  subject: TPaths,
-  clip: TPaths,
+export function xor(
+  subject: Paths64 | PathsD,
+  clip: Paths64 | PathsD,
   fillRule: FillRule,
   precision: number = 2,
-): TPaths {
-  return booleanOp(ClipType.Xor, subject, clip, fillRule, precision) as TPaths;
+): Paths64 | PathsD {
+  return booleanOp(ClipType.Xor, subject, clip, fillRule, precision) as Paths64 | PathsD;
 }
 
 export function booleanOp(
@@ -258,22 +273,22 @@ export function booleanOp(
   fillRule: FillRule,
   precision?: number,
 ): void;
-export function booleanOp<TPaths extends Paths64 | PathsD>(
+export function booleanOp(
   clipType: ClipType,
-  subject: TPaths,
-  clip: TPaths | undefined,
+  subject: Paths64 | PathsD,
+  clip: Paths64 | PathsD | undefined,
   fillRuleOrPolyTree: FillRule | PolyTree64 | PolyTreeD,
   precisionOrFillRule?: number | FillRule,
   precision?: number,
-): TPaths | void;
-export function booleanOp<TPaths extends Paths64 | PathsD>(
+): Paths64 | PathsD | void;
+export function booleanOp(
   clipType: ClipType,
-  subject: TPaths,
-  clip: TPaths | undefined,
+  subject: Paths64 | PathsD,
+  clip: Paths64 | PathsD | undefined,
   fillRuleOrPolyTree: FillRule | PolyTree64 | PolyTreeD,
   precisionOrFillRule?: number | FillRule,
   precision?: number,
-): TPaths | void {
+): Paths64 | PathsD | void {
   if (isPaths64(subject) && (clip === undefined || isPaths64(clip))) {
     if (typeof fillRuleOrPolyTree === "number") {
       const solution = new Paths64();
@@ -283,7 +298,7 @@ export function booleanOp<TPaths extends Paths64 | PathsD>(
         c.addPaths(clip, PathType.Clip);
       }
       c.execute(clipType, fillRuleOrPolyTree, solution);
-      return solution as TPaths;
+      return solution;
     } else if (fillRuleOrPolyTree instanceof PolyTree64) {
       const c = new Clipper64();
       c.addPaths(subject, PathType.Subject);
@@ -302,7 +317,7 @@ export function booleanOp<TPaths extends Paths64 | PathsD>(
         c.addPaths(clip, PathType.Clip);
       }
       c.execute(clipType, fillRuleOrPolyTree, solution);
-      return solution as TPaths;
+      return solution;
     } else if (fillRuleOrPolyTree instanceof PolyTreeD) {
       const c = new ClipperD(precision ?? 2);
       c.addPaths(subject, PathType.Subject);
@@ -331,20 +346,20 @@ export function inflatePaths(
   miterLimit?: number,
   precision?: number,
 ): PathsD;
-export function inflatePaths<TPaths extends Paths64 | PathsD>(
-  paths: TPaths,
+export function inflatePaths(
+  paths: Paths64 | PathsD,
   delta: number,
   joinType: JoinType,
   endType: EndType,
   miterLimit: number = 2.0,
   precision: number = 2,
-): TPaths {
+): Paths64 | PathsD {
   if (isPaths64(paths)) {
     const co = new ClipperOffset(miterLimit);
     co.addPaths(paths, joinType, endType);
     const solution = new Paths64();
     co.execute(delta, solution);
-    return solution as TPaths;
+    return solution;
   } else {
     checkPrecision(precision);
     const scale = Math.pow(10, precision);
@@ -352,7 +367,7 @@ export function inflatePaths<TPaths extends Paths64 | PathsD>(
     const co = new ClipperOffset(miterLimit);
     co.addPaths(tmp, joinType, endType);
     co.execute(delta * scale, tmp);
-    return scalePathsD(tmp, 1 / scale) as TPaths;
+    return scalePathsD(tmp, 1 / scale);
   }
 }
 
@@ -366,10 +381,10 @@ export function rectClip(
   rect: Rect64 | RectD,
   pathOrPaths: Paths64 | Path64 | PathsD | PathD,
   precision: number = 2,
-): Paths64 & PathsD {
+): Paths64 | PathsD {
   if (isRect64(rect)) {
     if (rect.isEmpty() || pathOrPaths.length === 0) {
-      return new Paths64() as Paths64 & PathsD;
+      return new Paths64();
     }
 
     let paths: Paths64;
@@ -383,11 +398,11 @@ export function rectClip(
     }
 
     const rc = new RectClip64(rect);
-    return rc.execute(paths) as Paths64 & PathsD;
+    return rc.execute(paths);
   } else {
     checkPrecision(precision);
     if (rect.isEmpty() || pathOrPaths.length === 0) {
-      return new PathsD() as Paths64 & PathsD;
+      return new PathsD();
     }
 
     const scale = Math.pow(10, precision);
@@ -406,7 +421,7 @@ export function rectClip(
     const r = scaleRect(rect, scale);
     const rc = new RectClip64(r);
     tmpPath = rc.execute(tmpPath);
-    return scalePathsD(tmpPath, 1 / scale) as Paths64 & PathsD;
+    return scalePathsD(tmpPath, 1 / scale);
   }
 }
 
@@ -426,45 +441,46 @@ export function rectClipLines(
   rect: Rect64 | RectD,
   pathOrPaths: Paths64 | Path64 | PathsD | PathD,
   precision: number = 2,
-): Paths64 & PathsD {
+): Paths64 | PathsD {
   if (isRect64(rect)) {
     if (rect.isEmpty() || pathOrPaths.length === 0) {
-      return new Paths64() as Paths64 & PathsD;
+      return new Paths64();
     }
 
-    let paths: Paths64;
+    let paths!: Paths64;
 
     if (isPaths64(pathOrPaths)) {
       paths = pathOrPaths;
-    } else {
+    } else if (isPath64(pathOrPaths)) {
       paths = new Paths64();
-      paths.push(pathOrPaths as Path64);
+      paths.push(pathOrPaths);
     }
 
     const rc = new RectClipLines64(rect);
-    return rc.execute(paths) as Paths64 & PathsD;
-  } else {
+    return rc.execute(paths);
+  } else if (isRectD(rect)) {
     checkPrecision(precision);
     if (rect.isEmpty() || pathOrPaths.length === 0) {
-      return new PathsD() as Paths64 & PathsD;
+      return new PathsD();
     }
 
     const scale = Math.pow(10, precision);
 
-    let tmpPath: Paths64;
+    let tmpPath!: Paths64;
 
     if (isPathsD(pathOrPaths)) {
       tmpPath = scalePaths64(pathOrPaths, scale);
-    } else {
+    } else if (isPathD(pathOrPaths)) {
       tmpPath = new Paths64();
-      tmpPath.push(scalePath64(pathOrPaths as PathD, scale));
+      tmpPath.push(scalePath64(pathOrPaths, scale));
     }
 
     const r = scaleRect(rect, scale);
     const rc = new RectClipLines64(r);
     tmpPath = rc.execute(tmpPath);
-    return scalePathsD(tmpPath, 1 / scale) as Paths64 & PathsD;
+    return scalePathsD(tmpPath, 1 / scale);
   }
+  throw new Error("todo: change message.");
 }
 
 export function minkowskiSum(
@@ -582,13 +598,21 @@ export function scaleRect(rec: RectD, scale: number): Rect64 {
   );
 }
 
-export function scalePath<TPath extends Path64 | PathD>(
-  path: TPath,
+export function scalePath(
+  path: Path64,
   scale: number,
-): TPath {
+):Path64;
+export function scalePath(
+  path: PathD,
+  scale: number,
+):PathD;
+export function scalePath(
+  path: Path64 | PathD,
+  scale: number,
+): Path64 | PathD {
   if (isPath64(path)) {
     if (isAlmostZero(scale - 1)) {
-      return Path64.clone(path) as TPath;
+      return Path64.clone(path);
     }
     const result: Path64 = new Path64();
 
@@ -598,27 +622,35 @@ export function scalePath<TPath extends Path64 | PathD>(
         y: numberToBigInt(Number(pt.y) * scale),
       });
     }
-    return result as TPath;
+    return result;
   } else {
     if (isAlmostZero(scale - 1)) {
-      return PathD.clone(path) as TPath;
+      return PathD.clone(path);
     }
     const result: PathD = new PathD();
 
-    for (const pt of path as PathD) {
+    for (const pt of path) {
       result.push({ x: pt.x * scale, y: pt.y * scale });
     }
-    return result as TPath;
+    return result;
   }
 }
 
-export function scalePaths<TPaths extends Paths64 | PathsD>(
-  paths: TPaths,
+export function scalePaths(
+  paths: Paths64,
   scale: number,
-): TPaths {
+):Paths64;
+export function scalePaths(
+  paths: PathsD,
+  scale: number,
+):PathsD;
+export function scalePaths(
+  paths: Paths64 | PathsD,
+  scale: number,
+): Paths64 | PathsD {
   if (isPaths64(paths)) {
     if (isAlmostZero(scale - 1)) {
-      return Paths64.clone(paths) as TPaths;
+      return Paths64.clone(paths);
     }
 
     const result = new Paths64();
@@ -634,15 +666,15 @@ export function scalePaths<TPaths extends Paths64 | PathsD>(
       result.push(tmpPath);
     }
 
-    return result as TPaths;
+    return result;
   } else if (isPathsD(paths)) {
     if (isAlmostZero(scale - 1)) {
-      return PathsD.clone(paths) as TPaths;
+      return PathsD.clone(paths);
     }
 
     const result = new PathsD();
 
-    for (const path of paths as PathsD) {
+    for (const path of paths) {
       const tmpPath: PathD = new PathD();
       for (const pt of path) {
         tmpPath.push({ x: pt.x * scale, y: pt.y * scale });
@@ -650,7 +682,7 @@ export function scalePaths<TPaths extends Paths64 | PathsD>(
       result.push(tmpPath);
     }
 
-    return result as TPaths;
+    return result;
   }
   throw new Error("todo: change message");
 }
@@ -708,17 +740,17 @@ export function pathsD(paths: Paths64): PathsD {
 
 export function translatePath(path: Path64, dx: bigint, dy: bigint): Path64;
 export function translatePath(path: PathD, dx: number, dy: number): PathD;
-export function translatePath<TPath extends Path64 | PathD>(
-  path: TPath,
+export function translatePath(
+  path: Path64 | PathD,
   dx: bigint | number,
   dy: bigint | number,
-): TPath {
+): Path64 | PathD {
   if (isPath64(path) && typeof dx === "bigint" && typeof dy === "bigint") {
     const result = new Path64();
     for (const pt of path) {
       result.push({ x: pt.x + dx, y: pt.y + dy });
     }
-    return result as TPath;
+    return result;
   } else if (
     isPathD(path) &&
     typeof dx === "number" &&
@@ -728,24 +760,24 @@ export function translatePath<TPath extends Path64 | PathD>(
     for (const pt of path) {
       result.push({ x: pt.x + dx, y: pt.y + dy });
     }
-    return result as TPath;
+    return result;
   }
   throw new Error("todo: change message");
 }
 
 export function translatePaths(paths: Paths64, dx: bigint, dy: bigint): Paths64;
 export function translatePaths(paths: PathsD, dx: number, dy: number): PathsD;
-export function translatePaths<TPaths extends Paths64 | PathsD>(
-  paths: TPaths,
+export function translatePaths(
+  paths: Paths64 | PathsD,
   dx: bigint | number,
   dy: bigint | number,
-): TPaths {
+): Paths64 | PathsD {
   if (isPaths64(paths) && typeof dx === "bigint" && typeof dy === "bigint") {
     const result = new Paths64();
     for (const path of paths) {
       result.push(translatePath(path, dx, dy));
     }
-    return result as TPaths;
+    return result;
   } else if (
     isPathsD(paths) &&
     typeof dx === "number" &&
@@ -755,43 +787,48 @@ export function translatePaths<TPaths extends Paths64 | PathsD>(
     for (const path of paths) {
       result.push(translatePath(path, dx, dy));
     }
-    return result as TPaths;
+    return result;
   }
   throw new Error("todo: change message");
 }
 
-export function reversePath<TPath extends Path64 | PathD>(path: TPath): TPath {
+export function reversePath(path: Path64): Path64;
+export function reversePath(path: PathD): PathD;
+export function reversePath(path: Path64 | PathD): Path64 | PathD {
   if (isPath64(path)) {
     const result = new Path64();
     for (let i = path.length - 1; i >= 0; i--) {
       result.push(path[i]);
     }
-    return result as TPath;
+    return result;
   } else if (isPathD(path)) {
     const result = new PathD();
     for (let i = path.length - 1; i >= 0; i--) {
       result.push(path[i]);
     }
-    return result as TPath;
+    return result;
   }
   throw Error("todo: change message");
 }
 
-export function reversePaths<TPaths extends Paths64 | PathsD>(
-  paths: TPaths,
-): TPaths {
+
+export function reversePaths(paths: Paths64): Paths64;
+export function reversePaths(paths: PathsD): PathsD;
+export function reversePaths(
+  paths: Paths64 | PathsD,
+): Paths64 | PathsD {
   if (isPaths64(paths)) {
     const result = new Paths64();
     for (const path of paths) {
       result.push(reversePath(path));
     }
-    return result as TPaths;
+    return result;
   } else if (isPathsD(paths)) {
     const result = new PathsD();
     for (const path of paths) {
       result.push(reversePath(path));
     }
-    return result as TPaths;
+    return result;
   }
   throw Error("todo: change message");
 }
