@@ -930,6 +930,9 @@ export class ClipperBase {
 
   insertScanLine(y: bigint) {
     const index = this._scanlineList.findIndex((value) => y <= value);
+    if(index === -1){
+      this._scanlineList.push(y);
+    }
     this._scanlineList.splice(index, 0, y);
   }
 
