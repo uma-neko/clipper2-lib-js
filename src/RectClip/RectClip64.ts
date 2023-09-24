@@ -1,7 +1,7 @@
 import { OutPt2 } from "./OutPt2";
 import { getBounds } from "../Clipper";
 import {
-  crossProduct,
+  crossProduct64,
   getIntersectPoint,
   pointInPolygon,
 } from "../Core/InternalClipper";
@@ -47,7 +47,7 @@ const isClockwise = (
   rectMidPoint: Point64,
 ): boolean => {
   if (areOpposites(prev, curr)) {
-    return crossProduct(prevPt, rectMidPoint, currPt) < 0;
+    return crossProduct64(prevPt, rectMidPoint, currPt) < 0;
   } else {
     return headingClockwise(prev, curr);
   }
@@ -232,8 +232,8 @@ const getSegmentIntersection = (
   p3: Point64,
   p4: Point64,
 ): { result: boolean; ip: Point64 } => {
-  const res1 = crossProduct(p1, p3, p4);
-  const res2 = crossProduct(p2, p3, p4);
+  const res1 = crossProduct64(p1, p3, p4);
+  const res2 = crossProduct64(p2, p3, p4);
   let ip: Point64;
   if (res1 === 0) {
     ip = Point64.clone(p1);
@@ -266,8 +266,8 @@ const getSegmentIntersection = (
     return { result: false, ip };
   }
 
-  const res3 = crossProduct(p3, p1, p2);
-  const res4 = crossProduct(p4, p1, p2);
+  const res3 = crossProduct64(p3, p1, p2);
+  const res4 = crossProduct64(p4, p1, p2);
 
   if (res3 === 0) {
     ip = Point64.clone(p3);
@@ -893,7 +893,7 @@ export class RectClip64 {
       }
 
       do {
-        if (crossProduct(op2!.prev!.pt, op2!.pt, op2!.next!.pt) === 0) {
+        if (crossProduct64(op2!.prev!.pt, op2!.pt, op2!.next!.pt) === 0) {
           if (op2 === op) {
             op2 = unlinkOpBack(op2!);
             if (op2 === undefined) {
@@ -1099,7 +1099,7 @@ export class RectClip64 {
     let op2: OutPt2 | undefined = op.next;
 
     while (op2 !== undefined && op2 !== op) {
-      if (crossProduct(op2.prev!.pt, op2.pt, op2.next!.pt) === 0) {
+      if (crossProduct64(op2.prev!.pt, op2.pt, op2.next!.pt) === 0) {
         op = op2.prev;
         op2 = unlinkOp(op2);
       } else {

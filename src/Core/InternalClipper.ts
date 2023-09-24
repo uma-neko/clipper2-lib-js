@@ -1,6 +1,6 @@
 import { Path64 } from "./Path64";
-import { Point64, isPoint64 } from "./Point64";
-import { PointD, isPointD } from "./PointD";
+import { Point64 } from "./Point64";
+import { PointD } from "./PointD";
 import { PointInPolygonResult } from "../Engine/EngineEnums";
 import { numberToBigInt } from "../Clipper";
 
@@ -16,45 +16,29 @@ export const checkPrecision = (precision: number) => {
 export const isAlmostZero = (value: number): boolean =>
   Math.abs(value) <= floatingPointTolerance;
 
-export function crossProduct(pt1: Point64, pt2: Point64, pt3: Point64): number;
-export function crossProduct(vec1: PointD, vec2: PointD): number;
-export function crossProduct(
-  pt1OrVec1: Point64 | PointD,
-  pt2OrVec2: Point64 | PointD,
-  pt3?: Point64,
-) {
-  if (isPointD(pt1OrVec1) && isPointD(pt2OrVec2)) {
-    return pt1OrVec1.y * pt2OrVec2.x - pt2OrVec2.y * pt1OrVec1.x;
-  } else if (
-    isPoint64(pt1OrVec1) &&
-    isPoint64(pt2OrVec2) &&
-    pt3 !== undefined &&
-    isPoint64(pt3)
-  ) {
-    return (
-      Number((pt2OrVec2.x - pt1OrVec1.x) * (pt3.y - pt2OrVec2.y)) -
-      Number((pt2OrVec2.y - pt1OrVec1.y) * (pt3.x - pt2OrVec2.x))
-    );
-  }
-  throw new Error("todo: change message");
+export function crossProduct64(
+  pt1: Point64,
+  pt2: Point64,
+  pt3: Point64,
+): number {
+  return Number(
+    (pt2.x - pt1.x) * (pt3.y - pt2.y) - (pt2.y - pt1.y) * (pt3.x - pt2.x),
+  );
 }
 
-export function dotProduct(vec1: PointD, vec2: PointD): number;
-export function dotProduct(pt1: Point64, pt2: Point64, pt3: Point64): number;
-export function dotProduct(
-  pt1OrVec1: Point64 | PointD,
-  pt2OrVec2: Point64 | PointD,
-  pt3?: Point64,
-) {
-  if (isPointD(pt1OrVec1) && isPointD(pt2OrVec2)) {
-    return pt1OrVec1.x * pt2OrVec2.x + pt1OrVec1.y * pt2OrVec2.y;
-  } else if (isPoint64(pt1OrVec1) && isPoint64(pt2OrVec2) && isPoint64(pt3)) {
-    return (
-      Number((pt2OrVec2.x - pt1OrVec1.x) * (pt3.x - pt2OrVec2.x)) +
-      Number((pt2OrVec2.y - pt1OrVec1.y) * (pt3.y - pt2OrVec2.y))
-    );
-  }
-  throw new Error("todo: change message");
+export function crossProductD(vec1: PointD, vec2: PointD): number {
+  return vec1.y * vec2.x - vec2.y * vec1.x;
+}
+
+export function dotProduct64(pt1: Point64, pt2: Point64, pt3: Point64): number {
+  return (
+    Number((pt2.x - pt1.x) * (pt3.x - pt2.x)) +
+    Number((pt2.y - pt1.y) * (pt3.y - pt2.y))
+  );
+}
+
+export function dotProductD(vec1: PointD, vec2: PointD): number {
+  return vec1.x * vec2.x + vec1.y * vec2.y;
 }
 
 export const getIntersectPoint = (
@@ -97,18 +81,21 @@ export const segsIntersect = (
   inclusive: boolean = false,
 ): boolean => {
   if (inclusive) {
-    const res1 = crossProduct(seg1a, seg2a, seg2b);
-    const res2 = crossProduct(seg1b, seg2a, seg2b);
+    const res1 = crossProduct64(seg1a, seg2a, seg2b);
+    const res2 = crossProduct64(seg1b, seg2a, seg2b);
     if (res1 * res2 > 0) return false;
-    const res3 = crossProduct(seg2a, seg1a, seg1b);
-    const res4 = crossProduct(seg2b, seg1a, seg1b);
+    const res3 = crossProduct64(seg2a, seg1a, seg1b);
+    const res4 = crossProduct64(seg2b, seg1a, seg1b);
     if (res3 * res4 > 0) return false;
     return res1 !== 0 || res2 !== 0 || res3 !== 0 || res4 !== 0;
   } else {
     return (
-      crossProduct(seg1a, seg2a, seg2b) * crossProduct(seg1b, seg2a, seg2b) <
+      crossProduct64(seg1a, seg2a, seg2b) *
+        crossProduct64(seg1b, seg2a, seg2b) <
         0 &&
-      crossProduct(seg2a, seg1a, seg1b) * crossProduct(seg2b, seg1a, seg1b) < 0
+      crossProduct64(seg2a, seg1a, seg1b) *
+        crossProduct64(seg2b, seg1a, seg1b) <
+        0
     );
   }
 };
@@ -204,17 +191,15 @@ export const pointInPolygon = (
       continue;
     }
 
-    if (!(pt.x < curr.x && pt.x < prev.x)) {
-      if (pt.x > prev.x && pt.x > curr.x) {
+    if (pt.x > prev.x && pt.x > curr.x) {
+      val = !val;
+    } else if (pt.x >= prev.x || pt.x >= curr.x) {
+      d = crossProduct64(prev, curr, pt);
+      if (d === 0) {
+        return PointInPolygonResult.IsOn;
+      }
+      if (d < 0 === isAbove) {
         val = !val;
-      } else {
-        d = crossProduct(prev, curr, pt);
-        if (d === 0) {
-          return PointInPolygonResult.IsOn;
-        }
-        if (d < 0 === isAbove) {
-          val = !val;
-        }
       }
     }
     isAbove = !isAbove;
@@ -227,9 +212,9 @@ export const pointInPolygon = (
     }
 
     if (i === 0) {
-      d = crossProduct(polygon[len - 1], polygon[0], pt);
+      d = crossProduct64(polygon[len - 1], polygon[0], pt);
     } else {
-      d = crossProduct(polygon[i - 1], polygon[i], pt);
+      d = crossProduct64(polygon[i - 1], polygon[i], pt);
     }
     if (d === 0) {
       return PointInPolygonResult.IsOn;

@@ -12,8 +12,8 @@ import { Vertex } from "./Vertex";
 import { perpendicDistFromLineSqrd, numberToBigInt, roundToEven } from "../Clipper";
 import { ClipType, FillRule, PathType } from "../Core/CoreEnums";
 import {
-  crossProduct,
-  dotProduct,
+  crossProduct64,
+  dotProduct64,
   getClosestPtOnSegment,
   getIntersectPoint,
   pointInPolygon,
@@ -364,20 +364,20 @@ const isValidAelOrder = (resident: Active, newcomer: Active): boolean => {
     return newcomer.curX > resident.curX;
   }
 
-  const d = crossProduct(resident.top, newcomer.bot, newcomer.top);
+  const d = crossProduct64(resident.top, newcomer.bot, newcomer.top);
   if (d !== 0) {
     return d < 0;
   }
 
   if (!isMaxima(resident) && resident.top.y > newcomer.top.y) {
     return (
-      crossProduct(newcomer.bot, resident.top, nextVertex(resident).pt) <= 0
+      crossProduct64(newcomer.bot, resident.top, nextVertex(resident).pt) <= 0
     );
   }
 
   if (!isMaxima(newcomer) && newcomer.top.y > resident.top.y) {
     return (
-      crossProduct(newcomer.bot, newcomer.top, nextVertex(newcomer).pt) >= 0
+      crossProduct64(newcomer.bot, newcomer.top, nextVertex(newcomer).pt) >= 0
     );
   }
 
@@ -393,13 +393,14 @@ const isValidAelOrder = (resident: Active, newcomer: Active): boolean => {
   }
 
   if (
-    crossProduct(prevPrevVertex(resident).pt, resident.bot, resident.top) === 0
+    crossProduct64(prevPrevVertex(resident).pt, resident.bot, resident.top) ===
+    0
   ) {
     return true;
   }
 
   return (
-    crossProduct(
+    crossProduct64(
       prevPrevVertex(resident).pt,
       newcomer.bot,
       prevPrevVertex(newcomer).pt,
@@ -709,7 +710,7 @@ const pointInOpPolygon = (pt: Point64, op: OutPt): PointInPolygonResult => {
       if (op2.prev.pt.x < pt.x && op2.pt.x < pt.x) {
         val = !val;
       } else {
-        const d = crossProduct(op2.prev.pt, op2.pt, pt);
+        const d = crossProduct64(op2.prev.pt, op2.pt, pt);
         if (d === 0) {
           return PointInPolygonResult.IsOn;
         }
@@ -724,7 +725,7 @@ const pointInOpPolygon = (pt: Point64, op: OutPt): PointInPolygonResult => {
   }
 
   if (isAbove !== startingAbove) {
-    const d = crossProduct(op2.prev.pt, op2.pt, pt);
+    const d = crossProduct64(op2.prev.pt, op2.pt, pt);
     if (d === 0) {
       return PointInPolygonResult.IsOn;
     }
@@ -2248,7 +2249,7 @@ export class ClipperBase {
       return;
     }
 
-    if (crossProduct(e.top, pt, prev.top) !== 0) {
+    if (crossProduct64(e.top, pt, prev.top) !== 0) {
       return;
     }
 
@@ -2292,7 +2293,7 @@ export class ClipperBase {
       return;
     }
 
-    if (crossProduct(e.top, pt, next.top) !== 0) {
+    if (crossProduct64(e.top, pt, next.top) !== 0) {
       return;
     }
 
@@ -2466,11 +2467,11 @@ export class ClipperBase {
 
     while (true) {
       if (
-        crossProduct(op2!.prev.pt, op2!.pt, op2!.next!.pt) === 0 &&
-        (Point64.equals(op2!.pt, op2!.prev.pt) ||
+        crossProduct64(op2!.prev.pt, op2!.pt, op2!.next!.pt) === 0 &&
+        (!this.preserveCollinear ||
+          Point64.equals(op2!.pt, op2!.prev.pt) ||
           Point64.equals(op2!.pt, op2!.next!.pt) ||
-          !this.preserveCollinear ||
-          dotProduct(op2!.prev.pt, op2!.pt, op2!.next!.pt) < 0)
+          dotProduct64(op2!.prev.pt, op2!.pt, op2!.next!.pt) < 0)
       ) {
         if (op2 === outrec.pts) {
           outrec.pts = op2!.prev;

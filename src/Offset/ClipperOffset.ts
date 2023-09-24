@@ -11,9 +11,9 @@ import {
 } from "../Clipper";
 import { ClipType, FillRule } from "../Core/CoreEnums";
 import {
-  crossProduct,
+  crossProductD,
   defaultArcTolerance,
-  dotProduct,
+  dotProductD,
   isAlmostZero,
 } from "../Core/InternalClipper";
 import { Path64 } from "../Core/Path64";
@@ -420,8 +420,8 @@ export class ClipperOffset {
   }
 
   offsetPoint(group: ClipperGroup, path: Path64, j: number, k: number): number {
-    let sinA = crossProduct(this._normals[j], this._normals[k]);
-    const cosA = dotProduct(this._normals[j], this._normals[k]);
+    let sinA = crossProductD(this._normals[j], this._normals[k]);
+    const cosA = dotProductD(this._normals[j], this._normals[k]);
     if (sinA > 1.0) {
       sinA = 1.0;
     } else if (sinA < -1.0) {

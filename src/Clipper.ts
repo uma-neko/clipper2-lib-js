@@ -1,9 +1,9 @@
 import { ClipType, FillRule, PathType } from "./Core/CoreEnums";
 import {
   checkPrecision,
-  crossProduct,
   isAlmostZero,
-  pointInPolygon as InternalpointInPolygon,
+  pointInPolygon as internalPointInPolygon,
+  crossProduct64,
 } from "./Core/InternalClipper";
 import { Path64, isPath64 } from "./Core/Path64";
 import { PathD, isPathD } from "./Core/PathD";
@@ -1292,13 +1292,13 @@ export function trimCollinear<TPath extends Path64 | PathD>(
     if (!isOpen) {
       while (
         i < len - 1 &&
-        crossProduct(path[len - 1], path[i], path[i + 1]) === 0
+        crossProduct64(path[len - 1], path[i], path[i + 1]) === 0
       ) {
         i++;
       }
       while (
         i < len - 1 &&
-        crossProduct(path[len - 2], path[len - 1], path[i]) === 0
+        crossProduct64(path[len - 2], path[len - 1], path[i]) === 0
       ) {
         len--;
       }
@@ -1316,7 +1316,7 @@ export function trimCollinear<TPath extends Path64 | PathD>(
     let last = path[i];
 
     for (i++; i < len - 1; i++) {
-      if (crossProduct(last, path[i], path[i + 1]) === 0) {
+      if (crossProduct64(last, path[i], path[i + 1]) === 0) {
         continue;
       }
       last = path[i];
@@ -1325,12 +1325,12 @@ export function trimCollinear<TPath extends Path64 | PathD>(
 
     if (isOpen) {
       result.push(path[len - 1]);
-    } else if (crossProduct(last, path[len - 1], result[0]) !== 0) {
+    } else if (crossProduct64(last, path[len - 1], result[0]) !== 0) {
       result.push(path[len - 1]);
     } else {
       while (
         result.length > 2 &&
-        crossProduct(
+        crossProduct64(
           result[result.length - 1],
           result[result.length - 2],
           result[0],
@@ -1363,13 +1363,13 @@ export function pointInPolygon(
   precision: number = 2,
 ) {
   if (isPoint64(pt)) {
-    return InternalpointInPolygon(pt, polygon as Path64);
+    return internalPointInPolygon(pt, polygon as Path64);
   } else {
     checkPrecision(precision);
     const scale = Math.pow(10, precision);
     const p = Point64.createScaledPoint(pt.x, pt.y, scale);
     const path = scalePath64(polygon as PathD, scale);
-    return InternalpointInPolygon(p, path);
+    return internalPointInPolygon(p, path);
   }
 }
 
