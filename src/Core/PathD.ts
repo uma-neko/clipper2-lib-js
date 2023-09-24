@@ -54,6 +54,8 @@ export class PathD extends Array<PointD> {
   }
 
   clear() {
-    this.length = 0;
+    if (this.length !== 0) {
+      this.length = 0;
+    }
   }
 }

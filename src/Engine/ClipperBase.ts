@@ -797,7 +797,7 @@ const buildPath = (
     return false;
   }
 
-  path.length = 0;
+  path.clear();
 
   let lastPt: Point64;
   let op2: OutPt;
@@ -894,17 +894,17 @@ export class ClipperBase {
     while (this._actives !== undefined) {
       this.deleteFromAEL(this._actives);
     }
-    this._scanlineList.length = 0;
+    this._scanlineList = [];
     this.disposeIntersectNodes();
-    this._outrecList.length = 0;
-    this._horzSegList.length = 0;
-    this._horzJoinList.length = 0;
+    this._outrecList = [];
+    this._horzSegList = [];
+    this._horzJoinList = [];
   }
 
   clear() {
     this.clearSolutionOnly();
-    this._minimaList.length = 0;
-    this._vertexList.length = 0;
+    this._minimaList = [];
+    this._vertexList = [];
     this._currentLocMin = 0;
     this._isSortedMinimaList = false;
     this._hasOpenPaths = false;
@@ -1787,7 +1787,7 @@ export class ClipperBase {
 
       if (this._horzSegList.length > 0) {
         this.convertHorzSegsToJoins();
-        this._horzSegList.length = 0;
+        this._horzSegList = [];
       }
 
       this._currentBotY = y;
@@ -1816,7 +1816,7 @@ export class ClipperBase {
   }
 
   disposeIntersectNodes() {
-    this._intersectList.length = 0;
+    this._intersectList = [];
   }
 
   addNewIntersectNode(ae1: Active, ae2: Active, topY: bigint) {

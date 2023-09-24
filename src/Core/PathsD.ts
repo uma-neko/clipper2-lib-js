@@ -21,11 +21,10 @@ export class PathsD extends Array<PathD> {
     } else if (typeof args[0] === "number") {
       super(args[0]);
     } else {
-      super(len);
-      for (let i = 0; i < len; i++) {
-        const path = args[i];
+      super();
+      for (const path of args) {
         if (isPathD(path)) {
-          this[i] = PathD.clone(path);
+          this.push(path);
         } else {
           throw Error("todo: change message");
         }
@@ -41,10 +40,12 @@ export class PathsD extends Array<PathD> {
   }
 
   clear() {
-    for (const path of this) {
-      path.length = 0;
+    if (this.length !== 0) {
+      for (const path of this) {
+        path.clear();
+      }
+      this.length = 0;
     }
-    this.length = 0;
   }
 
   override push(...paths: Iterable<PointD>[]) {

@@ -21,11 +21,10 @@ export class Paths64 extends Array<Path64> {
     } else if (typeof args[0] === "number") {
       super(args[0]);
     } else {
-      super(len);
-      for (let i = 0; i < len; i++) {
-        const path = args[i];
+      super();
+      for (const path of args) {
         if (isPath64(path)) {
-          this[i] = Path64.clone(path);
+          this.push(path);
         } else {
           throw Error("todo: change message");
         }
@@ -41,10 +40,12 @@ export class Paths64 extends Array<Path64> {
   }
 
   clear() {
-    for (const path of this) {
-      path.length = 0;
+    if (this.length !== 0) {
+      for (const path of this) {
+        path.clear();
+      }
+      this.length = 0;
     }
-    this.length = 0;
   }
 
   override push(...paths: Iterable<Point64>[]) {

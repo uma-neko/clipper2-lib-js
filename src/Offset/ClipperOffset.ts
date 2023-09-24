@@ -411,7 +411,7 @@ export class ClipperOffset {
 
   bulidNormals(path: Path64) {
     const cnt = path.length;
-    this._normals.length = 0;
+    this._normals.clear();
 
     for (let i = 0; i < cnt - 1; i++) {
       this._normals.push(this.getUnitNormal(path[i], path[i + 1]));

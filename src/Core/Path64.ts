@@ -54,6 +54,8 @@ export class Path64 extends Array<Point64> {
   }
 
   clear() {
-    this.length = 0;
+    if (this.length !== 0) {
+      this.length = 0;
+    }
   }
 }
