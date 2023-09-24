@@ -18,16 +18,18 @@ import {
 } from "../Core/InternalClipper";
 import { Path64 } from "../Core/Path64";
 import { PathD } from "../Core/PathD";
+import { PathDBase } from "../Core/PathDBase";
 import { Paths64 } from "../Core/Paths64";
 import { Point64 } from "../Core/Point64";
 import { PointD } from "../Core/PointD";
 import { Rect64 } from "../Core/Rect64";
 import { Clipper64 } from "../Engine/Clipper64";
 import { PolyTree64 } from "../Engine/PolyTree64";
+import type { Path64Base } from "../Core/Path64Base";
 
 export type DeltaCallback64 = (
-  path: Path64,
-  path_norms: PathD,
+  path: Path64Base,
+  path_norms: PathDBase,
   currPt: number,
   prevPt: number,
 ) => number;
@@ -36,7 +38,7 @@ const tolerance = 1.0e-12;
 
 export class ClipperOffset {
   _groupList: ClipperGroup[];
-  _normals: PathD;
+  _normals: PathDBase;
   _solution: Paths64;
   _groupDelta: number;
   _delta: number;
@@ -81,7 +83,7 @@ export class ClipperOffset {
     this._groupList.length = 0;
   }
 
-  addPath(path: Path64, joinType: JoinType, endType: EndType) {
+  addPath(path: Path64Base, joinType: JoinType, endType: EndType) {
     const cnt = path.length;
     if (cnt === 0) {
       return;
@@ -275,7 +277,7 @@ export class ClipperOffset {
     };
   }
 
-  doSquare(group: ClipperGroup, path: Path64, j: number, k: number): void {
+  doSquare(group: ClipperGroup, path: Path64Base, j: number, k: number): void {
     let vec: PointD;
     if (j === k) {
       vec = { x: this._normals[j].y, y: -this._normals[j].x };
@@ -338,7 +340,7 @@ export class ClipperOffset {
 
   doMiter(
     group: ClipperGroup,
-    path: Path64,
+    path: Path64Base,
     j: number,
     k: number,
     cosA: number,
@@ -356,7 +358,7 @@ export class ClipperOffset {
 
   doRound(
     group: ClipperGroup,
-    path: Path64,
+    path: Path64Base,
     j: number,
     k: number,
     angle: number,
@@ -409,7 +411,7 @@ export class ClipperOffset {
     group.outPath.push(this.getPerpendic(pt, this._normals[j]));
   }
 
-  bulidNormals(path: Path64) {
+  bulidNormals(path: Path64Base) {
     const cnt = path.length;
     this._normals.clear();
 
@@ -419,7 +421,7 @@ export class ClipperOffset {
     this._normals.push(this.getUnitNormal(path[cnt - 1], path[0]));
   }
 
-  offsetPoint(group: ClipperGroup, path: Path64, j: number, k: number): number {
+  offsetPoint(group: ClipperGroup, path: Path64Base, j: number, k: number): number {
     let sinA = crossProductD(this._normals[j], this._normals[k]);
     const cosA = dotProductD(this._normals[j], this._normals[k]);
     if (sinA > 1.0) {
@@ -461,7 +463,7 @@ export class ClipperOffset {
     return j;
   }
 
-  offsetPolygon(group: ClipperGroup, path: Path64) {
+  offsetPolygon(group: ClipperGroup, path: Path64Base) {
     const a = area(path);
     if (a < 0 !== this._groupDelta < 0) {
       const rec = getBounds(path);
@@ -481,14 +483,14 @@ export class ClipperOffset {
     group.outPaths.push(group.outPath);
   }
 
-  offsetOpenJoined(group: ClipperGroup, path: Path64) {
+  offsetOpenJoined(group: ClipperGroup, path: Path64Base) {
     this.offsetPolygon(group, path);
     path = reversePath(path);
     this.bulidNormals(path);
     this.offsetPolygon(group, path);
   }
 
-  offsetOpenPath(group: ClipperGroup, path: Path64) {
+  offsetOpenPath(group: ClipperGroup, path: Path64Base) {
     group.outPath = new Path64();
     const highI = path.length - 1;
 
@@ -525,12 +527,11 @@ export class ClipperOffset {
     }
 
     for (let i = highI; i > 0; i--) {
-      this._normals[i] = {
-        x: -this._normals[i - 1].x,
-        y: -this._normals[i - 1].y,
-      };
+      this._normals[i].x = -this._normals[i - 1].x;
+      this._normals[i].y = -this._normals[i - 1].y;
     }
-    this._normals[0] = this._normals[highI];
+    this._normals[0].x = this._normals[highI].x;
+    this._normals[0].y = this._normals[highI].y;
 
     if (this.deltaCallback !== undefined) {
       this._groupDelta = this.deltaCallback(path, this._normals, highI, highI);

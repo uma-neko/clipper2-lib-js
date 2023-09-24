@@ -4,6 +4,7 @@ import { getBounds } from "../Clipper";
 import { Path64 } from "../Core/Path64";
 import { Paths64 } from "../Core/Paths64";
 import { Point64 } from "../Core/Point64";
+import type { Path64Base } from "../Core/Path64Base";
 
 export class RectClipLines64 extends RectClip64 {
   override execute(paths: Paths64): Paths64 {
@@ -40,8 +41,8 @@ export class RectClipLines64 extends RectClip64 {
     return result;
   }
 
-  override getPath(op: OutPt2 | undefined): Path64 {
-    const result: Path64 = new Path64();
+  override getPath(op: OutPt2 | undefined): Path64Base {
+    const result: Path64Base = new Path64();
     if (op === undefined || op === op.next) {
       return result;
     }
@@ -55,7 +56,7 @@ export class RectClipLines64 extends RectClip64 {
     return result;
   }
 
-  override executeInternal(path: Path64): void {
+  override executeInternal(path: Path64Base): void {
     this._results.length = 0;
     if (path.length < 2 || this._rect.isEmpty()) {
       return;

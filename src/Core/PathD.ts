@@ -1,10 +1,9 @@
+import { PathDTypeName, PathDBase } from "./PathDBase";
 import { PointD, isPointD } from "./PointD";
 
 export const isPathD = (obj: unknown): obj is PathD => {
   return obj instanceof PathD && obj.type === PathDTypeName;
 };
-
-export const PathDTypeName = "PathD";
 
 export class PathD extends Array<PointD> {
   readonly type: typeof PathDTypeName;
@@ -33,7 +32,7 @@ export class PathD extends Array<PointD> {
     this.type = PathDTypeName;
   }
 
-  static clone(path: Iterable<PointD>): PathD {
+  static clone(path: Iterable<PointD>): PathDBase {
     const result = new PathD();
     result.pushRange(path);
     return result;

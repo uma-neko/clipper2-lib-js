@@ -1,4 +1,5 @@
 import { PathD, isPathD } from "./PathD";
+import { PathDBase } from "./PathDBase";
 import { PointD } from "./PointD";
 
 export const isPathsD = (obj: unknown): obj is PathsD => {
@@ -7,14 +8,14 @@ export const isPathsD = (obj: unknown): obj is PathsD => {
 
 export const PathsDTypeName = "PathsD";
 
-export class PathsD extends Array<PathD> {
+export class PathsD extends Array<PathDBase> {
   readonly type: typeof PathsDTypeName;
 
   constructor();
   constructor(arrayLength: number);
-  constructor(...paths: PathD[]);
-  constructor(...args: [] | [number] | PathD[]);
-  constructor(...args: [] | [number] | PathD[]) {
+  constructor(...paths: PathDBase[]);
+  constructor(...args: [] | [number] | PathDBase[]);
+  constructor(...args: [] | [number] | PathDBase[]) {
     const len = args.length;
     if (len === 0) {
       super();

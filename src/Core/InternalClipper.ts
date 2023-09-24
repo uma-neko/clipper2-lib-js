@@ -1,4 +1,4 @@
-import { Path64 } from "./Path64";
+import type { Path64Base } from "./Path64Base";
 import { Point64 } from "./Point64";
 import { PointD } from "./PointD";
 import { PointInPolygonResult } from "../Engine/EngineEnums";
@@ -124,7 +124,7 @@ export const getClosestPtOnSegment = (
 
 export const pointInPolygon = (
   pt: Point64,
-  polygon: Path64,
+  polygon: Path64Base,
 ): PointInPolygonResult => {
   const len = polygon.length;
   let start = 0;
@@ -196,7 +196,7 @@ export const pointInPolygon = (
     } else if (pt.x >= prev.x || pt.x >= curr.x) {
       d = crossProduct64(prev, curr, pt);
       if (d === 0) {
-        return PointInPolygonResult.IsOn;
+      return PointInPolygonResult.IsOn;
       }
       if (d < 0 === isAbove) {
         val = !val;

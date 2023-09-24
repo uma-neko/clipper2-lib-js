@@ -1,12 +1,11 @@
+import { Path64Base, Path64TypeName } from "./Path64Base";
 import { Point64, isPoint64 } from "./Point64";
 
 export const isPath64 = (obj: unknown): obj is Path64 => {
   return obj instanceof Path64 && obj.type === Path64TypeName;
 };
 
-export const Path64TypeName = "Path64";
-
-export class Path64 extends Array<Point64> {
+export class Path64 extends Array<Point64> implements Path64Base {
   readonly type: typeof Path64TypeName;
 
   constructor();
@@ -33,7 +32,7 @@ export class Path64 extends Array<Point64> {
     this.type = Path64TypeName;
   }
 
-  static clone(path: Iterable<Point64>): Path64 {
+  static clone(path: Iterable<Point64>): Path64Base {
     const result = new Path64();
     result.pushRange(path);
     return result;

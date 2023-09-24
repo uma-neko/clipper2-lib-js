@@ -1,10 +1,11 @@
 import { EndType, JoinType } from "./OffsetEnums";
 import { Path64 } from "../Core/Path64";
 import { Paths64 } from "../Core/Paths64";
+import type { Path64Base } from "../Core/Path64Base";
 
 export class ClipperGroup {
   inPaths: Paths64;
-  outPath: Path64;
+  outPath: Path64Base;
   outPaths: Paths64;
   joinType: JoinType;
   endType: EndType;

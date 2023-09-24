@@ -1,4 +1,5 @@
 import { Path64, isPath64 } from "./Path64";
+import type { Path64Base } from "./Path64Base";
 import { Point64 } from "./Point64";
 
 export const isPaths64 = (obj: unknown): obj is Paths64 => {
@@ -7,14 +8,14 @@ export const isPaths64 = (obj: unknown): obj is Paths64 => {
 
 export const Paths64TypeName = "Paths64";
 
-export class Paths64 extends Array<Path64> {
+export class Paths64 extends Array<Path64Base> {
   readonly type: typeof Paths64TypeName;
 
   constructor();
   constructor(arrayLength: number);
-  constructor(...paths: Path64[]);
-  constructor(...args: [] | [number] | Path64[]);
-  constructor(...args: [] | [number] | Path64[]) {
+  constructor(...paths: Path64Base[]);
+  constructor(...args: [] | [number] | Path64Base[]);
+  constructor(...args: [] | [number] | Path64Base[]) {
     const len = args.length;
     if (len === 0) {
       super();
