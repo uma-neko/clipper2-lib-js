@@ -1,3 +1,4 @@
+import { isPath64 } from "./Path64";
 import { Path64Like } from "./Path64Like";
 import { Point64, isPoint64 } from "./Point64";
 import { PointD } from "./PointD";
@@ -39,6 +40,8 @@ export class Paths64Like implements Iterable<Iterable<Point64>> {
           );
           break;
         }
+      } else if (isPath64(w1)) {
+        yield w1;
       } else {
         yield new Path64Like(w1, this._scale);
       }

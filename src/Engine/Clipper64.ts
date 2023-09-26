@@ -16,7 +16,7 @@ export class Clipper64 extends ClipperBase {
   }
 
   override addPaths(
-    paths: Iterable<Iterable<Point64>>,
+    paths: Iterable<Point64> | Iterable<Iterable<Point64>>,
     polytype: PathType,
     isOpen: boolean = false,
   ) {
@@ -26,19 +26,19 @@ export class Clipper64 extends ClipperBase {
   override addSubject(
     pathOrPaths: Iterable<Point64> | Iterable<Iterable<Point64>>,
   ) {
-    this.addPaths(new Paths64Like(pathOrPaths, 0), PathType.Subject);
+    this.addPaths(pathOrPaths, PathType.Subject);
   }
 
   override addOpenSubject(
     pathOrPaths: Iterable<Point64> | Iterable<Iterable<Point64>>,
   ) {
-    this.addPaths(new Paths64Like(pathOrPaths, 0), PathType.Subject, true);
+    this.addPaths(pathOrPaths, PathType.Subject, true);
   }
 
   override addClip(
     pathOrPaths: Iterable<Point64> | Iterable<Iterable<Point64>>,
   ) {
-    this.addPaths(new Paths64Like(pathOrPaths, 0), PathType.Clip);
+    this.addPaths(pathOrPaths, PathType.Clip);
   }
 
   execute(

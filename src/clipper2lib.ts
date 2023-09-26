@@ -11,7 +11,7 @@ export { Point64, isPoint64 } from "./Core/Point64";
 export { PointD, isPointD } from "./Core/PointD";
 export { Rect64, isRect64 } from "./Core/Rect64";
 export { RectD, isRectD } from "./Core/RectD";
-
+export { Path64TypedArray } from "./Core/Path64TypedArray";
 export { ClipperBase } from "./Engine/ClipperBase";
 export { Clipper64 } from "./Engine/Clipper64";
 export { ClipperD } from "./Engine/ClipperD";

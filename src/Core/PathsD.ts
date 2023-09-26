@@ -1,5 +1,6 @@
-import { PathD, isPathD } from "./PathD";
+import { isPathD } from "./PathD";
 import { PathDBase } from "./PathDBase";
+import { PathDTypedArray } from "./PathDTypedArray";
 import { PointD } from "./PointD";
 
 export const isPathsD = (obj: unknown): obj is PathsD => {
@@ -24,11 +25,7 @@ export class PathsD extends Array<PathDBase> {
     } else {
       super();
       for (const path of args) {
-        if (isPathD(path)) {
-          this.push(path);
-        } else {
-          throw Error("todo: change message");
-        }
+        this._innerPush(path as PathDBase);
       }
     }
     this.type = PathsDTypeName;
@@ -49,16 +46,37 @@ export class PathsD extends Array<PathDBase> {
     }
   }
 
+  _innerPush(path: Iterable<PointD>) {
+    let clonedPath: PathDBase;
+    if (isPathD(path)) {
+      clonedPath = path.clone();
+    } else {
+      if (
+        "length" in path &&
+        typeof path.length === "number" &&
+        path.length > 0
+      ) {
+        clonedPath = new PathDTypedArray(path.length);
+      } else {
+        clonedPath = new PathDTypedArray();
+      }
+      for (const pt of path) {
+        clonedPath.push(pt);
+      }
+    }
+    super.push(clonedPath);
+  }
+
   override push(...paths: Iterable<PointD>[]) {
     for (const path of paths) {
-      super.push(PathD.clone(path));
+      this._innerPush(path);
     }
     return this.length;
   }
 
   pushRange(paths: Iterable<Iterable<PointD>>) {
     for (const path of paths) {
-      super.push(PathD.clone(path));
+      this._innerPush(path);
     }
     return this.length;
   }

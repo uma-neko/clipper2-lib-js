@@ -5,12 +5,12 @@ import {
   getIntersectPoint,
   pointInPolygon,
 } from "../Core/InternalClipper";
-import { Path64 } from "../Core/Path64";
 import { Paths64 } from "../Core/Paths64";
 import { Point64 } from "../Core/Point64";
 import { Rect64 } from "../Core/Rect64";
 import { PointInPolygonResult } from "../Engine/EngineEnums";
 import type { Path64Base } from "../Core/Path64Base";
+import { Path64TypedArray } from "../Core/Path64TypedArray";
 
 export const Location = {
   left: 0,
@@ -357,17 +357,19 @@ export class RectClip64 {
   }
 
   addCorner(prev: Location, curr: Location) {
-    this.add(this._rectPath[headingClockwise(prev, curr) ? prev : curr]);
+    this.add(
+      this._rectPath.getClone(headingClockwise(prev, curr) ? prev : curr),
+    );
   }
 
   addCornerRef(loc: Location, isClockwise: boolean): Location {
     if (isClockwise) {
-      this.add(this._rectPath[loc]);
+      this.add(this._rectPath.getClone(loc));
       loc = getAdjacentLocation(loc, true);
       return loc;
     } else {
       loc = getAdjacentLocation(loc, false);
-      this.add(this._rectPath[loc]);
+      this.add(this._rectPath.getClone(loc));
       return loc;
     }
   }
@@ -380,24 +382,29 @@ export class RectClip64 {
   ): { result: boolean; loc: Location; ip: Point64 } {
     let ip = { x: 0n, y: 0n };
     let result: boolean;
+    const rectPath0Left = rectPath.getClone(0);
+    const rectPath1Top = rectPath.getClone(1);
+    const rectPath2Right = rectPath.getClone(2);
+    const rectPath3Bottom = rectPath.getClone(3);
+
     switch (loc) {
       case Location.left:
         if (
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[0],
-            rectPath[3],
+            rectPath0Left,
+            rectPath3Bottom,
           )).result
         ) {
           break;
         } else if (
-          p.y < rectPath[0].y &&
+          p.y < rectPath0Left.y &&
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[0],
-            rectPath[1],
+            rectPath0Left,
+            rectPath1Top,
           )).result
         ) {
           loc = Location.top;
@@ -406,8 +413,8 @@ export class RectClip64 {
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[2],
-            rectPath[3],
+            rectPath2Right,
+            rectPath3Bottom,
           )).result
         ) {
           loc = Location.bottom;
@@ -421,18 +428,18 @@ export class RectClip64 {
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[1],
-            rectPath[2],
+            rectPath1Top,
+            rectPath2Right,
           )).result
         ) {
           break;
         } else if (
-          p.y < rectPath[0].y &&
+          p.y < rectPath0Left.y &&
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[0],
-            rectPath[1],
+            rectPath0Left,
+            rectPath1Top,
           )).result
         ) {
           loc = Location.top;
@@ -441,8 +448,8 @@ export class RectClip64 {
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[2],
-            rectPath[3],
+            rectPath2Right,
+            rectPath3Bottom,
           )).result
         ) {
           loc = Location.bottom;
@@ -456,29 +463,29 @@ export class RectClip64 {
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[0],
-            rectPath[1],
+            rectPath0Left,
+            rectPath1Top,
           )).result
         ) {
           break;
         } else if (
-          p.x < rectPath[0].x &&
+          p.x < rectPath0Left.x &&
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[0],
-            rectPath[3],
+            rectPath0Left,
+            rectPath3Bottom,
           )).result
         ) {
           loc = Location.left;
           break;
         } else if (
-          p.x > rectPath[1].x &&
+          p.x > rectPath1Top.x &&
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[1],
-            rectPath[2],
+            rectPath1Top,
+            rectPath2Right,
           )).result
         ) {
           loc = Location.right;
@@ -492,29 +499,29 @@ export class RectClip64 {
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[2],
-            rectPath[3],
+            rectPath2Right,
+            rectPath3Bottom,
           )).result
         ) {
           break;
         } else if (
-          p.x < rectPath[3].x &&
+          p.x < rectPath3Bottom.x &&
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[0],
-            rectPath[3],
+            rectPath0Left,
+            rectPath3Bottom,
           )).result
         ) {
           loc = Location.left;
           break;
         } else if (
-          p.x > rectPath[2].x &&
+          p.x > rectPath2Right.x &&
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[1],
-            rectPath[2],
+            rectPath1Top,
+            rectPath2Right,
           )).result
         ) {
           loc = Location.right;
@@ -528,8 +535,8 @@ export class RectClip64 {
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[0],
-            rectPath[3],
+            rectPath0Left,
+            rectPath3Bottom,
           )).result
         ) {
           loc = Location.left;
@@ -538,8 +545,8 @@ export class RectClip64 {
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[0],
-            rectPath[1],
+            rectPath0Left,
+            rectPath1Top,
           )).result
         ) {
           loc = Location.top;
@@ -548,8 +555,8 @@ export class RectClip64 {
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[1],
-            rectPath[2],
+            rectPath1Top,
+            rectPath2Right,
           )).result
         ) {
           loc = Location.right;
@@ -558,8 +565,8 @@ export class RectClip64 {
           ({ result, ip } = getSegmentIntersection(
             p,
             p2,
-            rectPath[2],
-            rectPath[3],
+            rectPath2Right,
+            rectPath3Bottom,
           )).result
         ) {
           loc = Location.bottom;
@@ -584,100 +591,111 @@ export class RectClip64 {
     highI: number,
   ): { loc: Location; i: number } {
     switch (loc) {
-      case Location.left:
-        while (i <= highI && path[i].x <= this._rect.left) {
+      case Location.left: {
+        while (i <= highI && path.getClone(i).x <= this._rect.left) {
           i++;
         }
+
+        const currPt = path.getClone(i);
 
         if (i > highI) {
           break;
         }
 
-        if (path[i].x >= this._rect.right) {
+        if (currPt.x >= this._rect.right) {
           loc = Location.right;
-        } else if (path[i].y <= this._rect.top) {
+        } else if (currPt.y <= this._rect.top) {
           loc = Location.top;
-        } else if (path[i].y >= this._rect.bottom) {
+        } else if (currPt.y >= this._rect.bottom) {
           loc = Location.bottom;
         } else {
           loc = Location.inside;
         }
         break;
-      case Location.top:
-        while (i <= highI && path[i].y <= this._rect.top) {
+      }
+      case Location.top: {
+        while (i <= highI && path.getClone(i).y <= this._rect.top) {
           i++;
         }
+        const currPt = path.getClone(i);
 
         if (i > highI) {
           break;
         }
 
-        if (path[i].y >= this._rect.bottom) {
+        if (currPt.y >= this._rect.bottom) {
           loc = Location.bottom;
-        } else if (path[i].x <= this._rect.left) {
+        } else if (currPt.x <= this._rect.left) {
           loc = Location.left;
-        } else if (path[i].x >= this._rect.right) {
+        } else if (currPt.x >= this._rect.right) {
           loc = Location.right;
         } else {
           loc = Location.inside;
         }
         break;
-      case Location.right:
-        while (i <= highI && path[i].x >= this._rect.right) {
+      }
+      case Location.right: {
+        while (i <= highI && path.getClone(i).x >= this._rect.right) {
           i++;
         }
+        const currPt = path.getClone(i);
 
         if (i > highI) {
           break;
         }
 
-        if (path[i].x <= this._rect.left) {
+        if (currPt.x <= this._rect.left) {
           loc = Location.left;
-        } else if (path[i].y <= this._rect.top) {
+        } else if (currPt.y <= this._rect.top) {
           loc = Location.top;
-        } else if (path[i].y >= this._rect.bottom) {
+        } else if (currPt.y >= this._rect.bottom) {
           loc = Location.bottom;
         } else {
           loc = Location.inside;
         }
         break;
-      case Location.bottom:
-        while (i <= highI && path[i].y >= this._rect.bottom) {
+      }
+      case Location.bottom: {
+        while (i <= highI && path.getClone(i).y >= this._rect.bottom) {
           i++;
         }
+        const currPt = path.getClone(i);
 
         if (i > highI) {
           break;
         }
 
-        if (path[i].y <= this._rect.top) {
+        if (currPt.y <= this._rect.top) {
           loc = Location.top;
-        } else if (path[i].x <= this._rect.left) {
+        } else if (currPt.x <= this._rect.left) {
           loc = Location.left;
-        } else if (path[i].x >= this._rect.right) {
+        } else if (currPt.x >= this._rect.right) {
           loc = Location.right;
         } else {
           loc = Location.inside;
         }
         break;
-      case Location.inside:
+      }
+      case Location.inside: {
         while (i <= highI) {
-          if (path[i].x < this._rect.left) {
+          const currPt = path.getClone(i);
+          if (currPt.x < this._rect.left) {
             loc = Location.left;
-          } else if (path[i].x > this._rect.right) {
+          } else if (currPt.x > this._rect.right) {
             loc = Location.right;
-          } else if (path[i].y > this._rect.bottom) {
+          } else if (currPt.y > this._rect.bottom) {
             loc = Location.bottom;
-          } else if (path[i].y < this._rect.top) {
+          } else if (currPt.y < this._rect.top) {
             loc = Location.top;
           } else {
-            this.add(path[i]);
+            this.add(currPt);
             i++;
             continue;
           }
           break;
         }
         break;
+      }
     }
 
     return { loc, i };
@@ -698,11 +716,11 @@ export class RectClip64 {
 
     let loc: Location;
 
-    if (!({ loc } = getLocation(this._rect, path[highI])).result) {
+    if (!({ loc } = getLocation(this._rect, path.getClone(highI))).result) {
       i = highI - 1;
       while (
         i >= 0 &&
-        !({ loc: prev } = getLocation(this._rect, path[i])).result
+        !({ loc: prev } = getLocation(this._rect, path.getClone(i))).result
       ) {
         i--;
       }
@@ -727,26 +745,27 @@ export class RectClip64 {
         break;
       }
 
-      const prevPt = i === 0 ? path[highI] : path[i - 1];
+      const currPt = path.getClone(i);
+      const prevPt = i === 0 ? path.getClone(highI) : path.getClone(i - 1);
       crossingLoc = loc;
       let ip: Point64;
       if (
         !({ loc: crossingLoc, ip } = this.getIntersection(
           this._rectPath,
-          path[i],
+          currPt,
           prevPt,
           crossingLoc,
         )).result
       ) {
         if (prevCrossLoc === Location.inside) {
-          const isClockw = isClockwise(prev, loc, prevPt, path[i], this._mp);
+          const isClockw = isClockwise(prev, loc, prevPt, currPt, this._mp);
           do {
             startLocs.push(prev);
             prev = getAdjacentLocation(prev, isClockw);
           } while (prev !== loc);
           crossingLoc = prevCrossLoc;
         } else if (prev !== Location.inside && prev !== loc) {
-          const isClockw = isClockwise(prev, loc, prevPt, path[i], this._mp);
+          const isClockw = isClockwise(prev, loc, prevPt, currPt, this._mp);
           do {
             prev = this.addCornerRef(prev, isClockw);
           } while (prev !== loc);
@@ -764,7 +783,7 @@ export class RectClip64 {
             prev,
             crossingLoc,
             prevPt,
-            path[i],
+            currPt,
             this._mp,
           );
           do {
@@ -777,7 +796,7 @@ export class RectClip64 {
         ({ loc, ip: ip2 } = this.getIntersection(
           this._rectPath,
           prevPt,
-          path[i],
+          currPt,
           loc,
         ));
         if (prevCrossLoc !== Location.inside && prevCrossLoc !== loc) {
@@ -793,7 +812,7 @@ export class RectClip64 {
         this.add(ip2);
 
         if (Point64.equals(ip, ip2)) {
-          ({ loc } = getLocation(this._rect, path[i]));
+          ({ loc } = getLocation(this._rect, currPt));
           this.addCorner(crossingLoc, loc);
           crossingLoc = loc;
           continue;
@@ -815,7 +834,7 @@ export class RectClip64 {
           path1ContainsPath2(path, this._rectPath)
         ) {
           for (let j = 0; j < 4; j++) {
-            this.add(this._rectPath[j]);
+            this.add(this._rectPath.getClone(j));
             addToEdge(this._edges[j * 2], this._results[0]!);
           }
         }
@@ -1094,7 +1113,7 @@ export class RectClip64 {
 
   getPath(op: OutPt2 | undefined): Path64Base {
     if (op === undefined || op.prev === op.next) {
-      return new Path64();
+      return new Path64TypedArray();
     }
 
     let op2: OutPt2 | undefined = op.next;
@@ -1109,10 +1128,10 @@ export class RectClip64 {
     }
 
     if (op2 === undefined) {
-      return new Path64();
+      return new Path64TypedArray();
     }
 
-    const result: Path64Base = new Path64();
+    const result: Path64Base = new Path64TypedArray();
     result.push(op!.pt);
     op2 = op!.next;
 

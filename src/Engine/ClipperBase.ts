@@ -19,11 +19,11 @@ import {
   pointInPolygon,
   segsIntersect,
 } from "../Core/InternalClipper";
-import { Path64 } from "../Core/Path64";
 import { Paths64 } from "../Core/Paths64";
 import { Point64 } from "../Core/Point64";
-import { Rect64 } from "../Core/Rect64";
+import { EmptyRect64, Rect64 } from "../Core/Rect64";
 import type { Path64Base } from "../Core/Path64Base";
+import { Path64TypedArray } from "../Core/Path64TypedArray";
 
 const isOdd = (val: number) => {
   return (val & 1) !== 0;
@@ -623,7 +623,7 @@ const duplicateOp = (op: OutPt, insert_after: boolean): OutPt => {
 };
 
 const getCleanPath = (op: OutPt): Path64Base => {
-  const result: Path64Base = new Path64();
+  const result: Path64Base = new Path64TypedArray();
   let op2 = op;
 
   while (
@@ -931,7 +931,7 @@ export class ClipperBase {
 
   insertScanLine(y: bigint) {
     const index = this._scanlineList.findIndex((value) => y <= value);
-    if(index === -1){
+    if (index === -1) {
       this._scanlineList.push(y);
     }
     this._scanlineList.splice(index, 0, y);
@@ -1459,8 +1459,8 @@ export class ClipperBase {
   newOutRec(): OutRec {
     const result: OutRec = {
       idx: this._outrecList.length,
-      bounds: new Rect64(),
-      path: new Path64(),
+      bounds: EmptyRect64,
+      path: new Path64TypedArray(),
       isOpen: false,
     };
 
@@ -2588,23 +2588,25 @@ export class ClipperBase {
     solutionClosed.clear();
     solutionOpen.clear();
     let i = 0;
+
+    const cachedPath: Path64Base = new Path64TypedArray();
     while (i < this._outrecList.length) {
       const outrec = this._outrecList[i++];
       if (outrec.pts === undefined) {
         continue;
       }
 
-      const path: Path64Base = new Path64();
       if (outrec.isOpen) {
-        if (buildPath(outrec.pts, this.reverseSolution, true, path)) {
-          solutionOpen.push(path);
+        if (buildPath(outrec.pts, this.reverseSolution, true, cachedPath)) {
+          solutionOpen.push(cachedPath);
         }
       } else {
         this.cleanCollinear(outrec);
-        if (buildPath(outrec.pts, this.reverseSolution, false, path)) {
-          solutionClosed.push(path);
+        if (buildPath(outrec.pts, this.reverseSolution, false, cachedPath)) {
+          solutionClosed.push(cachedPath);
         }
       }
+      cachedPath.clear();
     }
 
     return true;
@@ -2713,7 +2715,7 @@ export class ClipperBase {
       }
 
       if (outrec.isOpen) {
-        const open_path: Path64Base = new Path64();
+        const open_path: Path64Base = new Path64TypedArray();
         if (buildPath(outrec.pts, this.reverseSolution, true, open_path)) {
           solutionOpen.push(open_path);
         }

@@ -47,17 +47,17 @@ export const getIntersectPoint = (
   ln2a: Point64,
   ln2b: Point64,
 ): { result: boolean; ip: Point64 } => {
-  const dy1 = Number(ln1b.y - ln1a.y);
-  const dx1 = Number(ln1b.x - ln1a.x);
-  const dy2 = Number(ln2b.y - ln2a.y);
-  const dx2 = Number(ln2b.x - ln2a.x);
+  const dy1 = ln1b.y - ln1a.y;
+  const dx1 = ln1b.x - ln1a.x;
+  const dy2 = ln2b.y - ln2a.y;
+  const dx2 = ln2b.x - ln2a.x;
   const det = dy1 * dx2 - dy2 * dx1;
-  if (det == 0.0) {
+  if (det === 0n) {
     return { result: false, ip: { x: 0n, y: 0n } };
   }
 
   const t =
-    (Number(ln1a.x - ln2a.x) * dy2 - Number(ln1a.y - ln2a.y) * dx2) / det;
+    Number((ln1a.x - ln2a.x) * dy2 - (ln1a.y - ln2a.y) * dx2) / Number(det);
   if (t <= 0.0) {
     return { result: true, ip: Point64.clone(ln1a) };
   } else if (t >= 1.0) {
@@ -66,8 +66,8 @@ export const getIntersectPoint = (
     return {
       result: true,
       ip: {
-        x: numberToBigInt(Number(ln1a.x) + t * dx1),
-        y: numberToBigInt(Number(ln1a.y) + t * dy1),
+        x: ln1a.x + numberToBigInt(t * Number(dx1)),
+        y: ln1a.y + numberToBigInt(t * Number(dy1)),
       },
     };
   }
@@ -133,7 +133,7 @@ export const pointInPolygon = (
     return PointInPolygonResult.IsOutside;
   }
 
-  while (start < len && polygon[start].y === pt.y) {
+  while (start < len && polygon.getClone(start).y === pt.y) {
     start++;
   }
 
@@ -142,7 +142,7 @@ export const pointInPolygon = (
   }
 
   let d = 0;
-  let isAbove = polygon[start].y < pt.y;
+  let isAbove = polygon.getClone(start).y < pt.y;
   const startingAbove = isAbove;
   let val = false;
   let i = start + 1;
@@ -158,14 +158,14 @@ export const pointInPolygon = (
     }
 
     if (isAbove) {
-      while (i < end && polygon[i].y < pt.y) {
+      while (i < end && polygon.getClone(i).y < pt.y) {
         i++;
       }
       if (i === end) {
         continue;
       }
     } else {
-      while (i < end && polygon[i].y > pt.y) {
+      while (i < end && polygon.getClone(i).y > pt.y) {
         i++;
       }
       if (i === end) {
@@ -173,8 +173,8 @@ export const pointInPolygon = (
       }
     }
 
-    const curr = polygon[i];
-    const prev = i > 0 ? polygon[i - 1] : polygon[len - 1];
+    const curr = polygon.getClone(i);
+    const prev = i > 0 ? polygon.getClone(i - 1) : polygon.getClone(len - 1);
 
     if (curr.y === pt.y) {
       if (
@@ -196,7 +196,7 @@ export const pointInPolygon = (
     } else if (pt.x >= prev.x || pt.x >= curr.x) {
       d = crossProduct64(prev, curr, pt);
       if (d === 0) {
-      return PointInPolygonResult.IsOn;
+        return PointInPolygonResult.IsOn;
       }
       if (d < 0 === isAbove) {
         val = !val;
@@ -212,9 +212,9 @@ export const pointInPolygon = (
     }
 
     if (i === 0) {
-      d = crossProduct64(polygon[len - 1], polygon[0], pt);
+      d = crossProduct64(polygon.getClone(len - 1), polygon.getClone(0), pt);
     } else {
-      d = crossProduct64(polygon[i - 1], polygon[i], pt);
+      d = crossProduct64(polygon.getClone(i - 1), polygon.getClone(i), pt);
     }
     if (d === 0) {
       return PointInPolygonResult.IsOn;

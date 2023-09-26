@@ -1,5 +1,6 @@
-import { Path64, isPath64 } from "./Path64";
-import type { Path64Base } from "./Path64Base";
+import { isPath64 } from "./Path64";
+import { type Path64Base } from "./Path64Base";
+import { Path64TypedArray } from "./Path64TypedArray";
 import { Point64 } from "./Point64";
 
 export const isPaths64 = (obj: unknown): obj is Paths64 => {
@@ -24,11 +25,7 @@ export class Paths64 extends Array<Path64Base> {
     } else {
       super();
       for (const path of args) {
-        if (isPath64(path)) {
-          this.push(path);
-        } else {
-          throw Error("todo: change message");
-        }
+        this._innerPush(path as Path64Base);
       }
     }
     this.type = Paths64TypeName;
@@ -49,16 +46,38 @@ export class Paths64 extends Array<Path64Base> {
     }
   }
 
+  _innerPush(path: Iterable<Point64>) {
+    let clonedPath: Path64Base;
+    if (isPath64(path)) {
+      clonedPath = path.clone();
+    } else {
+      if (
+        "length" in path &&
+        typeof path.length === "number" &&
+        path.length > 0
+      ) {
+        clonedPath = new Path64TypedArray(path.length);
+      } else {
+        clonedPath = new Path64TypedArray();
+      }
+
+      for (const pt of path) {
+        clonedPath.push(pt);
+      }
+    }
+    super.push(clonedPath);
+  }
+
   override push(...paths: Iterable<Point64>[]) {
     for (const path of paths) {
-      super.push(Path64.clone(path));
+      this._innerPush(path);
     }
     return this.length;
   }
 
   pushRange(paths: Iterable<Iterable<Point64>>) {
     for (const path of paths) {
-      super.push(Path64.clone(path));
+      this._innerPush(path);
     }
     return this.length;
   }

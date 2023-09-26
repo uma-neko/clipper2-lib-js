@@ -1,7 +1,7 @@
 import { numberToBigInt } from "../Clipper";
 import { isNotNullish } from "../CommonUtils";
-import { Path64 } from "./Path64";
 import type { Path64Base } from "./Path64Base";
+import { Path64TypedArray } from "./Path64TypedArray";
 import { Point64, isPoint64 } from "./Point64";
 
 export const isRect64 = (obj: unknown): obj is Rect64 =>
@@ -96,7 +96,7 @@ export class Rect64 {
   }
 
   asPath(): Path64Base {
-    return new Path64(
+    return new Path64TypedArray(
       { x: this.left, y: this.top },
       { x: this.right, y: this.top },
       { x: this.right, y: this.bottom },
@@ -147,3 +147,5 @@ export class Rect64 {
     );
   }
 }
+
+export const EmptyRect64: Readonly<Rect64> = new Rect64();

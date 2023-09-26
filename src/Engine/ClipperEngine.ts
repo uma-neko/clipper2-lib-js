@@ -15,7 +15,6 @@ export const addPathsToVertexList = (
     let v0: Vertex | undefined = undefined;
     let prev_v: Vertex | undefined = undefined;
     let curr_v: Vertex;
-
     for (const originPt of path) {
       const pt = Point64.clone(originPt);
       if (v0 === undefined) {
