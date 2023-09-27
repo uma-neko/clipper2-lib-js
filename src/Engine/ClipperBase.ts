@@ -770,7 +770,8 @@ const path1InsidePath2 = (op1: OutPt, op2: OutPt): boolean => {
 };
 
 const ptsReallyClose = (pt1: Point64, pt2: Point64): boolean =>
-  Math.abs(Number(pt1.x - pt2.x)) < 2 && Math.abs(Number(pt1.y - pt2.y)) < 2;
+  Math.abs(Number(pt1.x - pt2.x)) < 2.0 &&
+  Math.abs(Number(pt1.y - pt2.y)) < 2.0;
 
 const isVerySmallTriangle = (op: OutPt): boolean =>
   op.next!.next === op.prev &&
@@ -825,7 +826,7 @@ const buildPath = (
       op2 = op2.next!;
     }
   }
-  return !(path.length === 3 && isVerySmallTriangle(op2));
+  return !(path.length === 3 && isVerySmallTriangle(op));
 };
 
 const getBounds = (path: Path64Base): Rect64 => {
@@ -833,7 +834,7 @@ const getBounds = (path: Path64Base): Rect64 => {
     return new Rect64();
   }
   const result = new Rect64(false);
-  for (const pt of path) {
+  for (const pt of path.getClones()) {
     if (pt.x < result.left) {
       result.left = pt.x;
     }

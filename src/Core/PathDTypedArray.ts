@@ -1,3 +1,5 @@
+import { numberToBigInt } from "../Clipper";
+import { IScalablePath } from "./IScalablePath";
 import { PathDBase, PathDTypeName } from "./PathDBase";
 import { PointD } from "./PointD";
 
@@ -32,7 +34,7 @@ const PointDProxy = (
   },
 });
 
-export class PathDTypedArray implements PathDBase {
+export class PathDTypedArray implements PathDBase, IScalablePath {
   readonly type: typeof PathDTypeName;
   private _realLength: number;
   private _innerLength: number;
@@ -46,7 +48,7 @@ export class PathDTypedArray implements PathDBase {
   constructor(...args: [] | [number] | [PathDTypedArray] | PointD[]) {
     this.type = PathDTypeName;
     if (args.length === 0) {
-      const startLength = 19;
+      const startLength = 8;
       this._realLength = startLength;
       this._innerLength = 0;
       this._path = new Float64Array(startLength * 2 /* x,y */);
@@ -73,16 +75,17 @@ export class PathDTypedArray implements PathDBase {
     return new PathDTypedArray(this);
   }
 
-  innerPush(path: PointD) {
+  _push(path: PointD) {
     if (this._realLength === this._innerLength) {
-      const newLength = Math.ceil(this._realLength * 1.7);
+      const newLength = Math.ceil(this._realLength * 2);
       const newPath = new Float64Array(newLength * 2 /* x,y */);
       newPath.set(this._path);
 
       this._path = newPath;
       this._realLength = newLength;
     }
-    this._path.set([path.x, path.y], this._innerLength * 2);
+    this._path[this._innerLength * 2] = path.x;
+    this._path[this._innerLength * 2 + 1] = path.y;
     this._innerLength++;
   }
 
@@ -127,14 +130,14 @@ export class PathDTypedArray implements PathDBase {
 
   push(...path: PointD[]) {
     for (const pt of path) {
-      this.innerPush(pt);
+      this._push(pt);
     }
     return this.length;
   }
 
   pushRange(path: Iterable<PointD>) {
     for (const pt of path) {
-      this.innerPush(pt);
+      this._push(pt);
     }
     return this.length;
   }
@@ -167,6 +170,27 @@ export class PathDTypedArray implements PathDBase {
   *getClones() {
     for (let index = 0; index < this._innerLength; index++) {
       yield this.getClone(index);
+    }
+  }
+
+  *asScaledPath64(scale: number) {
+    for (let index = 0; index < this._innerLength; index++) {
+      yield {
+        x: numberToBigInt(this.getX(index) * scale),
+        y: numberToBigInt(this.getY(index) * scale),
+      };
+    }
+  }
+
+  *asScaledPathD(scale: number) {
+    if (scale === 1) {
+      for (let index = 0; index < this._innerLength; index++) {
+        yield this.getClone(index);
+      }
+    } else {
+      for (let index = 0; index < this._innerLength; index++) {
+        yield { x: this.getX(index) * scale, y: this.getY(index) * scale };
+      }
     }
   }
 

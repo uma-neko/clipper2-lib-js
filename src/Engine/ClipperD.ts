@@ -9,6 +9,7 @@ import { Paths64Like } from "../Core/Paths64Like";
 import { PathsD } from "../Core/PathsD";
 import { Point64 } from "../Core/Point64";
 import { PointD } from "../Core/PointD";
+import { isScalablePath } from "../Core/IScalablePath";
 
 export class ClipperD extends ClipperBase {
   _scale: number;
@@ -31,7 +32,11 @@ export class ClipperD extends ClipperBase {
   }
 
   override addPaths(
-    paths: Iterable<Iterable<Point64>> | Iterable<Iterable<PointD>>,
+    paths:
+      | Iterable<Point64>
+      | Iterable<PointD>
+      | Iterable<Iterable<Point64>>
+      | Iterable<Iterable<PointD>>,
     polytype: PathType,
     isOpen: boolean = false,
   ) {
@@ -45,7 +50,7 @@ export class ClipperD extends ClipperBase {
       | Iterable<Iterable<Point64>>
       | Iterable<Iterable<PointD>>,
   ) {
-    this.addPaths(new Paths64Like(pathOrPaths, this._scale), PathType.Subject);
+    this.addPaths(pathOrPaths, PathType.Subject);
   }
 
   override addOpenSubject(
@@ -55,11 +60,7 @@ export class ClipperD extends ClipperBase {
       | Iterable<Iterable<Point64>>
       | Iterable<Iterable<PointD>>,
   ) {
-    this.addPaths(
-      new Paths64Like(pathOrPaths, this._scale),
-      PathType.Subject,
-      true,
-    );
+    this.addPaths(pathOrPaths, PathType.Subject, true);
   }
 
   override addClip(
@@ -69,7 +70,7 @@ export class ClipperD extends ClipperBase {
       | Iterable<Iterable<Point64>>
       | Iterable<Iterable<PointD>>,
   ) {
-    this.addPaths(new Paths64Like(pathOrPaths, this._scale), PathType.Clip);
+    this.addPaths(pathOrPaths, PathType.Clip);
   }
 
   execute(
@@ -112,7 +113,11 @@ export class ClipperD extends ClipperBase {
       this.clearSolutionOnly();
 
       for (const path of oPaths) {
-        solutionOpenOrOpenPaths.push(scalePathD(path, this._invScale));
+        if (isScalablePath(path)) {
+          solutionOpenOrOpenPaths.push(path.asScaledPathD(this._invScale));
+        } else {
+          solutionOpenOrOpenPaths.push(scalePathD(path, this._invScale));
+        }
       }
     } else {
       const solClosed64: Paths64 = new Paths64();
@@ -127,11 +132,19 @@ export class ClipperD extends ClipperBase {
       this.clearSolutionOnly();
 
       for (const path of solClosed64) {
-        solutionClosedOrPolyTree.push(scalePathD(path, this._invScale));
+        if (isScalablePath(path)) {
+          solutionClosedOrPolyTree.push(path.asScaledPathD(this._invScale));
+        } else {
+          solutionClosedOrPolyTree.push(scalePathD(path, this._invScale));
+        }
       }
 
       for (const path of solOpen64) {
-        solutionOpenOrOpenPaths.push(scalePathD(path, this._invScale));
+        if (isScalablePath(path)) {
+          solutionOpenOrOpenPaths.push(path.asScaledPathD(this._invScale));
+        } else {
+          solutionOpenOrOpenPaths.push(scalePathD(path, this._invScale));
+        }
       }
     }
 

@@ -1,3 +1,5 @@
+import { numberToBigInt } from "../Clipper";
+import { IScalablePath } from "./IScalablePath";
 import { Path64Base, Path64TypeName } from "./Path64Base";
 import { Point64 } from "./Point64";
 
@@ -5,7 +7,7 @@ const Point64Proxy = (
   innerObj: Path64TypedArray,
   index: number,
 ): ProxyHandler<Point64> => ({
-  get(target: any, prop: string, receiver: Point64) {
+  get(_target: any, prop: string, _receiver: Point64) {
     if (typeof prop === "string") {
       if (prop === "x") {
         return innerObj.getX(index);
@@ -15,7 +17,7 @@ const Point64Proxy = (
     }
     return undefined;
   },
-  set(target: any, prop: string, value: any, receiver: Point64) {
+  set(_target: any, prop: string, value: any, _receiver: Point64) {
     if (typeof prop === "string") {
       if (prop === "x") {
         innerObj.setX(index, value);
@@ -27,12 +29,12 @@ const Point64Proxy = (
     }
     throw new TypeError();
   },
-  has(target, prop: string | symbol) {
+  has(_target, prop: string | symbol) {
     return (["x", "y"] as (string | symbol)[]).includes(prop);
   },
 });
 
-export class Path64TypedArray implements Path64Base {
+export class Path64TypedArray implements Path64Base, IScalablePath {
   readonly type: typeof Path64TypeName;
   private _realLength: number;
   private _innerLength: number;
@@ -47,7 +49,7 @@ export class Path64TypedArray implements Path64Base {
   constructor(...args: [] | [number] | [Path64TypedArray] | Point64[]) {
     this.type = Path64TypeName;
     if (args.length === 0) {
-      const startLength = 19;
+      const startLength = 8;
       this._realLength = startLength;
       this._innerLength = 0;
       this._path = new BigInt64Array(startLength * 2 /* x,y */);
@@ -74,16 +76,17 @@ export class Path64TypedArray implements Path64Base {
     return new Path64TypedArray(this);
   }
 
-  innerPush(path: Point64) {
+  _push(path: Point64) {
     if (this._realLength === this._innerLength) {
-      const newLength = Math.ceil(this._realLength * 1.7);
+      const newLength = Math.ceil(this._realLength * 2);
       const newPath = new BigInt64Array(newLength * 2 /* x,y */);
       newPath.set(this._path);
 
       this._path = newPath;
       this._realLength = newLength;
     }
-    this._path.set([path.x, path.y], this._innerLength * 2);
+    this._path[this._innerLength * 2] = path.x;
+    this._path[this._innerLength * 2 + 1] = path.y;
     this._innerLength++;
   }
 
@@ -128,14 +131,14 @@ export class Path64TypedArray implements Path64Base {
 
   push(...path: Point64[]) {
     for (const pt of path) {
-      this.innerPush(pt);
+      this._push(pt);
     }
     return this.length;
   }
 
   pushRange(path: Iterable<Point64>) {
     for (const pt of path) {
-      this.innerPush(pt);
+      this._push(pt);
     }
     return this.length;
   }
@@ -162,6 +165,30 @@ export class Path64TypedArray implements Path64Base {
   *getClones() {
     for (let index = 0; index < this._innerLength; index++) {
       yield this.getClone(index);
+    }
+  }
+
+  *asScaledPath64(scale: number) {
+    if (scale === 1) {
+      for (let index = 0; index < this._innerLength; index++) {
+        yield {
+          x: numberToBigInt(Number(this.getX(index)) * scale),
+          y: numberToBigInt(Number(this.getY(index)) * scale),
+        };
+      }
+    } else {
+      for (let index = 0; index < this._innerLength; index++) {
+        yield this.getClone(index);
+      }
+    }
+  }
+
+  *asScaledPathD(scale: number) {
+    for (let index = 0; index < this._innerLength; index++) {
+      yield {
+        x: Number(this.getX(index)) * scale,
+        y: Number(this.getY(index)) * scale,
+      };
     }
   }
 

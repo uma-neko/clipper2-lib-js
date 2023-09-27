@@ -25,7 +25,7 @@ export class Paths64 extends Array<Path64Base> {
     } else {
       super();
       for (const path of args) {
-        this._innerPush(path as Path64Base);
+        this._push(path as Path64Base);
       }
     }
     this.type = Paths64TypeName;
@@ -46,7 +46,7 @@ export class Paths64 extends Array<Path64Base> {
     }
   }
 
-  _innerPush(path: Iterable<Point64>) {
+  _push(path: Iterable<Point64>) {
     let clonedPath: Path64Base;
     if (isPath64(path)) {
       clonedPath = path.clone();
@@ -70,14 +70,14 @@ export class Paths64 extends Array<Path64Base> {
 
   override push(...paths: Iterable<Point64>[]) {
     for (const path of paths) {
-      this._innerPush(path);
+      this._push(path);
     }
     return this.length;
   }
 
   pushRange(paths: Iterable<Iterable<Point64>>) {
     for (const path of paths) {
-      this._innerPush(path);
+      this._push(path);
     }
     return this.length;
   }

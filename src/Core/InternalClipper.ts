@@ -105,7 +105,7 @@ export const getClosestPtOnSegment = (
   seg1: Point64,
   seg2: Point64,
 ): Point64 => {
-  if (seg1.x === seg2.x && seg1.y === seg2.y) return Point64.clone(seg1);
+  if (Point64.equals(seg1, seg2)) return Point64.clone(seg1);
   const dx = Number(seg2.x - seg1.x);
   const dy = Number(seg2.y - seg1.y);
   const q =

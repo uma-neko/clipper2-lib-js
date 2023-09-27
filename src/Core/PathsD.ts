@@ -25,7 +25,7 @@ export class PathsD extends Array<PathDBase> {
     } else {
       super();
       for (const path of args) {
-        this._innerPush(path as PathDBase);
+        this._push(path as PathDBase);
       }
     }
     this.type = PathsDTypeName;
@@ -46,7 +46,7 @@ export class PathsD extends Array<PathDBase> {
     }
   }
 
-  _innerPush(path: Iterable<PointD>) {
+  _push(path: Iterable<PointD>) {
     let clonedPath: PathDBase;
     if (isPathD(path)) {
       clonedPath = path.clone();
@@ -69,14 +69,14 @@ export class PathsD extends Array<PathDBase> {
 
   override push(...paths: Iterable<PointD>[]) {
     for (const path of paths) {
-      this._innerPush(path);
+      this._push(path);
     }
     return this.length;
   }
 
   pushRange(paths: Iterable<Iterable<PointD>>) {
     for (const path of paths) {
-      this._innerPush(path);
+      this._push(path);
     }
     return this.length;
   }

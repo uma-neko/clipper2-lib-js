@@ -8,7 +8,7 @@ import {
 import { isPath64 } from "./Core/Path64";
 import type { Path64Base } from "./Core/Path64Base";
 import { Path64TypedArray } from "./Core/Path64TypedArray";
-import { PathD, isPathD } from "./Core/PathD";
+import { isPathD } from "./Core/PathD";
 import { PathDBase } from "./Core/PathDBase";
 import { PathDTypedArray } from "./Core/PathDTypedArray";
 import { Paths64, isPaths64 } from "./Core/Paths64";
@@ -633,10 +633,10 @@ export function scalePointD(pt: Point64, scale: number): PointD {
 
 export function scaleRect(rec: RectD, scale: number): Rect64 {
   return new Rect64(
-    numberToBigInt(Number(rec.left) * scale),
-    numberToBigInt(Number(rec.top) * scale),
-    numberToBigInt(Number(rec.right) * scale),
-    numberToBigInt(Number(rec.bottom) * scale),
+    numberToBigInt(rec.left * scale),
+    numberToBigInt(rec.top * scale),
+    numberToBigInt(rec.right * scale),
+    numberToBigInt(rec.bottom * scale),
   );
 }
 

@@ -111,7 +111,7 @@ export class ClipperOffset {
     if (Math.abs(delta) < 0.5) {
       for (const group of this._groupList) {
         for (const path of group.inPaths) {
-          this._solution.pushRange([path]);
+          this._solution.push(path);
         }
       }
     } else {
@@ -180,7 +180,7 @@ export class ClipperOffset {
 
     for (const indexedPath of paths.map((path, i) => ({ path, i }))) {
       const { path, i } = indexedPath;
-      for (const pt of path) {
+      for (const pt of path.getClones()) {
         if (pt.y >= rec.bottom) {
           if (pt.y > rec.bottom || pt.x < lpx) {
             index = i;
@@ -653,12 +653,12 @@ export class ClipperOffset {
           const steps = Math.ceil(this._stepsPerRad * 2 * Math.PI);
           group.outPath = ellipse(startPt, r, r, steps);
         } else {
-          const d = Math.ceil(this._groupDelta);
+          const d = BigInt(Math.ceil(this._groupDelta));
           const r = new Rect64(
-            numberToBigInt(Number(startPt.x) - d),
-            numberToBigInt(Number(startPt.y) - d),
-            numberToBigInt(Number(startPt.x) - d),
-            numberToBigInt(Number(startPt.y) - d),
+            startPt.x - d,
+            startPt.y - d,
+            startPt.x - d,
+            startPt.y - d,
           );
           group.outPath = r.asPath();
         }
