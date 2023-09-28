@@ -1,6 +1,6 @@
 import { isNotNullish } from "../CommonUtils";
-import { Point64 } from "./Point64";
-import { PointD } from "./PointD";
+import { Path64Base } from "./Path64Base";
+import { PathDBase } from "./PathDBase";
 
 export const isScalablePath = (obj: unknown): obj is IScalablePath =>
   isNotNullish(obj) &&
@@ -10,6 +10,6 @@ export const isScalablePath = (obj: unknown): obj is IScalablePath =>
   typeof obj.asScaledPath64 === "function";
 
 export interface IScalablePath {
-  asScaledPathD(scale: number): IterableIterator<PointD>;
-  asScaledPath64(scale: number): IterableIterator<Point64>;
+  asScaledPathD(scale: number): PathDBase;
+  asScaledPath64(scale: number): Path64Base;
 }

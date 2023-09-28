@@ -1,6 +1,7 @@
 import { numberToBigInt } from "../Clipper";
 import { IScalablePath } from "./IScalablePath";
 import { Path64Base, Path64TypeName } from "./Path64Base";
+import { PathDTypedArray } from "./PathDTypedArray";
 import { Point64 } from "./Point64";
 
 const Point64Proxy = (
@@ -76,17 +77,32 @@ export class Path64TypedArray implements Path64Base, IScalablePath {
     return new Path64TypedArray(this);
   }
 
+  _realloc(length: number) {
+    const newPath = new BigInt64Array(length * 2 /* x,y */);
+    newPath.set(this._path);
+
+    this._path = newPath;
+    this._realLength = length;
+    if (length < this._innerLength) {
+      this._innerLength = length;
+    }
+  }
+
   _push(path: Point64) {
     if (this._realLength === this._innerLength) {
-      const newLength = Math.ceil(this._realLength * 2);
-      const newPath = new BigInt64Array(newLength * 2 /* x,y */);
-      newPath.set(this._path);
-
-      this._path = newPath;
-      this._realLength = newLength;
+      this._realloc(Math.ceil(this._realLength * 2));
     }
     this._path[this._innerLength * 2] = path.x;
     this._path[this._innerLength * 2 + 1] = path.y;
+    this._innerLength++;
+  }
+
+  _pushDecomposed(x: bigint, y: bigint) {
+    if (this._realLength === this._innerLength) {
+      this._realloc(Math.ceil(this._realLength * 2));
+    }
+    this._path[this._innerLength * 2] = x;
+    this._path[this._innerLength * 2 + 1] = y;
     this._innerLength++;
   }
 
@@ -168,28 +184,30 @@ export class Path64TypedArray implements Path64Base, IScalablePath {
     }
   }
 
-  *asScaledPath64(scale: number) {
+  asScaledPath64(scale: number) {
     if (scale === 1) {
-      for (let index = 0; index < this._innerLength; index++) {
-        yield {
-          x: numberToBigInt(Number(this.getX(index)) * scale),
-          y: numberToBigInt(Number(this.getY(index)) * scale),
-        };
-      }
+      return new Path64TypedArray(this);
     } else {
+      const scaledPath = new Path64TypedArray(this._innerLength);
       for (let index = 0; index < this._innerLength; index++) {
-        yield this.getClone(index);
+        scaledPath._pushDecomposed(
+          numberToBigInt(Number(this.getX(index)) * scale),
+          numberToBigInt(Number(this.getY(index)) * scale),
+        );
       }
+      return scaledPath;
     }
   }
 
-  *asScaledPathD(scale: number) {
+  asScaledPathD(scale: number) {
+    const scaledPath = new PathDTypedArray(this._innerLength);
     for (let index = 0; index < this._innerLength; index++) {
-      yield {
-        x: Number(this.getX(index)) * scale,
-        y: Number(this.getY(index)) * scale,
-      };
+      scaledPath._pushDecomposed(
+        Number(this.getX(index)) * scale,
+        Number(this.getY(index)) * scale,
+      );
     }
+    return scaledPath;
   }
 
   *[Symbol.iterator]() {

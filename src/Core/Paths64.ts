@@ -68,6 +68,10 @@ export class Paths64 extends Array<Path64Base> {
     super.push(clonedPath);
   }
 
+  directPush(path: Path64Base) {
+    super.push(path);
+  }
+
   override push(...paths: Iterable<Point64>[]) {
     for (const path of paths) {
       this._push(path);

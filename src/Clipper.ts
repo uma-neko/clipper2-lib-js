@@ -66,33 +66,44 @@ export function perpendicDistFromLineSqrd(
   pt: PointD | Point64,
   line1: PointD | Point64,
   line2: PointD | Point64,
-): number;
-export function perpendicDistFromLineSqrd<TPoint extends Point64 | PointD>(
-  pt: TPoint,
-  line1: TPoint,
-  line2: TPoint,
 ): number {
   if (isPoint64(pt) && isPoint64(line1) && isPoint64(line2)) {
-    const x2 = line2.x - line1.x;
-    const y2 = line2.y - line1.y;
-    if (x2 === 0n && y2 === 0n) {
-      return 0;
-    }
-    const x1 = pt.x - line1.x;
-    const y1 = pt.y - line1.y;
-    return sqr(Number(x1 * y2 - x2 * y1)) / Number(x2 * x2 + y2 * y2);
+    return perpendicDistFromLineSqrd64(pt, line1, line2);
   } else if (isPointD(pt) && isPointD(line1) && isPointD(line2)) {
-    const x2 = line2.x - line1.x;
-    const y2 = line2.y - line1.y;
-    if (x2 === 0 && y2 === 0) {
-      return 0;
-    }
-    const x1 = pt.x - line1.x;
-    const y1 = pt.y - line1.y;
-    return sqr(x1 * y2 - x2 * y1) / (x2 * x2 + y2 * y2);
+    return perpendicDistFromLineSqrdD(pt, line1, line2);
   } else {
     throw new Error("todo: change message");
   }
+}
+
+export function perpendicDistFromLineSqrd64(
+  pt: Point64,
+  line1: Point64,
+  line2: Point64,
+): number {
+  const x2 = line2.x - line1.x;
+  const y2 = line2.y - line1.y;
+  if (x2 === 0n && y2 === 0n) {
+    return 0;
+  }
+  const x1 = pt.x - line1.x;
+  const y1 = pt.y - line1.y;
+  return sqr(Number(x1 * y2 - x2 * y1)) / Number(x2 * x2 + y2 * y2);
+}
+
+export function perpendicDistFromLineSqrdD(
+  pt: PointD,
+  line1: PointD,
+  line2: PointD,
+): number {
+  const x2 = line2.x - line1.x;
+  const y2 = line2.y - line1.y;
+  if (x2 === 0 && y2 === 0) {
+    return 0;
+  }
+  const x1 = pt.x - line1.x;
+  const y1 = pt.y - line1.y;
+  return sqr(x1 * y2 - x2 * y1) / (x2 * x2 + y2 * y2);
 }
 
 export function sqr(value: number): number {
@@ -117,7 +128,7 @@ export function rdp(
     const endPt = path.get(end);
 
     for (let i = begin + 1; i < end; i++) {
-      const d = perpendicDistFromLineSqrd(path.getClone(i), beginPt, endPt);
+      const d = perpendicDistFromLineSqrd64(path.getClone(i), beginPt, endPt);
       if (d <= max_d) {
         continue;
       }
@@ -142,7 +153,7 @@ export function rdp(
     }
     const endPt = path.getClone(end);
     for (let i = begin + 1; i < end; i++) {
-      const d = perpendicDistFromLineSqrd(path.getClone(i), beginPt, endPt);
+      const d = perpendicDistFromLineSqrdD(path.getClone(i), beginPt, endPt);
       if (d <= max_d) {
         continue;
       }
@@ -1228,12 +1239,12 @@ export function simplifyPath(
     let next2: number;
 
     if (isClosedPath) {
-      dsq[0] = perpendicDistFromLineSqrd(
+      dsq[0] = perpendicDistFromLineSqrd64(
         path.getClone(0),
         path.getClone(high),
         path.getClone(1),
       );
-      dsq[high] = perpendicDistFromLineSqrd(
+      dsq[high] = perpendicDistFromLineSqrd64(
         path.getClone(high),
         path.getClone(0),
         path.getClone(high - 1),
@@ -1244,7 +1255,7 @@ export function simplifyPath(
     }
 
     for (let i = 1; i < high; i++) {
-      dsq[i] = perpendicDistFromLineSqrd(
+      dsq[i] = perpendicDistFromLineSqrd64(
         path.getClone(i),
         path.getClone(i - 1),
         path.getClone(i + 1),
@@ -1274,13 +1285,13 @@ export function simplifyPath(
 
         next = getNext(next, high, flags);
         next2 = getNext(next, high, flags);
-        dsq[curr] = perpendicDistFromLineSqrd(
+        dsq[curr] = perpendicDistFromLineSqrd64(
           path.getClone(curr),
           path.getClone(prev),
           path.getClone(next),
         );
         if (next !== high || isClosedPath) {
-          dsq[curr] = perpendicDistFromLineSqrd(
+          dsq[curr] = perpendicDistFromLineSqrd64(
             path.getClone(next),
             path.getClone(curr),
             path.getClone(next2),
@@ -1293,13 +1304,13 @@ export function simplifyPath(
 
         next = getNext(next, high, flags);
         prior2 = getNext(prev, high, flags);
-        dsq[curr] = perpendicDistFromLineSqrd(
+        dsq[curr] = perpendicDistFromLineSqrd64(
           path.getClone(curr),
           path.getClone(prev),
           path.getClone(next),
         );
         if (prev !== 0 || isClosedPath) {
-          dsq[prev] = perpendicDistFromLineSqrd(
+          dsq[prev] = perpendicDistFromLineSqrd64(
             path.getClone(prev),
             path.getClone(prior2),
             path.getClone(curr),
@@ -1330,12 +1341,12 @@ export function simplifyPath(
     let next2: number;
 
     if (isClosedPath) {
-      dsq[0] = perpendicDistFromLineSqrd(
+      dsq[0] = perpendicDistFromLineSqrdD(
         path.getClone(0),
         path.getClone(high),
         path.getClone(1),
       );
-      dsq[high] = perpendicDistFromLineSqrd(
+      dsq[high] = perpendicDistFromLineSqrdD(
         path.getClone(high),
         path.getClone(0),
         path.getClone(high - 1),
@@ -1346,7 +1357,7 @@ export function simplifyPath(
     }
 
     for (let i = 1; i < high; i++) {
-      dsq[i] = perpendicDistFromLineSqrd(
+      dsq[i] = perpendicDistFromLineSqrdD(
         path.getClone(i),
         path.getClone(i - 1),
         path.getClone(i + 1),
@@ -1376,13 +1387,13 @@ export function simplifyPath(
 
         next = getNext(next, high, flags);
         next2 = getNext(next, high, flags);
-        dsq[curr] = perpendicDistFromLineSqrd(
+        dsq[curr] = perpendicDistFromLineSqrdD(
           path.getClone(curr),
           path.getClone(prev),
           path.getClone(next),
         );
         if (next !== high || isClosedPath) {
-          dsq[curr] = perpendicDistFromLineSqrd(
+          dsq[curr] = perpendicDistFromLineSqrdD(
             path.getClone(next),
             path.getClone(curr),
             path.getClone(next2),
@@ -1395,13 +1406,13 @@ export function simplifyPath(
 
         next = getNext(next, high, flags);
         prior2 = getNext(prev, high, flags);
-        dsq[curr] = perpendicDistFromLineSqrd(
+        dsq[curr] = perpendicDistFromLineSqrdD(
           path.getClone(curr),
           path.getClone(prev),
           path.getClone(next),
         );
         if (prev !== 0 || isClosedPath) {
-          dsq[prev] = perpendicDistFromLineSqrd(
+          dsq[prev] = perpendicDistFromLineSqrdD(
             path.getClone(prev),
             path.getClone(prior2),
             path.getClone(curr),

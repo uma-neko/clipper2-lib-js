@@ -117,8 +117,8 @@ export const getClosestPtOnSegment = (
     return Point64.clone(seg2);
   }
   return {
-    x: numberToBigInt(Number(seg1.x) + q * dx),
-    y: numberToBigInt(Number(seg1.y) + q * dy),
+    x: seg1.x + numberToBigInt(q * dx),
+    y: seg1.y + numberToBigInt(q * dy),
   };
 };
 

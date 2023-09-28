@@ -3,7 +3,6 @@ import { PolyTreeD } from "./PolyTreeD";
 import { scalePathD } from "../Clipper";
 import { ClipType, FillRule, PathType } from "../Core/CoreEnums";
 import { checkPrecision } from "../Core/InternalClipper";
-import { Path64Like } from "../Core/Path64Like";
 import { Paths64 } from "../Core/Paths64";
 import { Paths64Like } from "../Core/Paths64Like";
 import { PathsD } from "../Core/PathsD";
@@ -28,7 +27,7 @@ export class ClipperD extends ClipperBase {
     polytype: PathType,
     isOpen: boolean = false,
   ) {
-    super.addPath(new Path64Like(path, this._scale), polytype, isOpen);
+    this.addPaths(path, polytype, isOpen);
   }
 
   override addPaths(
@@ -98,34 +97,40 @@ export class ClipperD extends ClipperBase {
     solutionClosedOrPolyTree: PathsD | PolyTreeD,
     solutionOpenOrOpenPaths?: PathsD,
   ) {
-    solutionOpenOrOpenPaths ??= new PathsD();
     if (solutionClosedOrPolyTree instanceof PolyTreeD) {
       solutionClosedOrPolyTree.clear();
-      solutionOpenOrOpenPaths.clear();
+      solutionOpenOrOpenPaths?.clear();
+
       this._using_polytree = true;
       solutionClosedOrPolyTree.scale = this._scale;
       const oPaths: Paths64 = new Paths64();
 
-      // try
       this.executeInternal(clipType, fillRule);
       this.buildTree(solutionClosedOrPolyTree, oPaths);
 
       this.clearSolutionOnly();
 
-      for (const path of oPaths) {
-        if (isScalablePath(path)) {
-          solutionOpenOrOpenPaths.push(path.asScaledPathD(this._invScale));
-        } else {
-          solutionOpenOrOpenPaths.push(scalePathD(path, this._invScale));
+      if (solutionOpenOrOpenPaths !== undefined) {
+        for (const path of oPaths) {
+          if (isScalablePath(path)) {
+            solutionOpenOrOpenPaths.directPush(
+              path.asScaledPathD(this._invScale),
+            );
+          } else {
+            solutionOpenOrOpenPaths.directPush(
+              scalePathD(path, this._invScale),
+            );
+          }
         }
       }
     } else {
       const solClosed64: Paths64 = new Paths64();
-      const solOpen64: Paths64 = new Paths64();
+      const solOpen64: Paths64 | undefined =
+        solutionOpenOrOpenPaths === undefined ? undefined : new Paths64();
 
       solutionClosedOrPolyTree.clear();
-      solutionOpenOrOpenPaths.clear();
-      // try
+      solutionOpenOrOpenPaths?.clear();
+
       this.executeInternal(clipType, fillRule);
       this.buildPaths(solClosed64, solOpen64);
 
@@ -133,17 +138,25 @@ export class ClipperD extends ClipperBase {
 
       for (const path of solClosed64) {
         if (isScalablePath(path)) {
-          solutionClosedOrPolyTree.push(path.asScaledPathD(this._invScale));
+          solutionClosedOrPolyTree.directPush(
+            path.asScaledPathD(this._invScale),
+          );
         } else {
-          solutionClosedOrPolyTree.push(scalePathD(path, this._invScale));
+          solutionClosedOrPolyTree.directPush(scalePathD(path, this._invScale));
         }
       }
 
-      for (const path of solOpen64) {
-        if (isScalablePath(path)) {
-          solutionOpenOrOpenPaths.push(path.asScaledPathD(this._invScale));
-        } else {
-          solutionOpenOrOpenPaths.push(scalePathD(path, this._invScale));
+      if (solOpen64 !== undefined && solutionOpenOrOpenPaths !== undefined) {
+        for (const path of solOpen64) {
+          if (isScalablePath(path)) {
+            solutionOpenOrOpenPaths.directPush(
+              path.asScaledPathD(this._invScale),
+            );
+          } else {
+            solutionOpenOrOpenPaths.directPush(
+              scalePathD(path, this._invScale),
+            );
+          }
         }
       }
     }

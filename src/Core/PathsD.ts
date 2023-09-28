@@ -67,6 +67,10 @@ export class PathsD extends Array<PathDBase> {
     super.push(clonedPath);
   }
 
+  directPush(path: PathDBase) {
+    super.push(path);
+  }
+
   override push(...paths: Iterable<PointD>[]) {
     for (const path of paths) {
       this._push(path);
