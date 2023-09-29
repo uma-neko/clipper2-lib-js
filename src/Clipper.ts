@@ -413,6 +413,7 @@ export function inflatePaths(
     co.execute(delta * scale, tmp);
     return scalePathsD(tmp, 1 / scale);
   }
+  throw new TypeError("Invalid argument types.");
 }
 
 export function rectClip(rect: Rect64, pathOrpaths: IPath64 | Paths64): Paths64;
@@ -1566,16 +1567,17 @@ export function pointInPolygon(
   pt: Point64 | PointD,
   polygon: IPath64 | IPathD,
   precision: number = 2,
-) {
-  if (isPoint64(pt)) {
-    return internalPointInPolygon(pt, polygon as IPath64);
-  } else {
+): PointInPolygonResult {
+  if (isPoint64(pt) && isPath64(polygon)) {
+    return internalPointInPolygon(pt, polygon);
+  } else if(isPointD(pt) && isPathD(polygon)) {
     checkPrecision(precision);
     const scale = Math.pow(10, precision);
     const p = Point64.createScaledPoint(pt.x, pt.y, scale);
-    const path = scalePath64(polygon as IPathD, scale);
+    const path = scalePath64(polygon, scale);
     return internalPointInPolygon(p, path);
   }
+  throw new TypeError("Invalid argument types.");
 }
 
 export function ellipse(
