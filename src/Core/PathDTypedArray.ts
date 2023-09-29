@@ -10,30 +10,26 @@ type PointDProxyInner = {
 };
 
 const PointDProxy = {
-  get(target: PointDProxyInner, prop: string, _receiver: PointD) {
-    if (typeof prop === "string") {
-      if (prop === "x") {
-        return target.source.getX(target.index);
-      } else if (prop === "y") {
-        return target.source.getY(target.index);
-      }
+  get(target: PointDProxyInner, prop: string | symbol, _receiver: PointD) {
+    if (prop === "x") {
+      return target.source.getX(target.index);
+    } else if (prop === "y") {
+      return target.source.getY(target.index);
     }
     return undefined;
   },
   set(
     target: PointDProxyInner,
-    prop: string,
+    prop: string | symbol,
     value: number,
     _receiver: PointD,
   ) {
-    if (typeof prop === "string") {
-      if (prop === "x") {
-        target.source.setX(target.index, value);
-        return true;
-      } else if (prop === "y") {
-        target.source.setY(target.index, value);
-        return true;
-      }
+    if (prop === "x") {
+      target.source.setX(target.index, value);
+      return true;
+    } else if (prop === "y") {
+      target.source.setY(target.index, value);
+      return true;
     }
     throw new Error("Properties cannot be added.");
   },
@@ -44,7 +40,7 @@ const PointDProxy = {
 
 export class PathDTypedArray implements IPathD, IScalablePath {
   readonly type: typeof PathDTypeName;
-  private _realLength: number;
+  private _capacity: number;
   private _innerLength: number;
   private _path: Float64Array;
 
@@ -56,47 +52,45 @@ export class PathDTypedArray implements IPathD, IScalablePath {
   constructor(...args: [] | [number] | [PathDTypedArray] | PointD[]) {
     this.type = PathDTypeName;
     if (args.length === 0) {
-      const startLength = 8;
-      this._realLength = startLength;
+      const startCapacity = 8;
+      this._capacity = startCapacity;
       this._innerLength = 0;
-      this._path = new Float64Array(startLength * 2 /* x,y */);
+      this._path = new Float64Array(startCapacity * 2 /* x,y */);
     } else if (typeof args[0] === "number") {
-      const startLength = args[0];
-      this._realLength = startLength;
+      const startCapacity = args[0];
+      this._capacity = startCapacity;
       this._innerLength = 0;
-      this._path = new Float64Array(startLength * 2 /* x,y */);
+      this._path = new Float64Array(startCapacity * 2 /* x,y */);
     } else if (args[0] instanceof PathDTypedArray) {
       const startLength = args[0].length;
+      const startCapacity = startLength;
       this._innerLength = startLength;
-      this._realLength = startLength;
-      this._path = args[0]._path.slice(0, startLength * 2);
+      this._capacity = startCapacity;
+      this._path = args[0]._path.slice(0, startCapacity * 2);
     } else {
-      const startLength = args.length;
-      this._realLength = startLength;
+      const startCapacity = args.length;
+      this._capacity = startCapacity;
       this._innerLength = 0;
-      this._path = new Float64Array(startLength * 2 /* x,y */);
+      this._path = new Float64Array(startCapacity * 2 /* x,y */);
       this.pushRange(args as PointD[]);
     }
   }
 
-  clone() {
-    return new PathDTypedArray(this);
-  }
-
-  _realloc(length: number) {
-    const newPath = new Float64Array(length * 2 /* x,y */);
+  private _realloc(length: number) {
+    const capacity = length < 8 ? 8 : length;
+    const newPath = new Float64Array(capacity * 2 /* x,y */);
     newPath.set(this._path);
 
     this._path = newPath;
-    this._realLength = length;
+    this._capacity = capacity;
     if (length < this._innerLength) {
       this._innerLength = length;
     }
   }
 
-  _push(path: PointD) {
-    if (this._realLength === this._innerLength) {
-      this._realloc(Math.ceil(this._realLength * 2));
+  private _push(path: PointD) {
+    if (this._capacity === this._innerLength) {
+      this._realloc(Math.ceil(this._capacity * 2));
     }
     this._path[this._innerLength * 2] = path.x;
     this._path[this._innerLength * 2 + 1] = path.y;
@@ -109,9 +103,13 @@ export class PathDTypedArray implements IPathD, IScalablePath {
     }
   }
 
+  clone() {
+    return new PathDTypedArray(this);
+  }
+
   pushDecomposed(x: number, y: number) {
-    if (this._realLength === this._innerLength) {
-      this._realloc(Math.ceil(this._realLength * 2));
+    if (this._capacity === this._innerLength) {
+      this._realloc(Math.ceil(this._capacity * 2));
     }
     this._path[this._innerLength * 2] = x;
     this._path[this._innerLength * 2 + 1] = y;
@@ -127,6 +125,7 @@ export class PathDTypedArray implements IPathD, IScalablePath {
   }
 
   set(index: number, x: number, y: number) {
+    this._checkLength(index);
     this.setX(index, x);
     this.setY(index, y);
   }
