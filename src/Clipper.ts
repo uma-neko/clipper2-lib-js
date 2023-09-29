@@ -1203,7 +1203,7 @@ export function simplifyPath(
 export function simplifyPath(
   path: IPath64 | IPathD,
   epsilon: number,
-  isClosedPath: boolean = false,
+  isClosedPath?: boolean,
 ): IPath64 | IPathD {
   const len = path.length;
   const high = len - 1;
@@ -1213,6 +1213,7 @@ export function simplifyPath(
     if (len < 4) {
       return path.clone();
     }
+    isClosedPath ??= false;
 
     const flags: boolean[] = Array.from({ length: len }, () => false);
     const dsq: number[] = Array.from({ length: len }, () => 0);
@@ -1315,6 +1316,7 @@ export function simplifyPath(
     if (len < 4) {
       return path.clone();
     }
+    isClosedPath ??= true;
 
     const flags: boolean[] = Array.from({ length: len }, () => false);
     const dsq: number[] = Array.from({ length: len }, () => 0);
@@ -1430,18 +1432,18 @@ export function simplifyPaths(
 export function simplifyPaths(
   paths: Paths64 | PathsD,
   epsilon: number,
-  isClosedPath = false,
+  isClosedPaths?: boolean,
 ): Paths64 | PathsD {
   if (isPaths64(paths)) {
     const result = new Paths64();
     for (const path of paths) {
-      result.push(simplifyPath(path, epsilon, isClosedPath));
+      result.push(simplifyPath(path, epsilon, isClosedPaths));
     }
     return result;
   } else if (isPathsD(paths)) {
     const result = new PathsD();
     for (const path of paths) {
-      result.push(simplifyPath(path, epsilon, isClosedPath));
+      result.push(simplifyPath(path, epsilon, isClosedPaths));
     }
     return result;
   }
