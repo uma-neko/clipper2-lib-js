@@ -1,7 +1,9 @@
-import { Path64 } from "./Path64";
+import type { IPath64 } from "./IPath64";
 import { Point64 } from "./Point64";
+export declare const isRect64: (obj: unknown) => obj is Rect64;
+export declare const Rect64TypeName: unique symbol;
 export declare class Rect64 {
-    readonly isRect64: true;
+    readonly type: typeof Rect64TypeName;
     left: bigint;
     top: bigint;
     right: bigint;
@@ -15,10 +17,11 @@ export declare class Rect64 {
     get height(): bigint;
     set height(value: bigint);
     midPoint(): Point64;
-    asPath(): Path64;
+    asPath(): IPath64;
     contains(pt: Point64): boolean;
     contains(rec: Rect64): boolean;
     scale(scale: number): void;
     isEmpty(): boolean;
     intersects(rec: Rect64): boolean;
 }
+export declare const EmptyRect64: Readonly<Rect64>;

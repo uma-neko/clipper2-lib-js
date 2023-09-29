@@ -9,7 +9,7 @@ export declare class ClipperD extends ClipperBase {
     _invScale: number;
     constructor(roundingDecimalPrecision?: number);
     addPath(path: Iterable<Point64> | Iterable<PointD>, polytype: PathType, isOpen?: boolean): void;
-    addPaths(paths: Iterable<Iterable<Point64>> | Iterable<Iterable<PointD>>, polytype: PathType, isOpen?: boolean): void;
+    addPaths(paths: Iterable<Point64> | Iterable<PointD> | Iterable<Iterable<Point64>> | Iterable<Iterable<PointD>>, polytype: PathType, isOpen?: boolean): void;
     addSubject(pathOrPaths: Iterable<Point64> | Iterable<PointD> | Iterable<Iterable<Point64>> | Iterable<Iterable<PointD>>): void;
     addOpenSubject(pathOrPaths: Iterable<Point64> | Iterable<PointD> | Iterable<Iterable<Point64>> | Iterable<Iterable<PointD>>): void;
     addClip(pathOrPaths: Iterable<Point64> | Iterable<PointD> | Iterable<Iterable<Point64>> | Iterable<Iterable<PointD>>): void;

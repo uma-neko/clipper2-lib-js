@@ -1,4 +1,4 @@
-import { Path64 } from "../Core/Path64";
+import type { IPath64 } from "../Core/IPath64";
 export declare class PolyPathBase {
     _parent?: PolyPathBase;
     _childs: PolyPathBase[];
@@ -7,6 +7,6 @@ export declare class PolyPathBase {
     getIsHole(): boolean;
     get length(): number;
     clear(): void;
-    addChild(_: Path64): PolyPathBase;
+    addChild(_: IPath64): PolyPathBase;
     [Symbol.iterator](): Generator<PolyPathBase, void, unknown>;
 }
