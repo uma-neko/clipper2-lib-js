@@ -664,7 +664,7 @@ export class RectClip64 {
         if (i > highI) {
           break;
         }
-        
+
         const currPt = path.getClone(i);
 
         if (currPt.y <= this._rect.top) {

@@ -620,7 +620,7 @@ export function pathsDToString(paths: PathsD): string {
 }
 
 export function offsetPath(path: IPath64, dx: bigint, dy: bigint): IPath64 {
-  const result: IPath64 = new Path64TypedArray();
+  const result = new Path64TypedArray();
   for (let i = 0, len = path.length; i < len; i++) {
     result.push({ x: path.getX(i) + dx, y: path.getY(i) + dy });
   }
@@ -661,7 +661,7 @@ export function scalePath(
     if (isAlmostZero(scale - 1)) {
       return path.clone();
     }
-    const result: IPath64 = new Path64TypedArray(path.length);
+    const result = new Path64TypedArray(path.length);
 
     for (let i = 0, len = path.length; i < len; i++) {
       result.push({
@@ -674,7 +674,7 @@ export function scalePath(
     if (isAlmostZero(scale - 1)) {
       return path.clone();
     }
-    const result: IPathD = new PathDTypedArray(path.length);
+    const result = new PathDTypedArray(path.length);
 
     for (let i = 0, len = path.length; i < len; i++) {
       result.push({ x: path.getX(i) * scale, y: path.getY(i) * scale });
@@ -698,7 +698,7 @@ export function scalePaths(
     const result = new Paths64();
 
     for (const path of paths) {
-      const tmpPath: Path64Base = new Path64TypedArray(path.length);
+      const tmpPath = new Path64TypedArray(path.length);
       for (let i = 0, len = path.length; i < len; i++) {
         tmpPath.push({
           x: numberToBigInt(Number(path.getX(i)) * scale),
@@ -717,7 +717,7 @@ export function scalePaths(
     const result = new PathsD();
 
     for (const path of paths) {
-      const tmpPath: PathDBase = new PathDTypedArray(path.length);
+      const tmpPath = new PathDTypedArray(path.length);
       for (let i = 0, len = path.length; i < len; i++) {
         tmpPath.push({ x: path.getX(i) * scale, y: path.getY(i) * scale });
       }
@@ -730,7 +730,7 @@ export function scalePaths(
 }
 
 export function scalePath64(path: IPathD, scale: number): IPath64 {
-  const result: IPath64 = new Path64TypedArray(path.length);
+  const result = new Path64TypedArray(path.length);
   for (let i = 0, len = path.length; i < len; i++) {
     result.push({
       x: numberToBigInt(path.getX(i) * scale),
@@ -741,7 +741,7 @@ export function scalePath64(path: IPathD, scale: number): IPath64 {
 }
 
 export function scalePathD(path: IPath64, scale: number): IPathD {
-  const result: IPathD = new PathDTypedArray(path.length);
+  const result = new PathDTypedArray(path.length);
   for (let i = 0, len = path.length; i < len; i++) {
     result.push({
       x: Number(path.getX(i)) * scale,
@@ -972,7 +972,7 @@ export function getBounds(
 export function makePath64(arr: ArrayLike<number>): IPath64;
 export function makePath64(arr: ArrayLike<bigint>): IPath64;
 export function makePath64(arr: ArrayLike<number> | ArrayLike<bigint>) {
-  const path: IPath64 = new Path64TypedArray();
+  const path = new Path64TypedArray();
   for (let i = 0; i < arr.length; i = i + 2) {
     path.push({ x: BigInt(arr[i]), y: BigInt(arr[i + 1]) });
   }
@@ -980,7 +980,7 @@ export function makePath64(arr: ArrayLike<number> | ArrayLike<bigint>) {
 }
 
 export function makePathD(arr: ArrayLike<number>): IPathD {
-  const path: IPathD = new PathDTypedArray();
+  const path = new PathDTypedArray();
   for (let i = 0; i < arr.length; i = i + 2) {
     path.push({ x: arr[i], y: arr[i + 1] });
   }
@@ -1001,7 +1001,7 @@ export function stripNearDuplicates(
   isClosedPath: boolean,
 ): IPathD {
   const cnt = path.length;
-  const result: IPathD = new PathDTypedArray();
+  const result = new PathDTypedArray();
   if (cnt === 0) {
     return result;
   }
@@ -1028,7 +1028,7 @@ export function stripDuplicates(
   isClosedPath: boolean,
 ): IPath64 {
   const cnt = path.length;
-  const result: IPath64 = new Path64TypedArray();
+  const result = new Path64TypedArray();
   if (cnt === 0) {
     return result;
   }
@@ -1488,7 +1488,7 @@ export function trimCollinear(
     isOpen = mayBeIsOpen;
     checkPrecision(precision);
     const scale = Math.pow(10, precision);
-    let p = scalePath64(path as IPathD, scale);
+    let p = scalePath64(path, scale);
     p = trimCollinear(p, isOpen);
     return scalePathD(p, 1 / scale);
   } else if (
@@ -1532,7 +1532,7 @@ export function trimCollinear(
 
       return path.clone();
     }
-    const result: IPath64 = new Path64TypedArray();
+    const result = new Path64TypedArray();
 
     let last = path.getClone(i);
 
@@ -1647,7 +1647,7 @@ function ellipse64(
 
   const centerX = center.x;
   const centerY = center.y;
-  const result: IPath64 = new Path64TypedArray(steps);
+  const result = new Path64TypedArray(steps);
   result.push({ x: centerX + numberToBigInt(radiusX), y: centerY });
   for (let i = 1; i < steps; i++) {
     result.push({
@@ -1685,7 +1685,7 @@ function ellipseD(
 
   const centerX = center.x;
   const centerY = center.y;
-  const result: IPathD = new PathDTypedArray(steps);
+  const result = new PathDTypedArray(steps);
   result.push({ x: centerX + radiusX, y: center.y });
   for (let i = 1; i < steps; i++) {
     result.push({ x: centerX + radiusX * dx, y: centerY + radiusY * dy });
