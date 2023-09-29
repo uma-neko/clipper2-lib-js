@@ -1,16 +1,16 @@
 import { ClipperGroup } from "./ClipperGroup";
 import { EndType, JoinType } from "./OffsetEnums";
-import { Path64 } from "../Core/Path64";
-import { PathD } from "../Core/PathD";
+import { IPathD } from "../Core/IPathD";
 import { Paths64 } from "../Core/Paths64";
 import { Point64 } from "../Core/Point64";
 import { PointD } from "../Core/PointD";
 import { Rect64 } from "../Core/Rect64";
 import { PolyTree64 } from "../Engine/PolyTree64";
-export type DeltaCallback64 = (path: Path64, path_norms: PathD, currPt: number, prevPt: number) => number;
+import type { IPath64 } from "../Core/IPath64";
+export type DeltaCallback64 = (path: IPath64, path_norms: IPathD, currPt: number, prevPt: number) => number;
 export declare class ClipperOffset {
     _groupList: ClipperGroup[];
-    _normals: PathD;
+    _normals: IPathD;
     _solution: Paths64;
     _groupDelta: number;
     _delta: number;
@@ -28,7 +28,7 @@ export declare class ClipperOffset {
     deltaCallback?: DeltaCallback64;
     constructor(miterLimit?: number, arcTolerance?: number, preserveCollinear?: boolean, reverseSolution?: boolean);
     clear(): void;
-    addPath(path: Path64, joinType: JoinType, endType: EndType): void;
+    addPath(path: IPath64, joinType: JoinType, endType: EndType): void;
     addPaths(paths: Paths64, joinType: JoinType, endType: EndType): void;
     executeInternal(delta: number): void;
     execute(deltaOrDeltaCallback: number | DeltaCallback64, solutionOrPolyTree: Paths64 | PolyTree64): void;
@@ -46,13 +46,13 @@ export declare class ClipperOffset {
     intersectPoint(pt1a: PointD, pt1b: PointD, pt2a: PointD, pt2b: PointD): PointD;
     getPerpendic(pt: Point64, norm: PointD): Point64;
     getPerpendicD(pt: Point64, norm: PointD): PointD;
-    doSquare(group: ClipperGroup, path: Path64, j: number, k: number): void;
-    doMiter(group: ClipperGroup, path: Path64, j: number, k: number, cosA: number): void;
-    doRound(group: ClipperGroup, path: Path64, j: number, k: number, angle: number): void;
-    bulidNormals(path: Path64): void;
-    offsetPoint(group: ClipperGroup, path: Path64, j: number, k: number): number;
-    offsetPolygon(group: ClipperGroup, path: Path64): void;
-    offsetOpenJoined(group: ClipperGroup, path: Path64): void;
-    offsetOpenPath(group: ClipperGroup, path: Path64): void;
+    doSquare(group: ClipperGroup, path: IPath64, j: number, k: number): void;
+    doMiter(group: ClipperGroup, path: IPath64, j: number, k: number, cosA: number): void;
+    doRound(group: ClipperGroup, path: IPath64, j: number, k: number, angle: number): void;
+    bulidNormals(path: IPath64): void;
+    offsetPoint(group: ClipperGroup, path: IPath64, j: number, k: number): number;
+    offsetPolygon(group: ClipperGroup, path: IPath64): void;
+    offsetOpenJoined(group: ClipperGroup, path: IPath64): void;
+    offsetOpenPath(group: ClipperGroup, path: IPath64): void;
     doGroupOffset(group: ClipperGroup): void;
 }

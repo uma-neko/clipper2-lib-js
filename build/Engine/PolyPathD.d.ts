@@ -1,10 +1,10 @@
 import { PolyPathBase } from "./PolyPathBase";
-import { Path64 } from "../Core/Path64";
-import { PathD } from "../Core/PathD";
+import type { IPath64 } from "../Core/IPath64";
+import { IPathD } from "../Core/IPathD";
 export declare class PolyPathD extends PolyPathBase {
     scale: number;
-    polygon?: PathD;
+    polygon?: IPathD;
     constructor(parent?: PolyPathBase);
-    addChild(p: Path64): PolyPathBase;
+    addChild(p: IPath64): PolyPathBase;
     area(): number;
 }

@@ -1,0 +1,36 @@
+import { IScalablePath } from "./IScalablePath";
+import { Path64TypedArray } from "./Path64TypedArray";
+import { IPathD, PathDTypeName } from "./IPathD";
+import { PointD } from "./PointD";
+export declare class PathDTypedArray implements IPathD, IScalablePath {
+    readonly type: typeof PathDTypeName;
+    private _capacity;
+    private _innerLength;
+    private _path;
+    constructor();
+    constructor(arrayLength: number);
+    constructor(...paths: [PathDTypedArray]);
+    constructor(...paths: PointD[]);
+    constructor(...args: [] | [number] | [PathDTypedArray] | PointD[]);
+    private _realloc;
+    private _push;
+    private _checkLength;
+    clone(): PathDTypedArray;
+    pushDecomposed(x: number, y: number): void;
+    get(index: number): PointD;
+    set(index: number, x: number, y: number): void;
+    getClone(index: number): PointD;
+    getX(index: number): number;
+    getY(index: number): number;
+    setX(index: number, value: number): number;
+    setY(index: number, value: number): number;
+    setChild(index: number, value: PointD): boolean;
+    push(...path: PointD[]): number;
+    pushRange(path: Iterable<PointD>): number;
+    pop(): PointD | undefined;
+    clear(): void;
+    get length(): number;
+    asScaledPath64(scale: number): Path64TypedArray;
+    asScaledPathD(scale: number): PathDTypedArray;
+    [Symbol.iterator](): Generator<PointD, void, unknown>;
+}

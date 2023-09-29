@@ -2,7 +2,7 @@ export type PointD = {
     x: number;
     y: number;
 };
-export declare const isPointD: (obj: Record<string, unknown>) => obj is PointD;
+export declare const isPointD: (obj: unknown) => obj is PointD;
 export declare const PointD: {
     equals: (a: PointD, b: PointD) => boolean;
     notEquals: (a: PointD, b: PointD) => boolean;
