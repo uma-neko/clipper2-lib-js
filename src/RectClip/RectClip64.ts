@@ -596,11 +596,11 @@ export class RectClip64 {
           i++;
         }
 
-        const currPt = path.getClone(i);
-
         if (i > highI) {
           break;
         }
+
+        const currPt = path.getClone(i);
 
         if (currPt.x >= this._rect.right) {
           loc = Location.right;
@@ -617,11 +617,12 @@ export class RectClip64 {
         while (i <= highI && path.getY(i) <= this._rect.top) {
           i++;
         }
-        const currPt = path.getClone(i);
 
         if (i > highI) {
           break;
         }
+
+        const currPt = path.getClone(i);
 
         if (currPt.y >= this._rect.bottom) {
           loc = Location.bottom;
@@ -638,11 +639,11 @@ export class RectClip64 {
         while (i <= highI && path.getX(i) >= this._rect.right) {
           i++;
         }
-        const currPt = path.getClone(i);
-
         if (i > highI) {
           break;
         }
+
+        const currPt = path.getClone(i);
 
         if (currPt.x <= this._rect.left) {
           loc = Location.left;
@@ -659,11 +660,12 @@ export class RectClip64 {
         while (i <= highI && path.getY(i) >= this._rect.bottom) {
           i++;
         }
-        const currPt = path.getClone(i);
 
         if (i > highI) {
           break;
         }
+        
+        const currPt = path.getClone(i);
 
         if (currPt.y <= this._rect.top) {
           loc = Location.top;
