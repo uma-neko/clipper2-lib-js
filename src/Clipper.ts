@@ -733,8 +733,8 @@ export function scalePath64(path: IPathD, scale: number): IPath64 {
   const result: IPath64 = new Path64TypedArray(path.length);
   for (let i = 0, len = path.length; i < len; i++) {
     result.push({
-      x: numberToBigInt(Number(path.getX(i)) * scale),
-      y: numberToBigInt(Number(path.getY(i)) * scale),
+      x: numberToBigInt(path.getX(i) * scale),
+      y: numberToBigInt(path.getY(i) * scale),
     });
   }
   return result;
@@ -800,8 +800,8 @@ export function translatePath(
 ): IPath64 | IPathD {
   if (isPath64(path) && typeof dx === "bigint" && typeof dy === "bigint") {
     const result = new Path64TypedArray();
-    for (const pt of path) {
-      result.push({ x: pt.x + dx, y: pt.y + dy });
+    for (let i = 0, len = path.length; i < len; i++) {
+      result.push({ x: path.getX(i) + dx, y: path.getY(i) + dy });
     }
     return result;
   } else if (
@@ -810,8 +810,8 @@ export function translatePath(
     typeof dy === "number"
   ) {
     const result = new PathDTypedArray();
-    for (const pt of path) {
-      result.push({ x: pt.x + dx, y: pt.y + dy });
+    for (let i = 0, len = path.length; i < len; i++) {
+      result.push({ x: path.getX(i) + dx, y: path.getY(i) + dy });
     }
     return result;
   }
@@ -896,72 +896,72 @@ export function getBounds(
   if (isPaths64(pathOrPaths)) {
     const result = invalidRect64();
     for (const path of pathOrPaths) {
-      for (const pt of path) {
-        if (pt.x < result.left) {
-          result.left = pt.x;
+      for (let i = 0, len = path.length; i < len; i++) {
+        if (path.getX(i) < result.left) {
+          result.left = path.getX(i);
         }
-        if (pt.x > result.right) {
-          result.right = pt.x;
+        if (path.getX(i) > result.right) {
+          result.right = path.getX(i);
         }
-        if (pt.y < result.top) {
-          result.top = pt.y;
+        if (path.getY(i) < result.top) {
+          result.top = path.getY(i);
         }
-        if (pt.y > result.bottom) {
-          result.bottom = pt.y;
+        if (path.getY(i) > result.bottom) {
+          result.bottom = path.getY(i);
         }
       }
     }
     return result.left === 9223372036854775807n ? new Rect64() : result;
   } else if (isPath64(pathOrPaths)) {
     const result = invalidRect64();
-    for (const pt of pathOrPaths) {
-      if (pt.x < result.left) {
-        result.left = pt.x;
+    for (let i = 0, len = pathOrPaths.length; i < len; i++) {
+      if (pathOrPaths.getX(i) < result.left) {
+        result.left = pathOrPaths.getX(i);
       }
-      if (pt.x > result.right) {
-        result.right = pt.x;
+      if (pathOrPaths.getX(i) > result.right) {
+        result.right = pathOrPaths.getX(i);
       }
-      if (pt.y < result.top) {
-        result.top = pt.y;
+      if (pathOrPaths.getY(i) < result.top) {
+        result.top = pathOrPaths.getY(i);
       }
-      if (pt.y > result.bottom) {
-        result.bottom = pt.y;
+      if (pathOrPaths.getY(i) > result.bottom) {
+        result.bottom = pathOrPaths.getY(i);
       }
     }
     return result.left === 9223372036854775807n ? new Rect64() : result;
   } else if (isPathsD(pathOrPaths)) {
     const result = invalidRectD();
     for (const path of pathOrPaths) {
-      for (const pt of path) {
-        if (pt.x < result.left) {
-          result.left = pt.x;
+      for (let i = 0, len = path.length; i < len; i++) {
+        if (path.getX(i) < result.left) {
+          result.left = path.getX(i);
         }
-        if (pt.x > result.right) {
-          result.right = pt.x;
+        if (path.getX(i) > result.right) {
+          result.right = path.getX(i);
         }
-        if (pt.y < result.top) {
-          result.top = pt.y;
+        if (path.getY(i) < result.top) {
+          result.top = path.getY(i);
         }
-        if (pt.y > result.bottom) {
-          result.bottom = pt.y;
+        if (path.getY(i) > result.bottom) {
+          result.bottom = path.getY(i);
         }
       }
     }
     return result.left === Infinity ? new RectD() : result;
   } else if (isPathD(pathOrPaths)) {
     const result = invalidRectD();
-    for (const pt of pathOrPaths) {
-      if (pt.x < result.left) {
-        result.left = pt.x;
+    for (let i = 0, len = pathOrPaths.length; i < len; i++) {
+      if (pathOrPaths.getX(i) < result.left) {
+        result.left = pathOrPaths.getX(i);
       }
-      if (pt.x > result.right) {
-        result.right = pt.x;
+      if (pathOrPaths.getX(i) > result.right) {
+        result.right = pathOrPaths.getX(i);
       }
-      if (pt.y < result.top) {
-        result.top = pt.y;
+      if (pathOrPaths.getY(i) < result.top) {
+        result.top = pathOrPaths.getY(i);
       }
-      if (pt.y > result.bottom) {
-        result.bottom = pt.y;
+      if (pathOrPaths.getY(i) > result.bottom) {
+        result.bottom = pathOrPaths.getY(i);
       }
     }
     return result.left === Infinity ? new RectD() : result;
