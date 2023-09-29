@@ -63,7 +63,7 @@ export class Rect64 {
       this.right = leftOrIsValidOrRec.right;
       this.bottom = leftOrIsValidOrRec.bottom;
     } else {
-      throw new Error("todo: change message");
+      throw new TypeError("Invalid argument types.");
     }
   }
 
@@ -118,7 +118,7 @@ export class Rect64 {
         ptOrRec.bottom <= this.bottom
       );
     } else {
-      throw new Error("todo: change message");
+      throw new TypeError("Invalid argument types.");
     }
   }
 

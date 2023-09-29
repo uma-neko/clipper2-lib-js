@@ -108,7 +108,7 @@ export function sum(
     );
     return scalePathsD(tmp, 1 / scale);
   }
-  throw new Error("todo: change message");
+  throw new TypeError("Invalid argument types.");
 }
 
 export function diff(
@@ -153,7 +153,7 @@ export function diff(
     );
     return scalePathsD(tmp, 1 / scale);
   }
-  throw new Error("todo: change message");
+  throw new TypeError("Invalid argument types.");
 }
 
 export const Minkowski = {

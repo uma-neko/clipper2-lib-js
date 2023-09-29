@@ -35,7 +35,7 @@ const Point64Proxy = {
         return true;
       }
     }
-    throw new TypeError();
+    throw new Error("Properties cannot be added.");
   },
   has(_target: Point64ProxyInner, prop: string | symbol) {
     return (["x", "y"] as (string | symbol)[]).includes(prop);
@@ -104,6 +104,12 @@ export class Path64TypedArray implements IPath64, IScalablePath {
     this._innerLength++;
   }
 
+  private _checkLength(index: number) {
+    if (index < 0 || index >= this._innerLength) {
+      throw new RangeError("Invalid array length.");
+    }
+  }
+
   pushDecomposed(x: bigint, y: bigint) {
     if (this._realLength === this._innerLength) {
       this._realloc(Math.ceil(this._realLength * 2));
@@ -114,9 +120,7 @@ export class Path64TypedArray implements IPath64, IScalablePath {
   }
 
   get(index: number): Point64 {
-    if (index < 0 || index >= this._innerLength) {
-      throw new RangeError("index over.");
-    }
+    this._checkLength(index);
     return new Proxy<Point64ProxyInner, Point64>(
       { index: index, source: this },
       Point64Proxy,
@@ -124,12 +128,14 @@ export class Path64TypedArray implements IPath64, IScalablePath {
   }
 
   set(index: number, x: bigint, y: bigint) {
+    this._checkLength(index);
     this.setX(index, x);
     this.setY(index, y);
   }
 
   getClone(index: number): Point64 {
-    return { x: this.getX(index), y: this.getY(index) };
+    this._checkLength(index);
+    return { x: this._path[index * 2], y: this._path[index * 2 + 1] };
   }
 
   getX(index: number): bigint {

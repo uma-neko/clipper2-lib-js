@@ -72,7 +72,9 @@ export function perpendicDistFromLineSqrd(
   } else if (isPointD(pt) && isPointD(line1) && isPointD(line2)) {
     return perpendicDistFromLineSqrdD(pt, line1, line2);
   } else {
-    throw new Error("todo: change message");
+    throw new TypeError(
+      "Invalid argument types. Argument pt and line1 and line2 are must be of same point type.",
+    );
   }
 }
 
@@ -172,7 +174,7 @@ export function rdp(
       rdp(path, idx, end, epsSqrd, flags);
     }
   } else {
-    throw new TypeError("todo");
+    throw new TypeError("Invalid argument types.");
   }
 }
 
@@ -370,7 +372,7 @@ export function booleanOp(
       return;
     }
   }
-  throw new Error("todo: change message");
+  throw new TypeError("Invalid argument types.");
 }
 
 export function inflatePaths(
@@ -402,7 +404,7 @@ export function inflatePaths(
     const solution = new Paths64();
     co.execute(delta, solution);
     return solution;
-  } else {
+  } else if (isPathsD(paths)) {
     checkPrecision(precision);
     const scale = Math.pow(10, precision);
     const tmp = scalePaths64(paths, scale);
@@ -413,10 +415,7 @@ export function inflatePaths(
   }
 }
 
-export function rectClip(
-  rect: Rect64,
-  pathOrpaths: IPath64 | Paths64,
-): Paths64;
+export function rectClip(rect: Rect64, pathOrpaths: IPath64 | Paths64): Paths64;
 export function rectClip(
   rect: RectD,
   pathOrPaths: IPathD | PathsD,
@@ -427,7 +426,7 @@ export function rectClip(
   pathOrPaths: Paths64 | IPath64 | PathsD | IPathD,
   precision: number = 2,
 ): Paths64 | PathsD {
-  if (isRect64(rect)) {
+  if (isRect64(rect) && (isPaths64(pathOrPaths) || isPath64(pathOrPaths))) {
     if (rect.isEmpty() || pathOrPaths.length === 0) {
       return new Paths64();
     }
@@ -436,15 +435,13 @@ export function rectClip(
 
     if (isPaths64(pathOrPaths)) {
       paths = Paths64.clone(pathOrPaths);
-    } else if (isPath64(pathOrPaths)) {
-      paths = Paths64.clone([pathOrPaths]);
     } else {
-      throw Error("todo: change message");
+      paths = Paths64.clone([pathOrPaths]);
     }
 
     const rc = new RectClip64(rect);
     return rc.execute(paths);
-  } else {
+  } else if (isRectD(rect) && (isPathsD(pathOrPaths) || isPathD(pathOrPaths))) {
     checkPrecision(precision);
     if (rect.isEmpty() || pathOrPaths.length === 0) {
       return new PathsD();
@@ -456,11 +453,9 @@ export function rectClip(
 
     if (isPathsD(pathOrPaths)) {
       tmpPath = scalePaths64(pathOrPaths, scale);
-    } else if (isPathD(pathOrPaths)) {
+    } else {
       tmpPath = new Paths64();
       tmpPath.push(scalePath64(pathOrPaths, scale));
-    } else {
-      throw new Error("todo: change message");
     }
 
     const r = scaleRect(rect, scale);
@@ -468,6 +463,7 @@ export function rectClip(
     tmpPath = rc.execute(tmpPath);
     return scalePathsD(tmpPath, 1 / scale);
   }
+  throw new TypeError("Invalid argument types.");
 }
 
 export function rectClipLines(rect: Rect64, paths: Paths64): Paths64;
@@ -487,23 +483,23 @@ export function rectClipLines(
   pathOrPaths: Paths64 | IPath64 | PathsD | IPathD,
   precision: number = 2,
 ): Paths64 | PathsD {
-  if (isRect64(rect)) {
+  if (isRect64(rect) && (isPaths64(pathOrPaths) || isPath64(pathOrPaths))) {
     if (rect.isEmpty() || pathOrPaths.length === 0) {
       return new Paths64();
     }
 
-    let paths!: Paths64;
+    let paths: Paths64;
 
     if (isPaths64(pathOrPaths)) {
       paths = pathOrPaths;
-    } else if (isPath64(pathOrPaths)) {
+    } else {
       paths = new Paths64();
       paths.push(pathOrPaths);
     }
 
     const rc = new RectClipLines64(rect);
     return rc.execute(paths);
-  } else if (isRectD(rect)) {
+  } else if (isRectD(rect) && (isPathsD(pathOrPaths) || isPathD(pathOrPaths))) {
     checkPrecision(precision);
     if (rect.isEmpty() || pathOrPaths.length === 0) {
       return new PathsD();
@@ -511,11 +507,11 @@ export function rectClipLines(
 
     const scale = Math.pow(10, precision);
 
-    let tmpPath!: Paths64;
+    let tmpPath: Paths64;
 
     if (isPathsD(pathOrPaths)) {
       tmpPath = scalePaths64(pathOrPaths, scale);
-    } else if (isPathD(pathOrPaths)) {
+    } else {
       tmpPath = new Paths64();
       tmpPath.push(scalePath64(pathOrPaths, scale));
     }
@@ -525,7 +521,7 @@ export function rectClipLines(
     tmpPath = rc.execute(tmpPath);
     return scalePathsD(tmpPath, 1 / scale);
   }
-  throw new Error("todo: change message.");
+  throw new TypeError("Invalid argument types.");
 }
 
 export function minkowskiSum(
@@ -544,44 +540,44 @@ export function minkowskiDiff(
   return diff(pattern, path, isClosed);
 }
 
-export function area(
-  pathOrPaths: IPath64 | IPathD | Paths64 | PathsD,
-): number {
+export function area(pathOrPaths: IPath64 | IPathD | Paths64 | PathsD): number {
   let resultArea = 0;
   if (isPaths64(pathOrPaths) || isPathsD(pathOrPaths)) {
     for (const path of pathOrPaths) {
       resultArea += area(path);
     }
-  } else {
+  } else if (isPath64(pathOrPaths)) {
     if (pathOrPaths.length < 3) {
       return 0;
     }
 
-    if (isPath64(pathOrPaths)) {
-      let prevX = pathOrPaths.getX(pathOrPaths.length - 1);
-      let prevY = pathOrPaths.getY(pathOrPaths.length - 1);
-      for (let i = 0, len = pathOrPaths.length; i < len; i++) {
-        const currX = pathOrPaths.getX(i);
-        const currY = pathOrPaths.getY(i);
-        resultArea += Number((prevY + currY) * (prevX - currX));
-        prevX = currX;
-        prevY = currY;
-      }
-    } else if (isPathD(pathOrPaths)) {
-      let prevX = pathOrPaths.getX(pathOrPaths.length - 1);
-      let prevY = pathOrPaths.getY(pathOrPaths.length - 1);
-      for (let i = 0, len = pathOrPaths.length; i < len; i++) {
-        const currX = pathOrPaths.getX(i);
-        const currY = pathOrPaths.getY(i);
-        resultArea += (prevY + currY) * (prevX - currX);
-        prevX = currX;
-        prevY = currY;
-      }
-    } else {
-      throw new TypeError("todo");
+    let prevX = pathOrPaths.getX(pathOrPaths.length - 1);
+    let prevY = pathOrPaths.getY(pathOrPaths.length - 1);
+    for (let i = 0, len = pathOrPaths.length; i < len; i++) {
+      const currX = pathOrPaths.getX(i);
+      const currY = pathOrPaths.getY(i);
+      resultArea += Number((prevY + currY) * (prevX - currX));
+      prevX = currX;
+      prevY = currY;
+    }
+    resultArea *= 0.5;
+  } else if (isPathD(pathOrPaths)) {
+    if (pathOrPaths.length < 3) {
+      return 0;
     }
 
+    let prevX = pathOrPaths.getX(pathOrPaths.length - 1);
+    let prevY = pathOrPaths.getY(pathOrPaths.length - 1);
+    for (let i = 0, len = pathOrPaths.length; i < len; i++) {
+      const currX = pathOrPaths.getX(i);
+      const currY = pathOrPaths.getY(i);
+      resultArea += (prevY + currY) * (prevX - currX);
+      prevX = currX;
+      prevY = currY;
+    }
     resultArea *= 0.5;
+  } else {
+    throw new TypeError("Invalid argument types.");
   }
 
   return resultArea;
@@ -623,14 +619,10 @@ export function pathsDToString(paths: PathsD): string {
   return result;
 }
 
-export function offsetPath(
-  path: IPath64,
-  dx: bigint,
-  dy: bigint,
-  for (const pt of path) {
-    result.push({ x: pt.x + dx, y: pt.y + dy });
-): IPath64 {
+export function offsetPath(path: IPath64, dx: bigint, dy: bigint): IPath64 {
   const result: IPath64 = new Path64TypedArray();
+  for (let i = 0, len = path.length; i < len; i++) {
+    result.push({ x: path.getX(i) + dx, y: path.getY(i) + dy });
   }
 
   return result;
@@ -689,7 +681,7 @@ export function scalePath(
     }
     return result;
   }
-  throw new Error("todo: change message.");
+  throw new TypeError("Invalid argument types.");
 }
 
 export function scalePaths(paths: Paths64, scale: number): Paths64;
@@ -734,7 +726,7 @@ export function scalePaths(
 
     return result;
   }
-  throw new Error("todo: change message");
+  throw new TypeError("Invalid argument types.");
 }
 
 export function scalePath64(path: IPathD, scale: number): IPath64 {
@@ -823,7 +815,7 @@ export function translatePath(
     }
     return result;
   }
-  throw new Error("todo: change message");
+  throw new TypeError("Invalid argument types.");
 }
 
 export function translatePaths(paths: Paths64, dx: bigint, dy: bigint): Paths64;
@@ -850,7 +842,7 @@ export function translatePaths(
     }
     return result;
   }
-  throw new Error("todo: change message");
+  throw new TypeError("Invalid argument types.");
 }
 
 export function reversePath(path: IPath64): IPath64;
@@ -871,7 +863,7 @@ export function reversePath(
     }
     return result;
   }
-  throw Error("todo: change message");
+  throw new TypeError("Invalid argument types.");
 }
 
 export function reversePaths(paths: Paths64): Paths64;
@@ -890,7 +882,7 @@ export function reversePaths(paths: Paths64 | PathsD): Paths64 | PathsD {
     }
     return result;
   }
-  throw Error("todo: change message");
+  throw new TypeError("Invalid argument types.");
 }
 
 export function getBounds(path: IPath64): Rect64;
@@ -974,7 +966,7 @@ export function getBounds(
     }
     return result.left === Infinity ? new RectD() : result;
   }
-  throw new Error("todo: change message");
+  throw new TypeError("Invalid argument types.");
 }
 
 export function makePath64(arr: ArrayLike<number>): IPath64;
@@ -1158,7 +1150,7 @@ export function ramerDouglasPeucker(
 
     return result;
   }
-  throw new Error("todo: change message");
+  throw new TypeError("Invalid argument types.");
 }
 
 export function getNext(
@@ -1169,7 +1161,7 @@ export function getNext(
   current++;
   const len = flags.length;
   if (high >= len) {
-    throw new Error("todo: change message");
+    throw new RangeError("Invalid array length.");
   }
   while (current <= high && flags[current]) {
     current++;
@@ -1182,7 +1174,7 @@ export function getNext(
     current++;
   }
   if (current >= len) {
-    throw new Error("todo: change message");
+    throw new RangeError("Invalid array length.");
   }
   return current;
 }
@@ -1194,7 +1186,7 @@ export function getPrior(
 ): number {
   const len = flags.length;
   if (high >= len) {
-    throw new Error("todo: change message");
+    throw new RangeError("Invalid array length.");
   }
 
   current = current === 0 ? high : current - 1;
@@ -1211,7 +1203,7 @@ export function getPrior(
     current--;
   }
   if (current < 0) {
-    throw new Error("todo: change message");
+    throw new RangeError("Invalid array length.");
   }
   return current;
 }
@@ -1439,7 +1431,7 @@ export function simplifyPath(
     }
     return result;
   } else {
-    throw new Error("todo: change message");
+    throw new TypeError("Invalid argument types.");
   }
 }
 
@@ -1471,7 +1463,7 @@ export function simplifyPaths(
     }
     return result;
   }
-  throw new Error("todo: change message");
+  throw new TypeError("Invalid argument types.");
 }
 
 export function trimCollinear(path: IPath64, isOpen?: boolean): IPath64;
@@ -1577,7 +1569,7 @@ export function trimCollinear(
 
     return result;
   }
-  throw new Error("todo: change message");
+  throw new TypeError("Invalid argument types.");
 }
 
 export function pointInPolygon(
@@ -1632,7 +1624,7 @@ export function ellipse(
       return new PathDTypedArray();
     }
   } else {
-    throw new Error("todo: change message");
+  throw new TypeError("Invalid argument types.");
   }
 
   if (radiusY <= 0) {

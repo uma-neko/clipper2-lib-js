@@ -9,7 +9,7 @@ const floatingPointTolerance = 1e-12;
 export const defaultArcTolerance = 0.25;
 export const checkPrecision = (precision: number) => {
   if (precision < -8 || precision > 8) {
-    throw new Error("todo: change message");
+    throw new RangeError("Precision must be between -8 and 8.");
   }
 };
 
