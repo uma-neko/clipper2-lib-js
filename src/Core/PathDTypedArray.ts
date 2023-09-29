@@ -35,7 +35,7 @@ const PointDProxy = {
         return true;
       }
     }
-    throw new TypeError();
+    throw new Error("Properties cannot be added.");
   },
   has(_target: PointDProxyInner, prop: string | symbol) {
     return (["x", "y"] as (string | symbol)[]).includes(prop);
@@ -103,6 +103,12 @@ export class PathDTypedArray implements IPathD, IScalablePath {
     this._innerLength++;
   }
 
+  private _checkLength(index: number) {
+    if (index < 0 || index >= this._innerLength) {
+      throw new RangeError("Invalid array length.");
+    }
+  }
+
   pushDecomposed(x: number, y: number) {
     if (this._realLength === this._innerLength) {
       this._realloc(Math.ceil(this._realLength * 2));
@@ -113,9 +119,7 @@ export class PathDTypedArray implements IPathD, IScalablePath {
   }
 
   get(index: number): PointD {
-    if (index < 0 || index >= this._innerLength) {
-      throw new RangeError("index over.");
-    }
+    this._checkLength(index);
     return new Proxy<PointDProxyInner, PointD>(
       { index: index, source: this },
       PointDProxy,
@@ -128,26 +132,32 @@ export class PathDTypedArray implements IPathD, IScalablePath {
   }
 
   getClone(index: number): PointD {
-    return { x: this.getX(index), y: this.getY(index) };
+    this._checkLength(index);
+    return { x: this._path[index * 2], y: this._path[index * 2 + 1] };
   }
 
   getX(index: number): number {
+    this._checkLength(index);
     return this._path[index * 2];
   }
 
   getY(index: number): number {
+    this._checkLength(index);
     return this._path[index * 2 + 1];
   }
 
   setX(index: number, value: number): number {
+    this._checkLength(index);
     return (this._path[index * 2] = value);
   }
 
   setY(index: number, value: number): number {
+    this._checkLength(index);
     return (this._path[index * 2 + 1] = value);
   }
 
   setChild(index: number, value: PointD) {
+    this._checkLength(index);
     const offset = (index % this._innerLength) * 2;
     this._path[offset] = value.x;
     this._path[offset + 1] = value.y;

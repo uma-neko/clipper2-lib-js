@@ -14,7 +14,7 @@ export class PolyPath64 extends PolyPathBase {
 
   child(index: number): PolyPath64 {
     if (index < 0 || index >= this._childs.length) {
-      throw new Error("todo: change message");
+      throw new RangeError("Invalid array length.");
     }
     return this._childs[index] as PolyPath64;
   }
