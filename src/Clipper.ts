@@ -783,16 +783,8 @@ export function pathsD(paths: Paths64): PathsD {
   return scalePathsD(paths, 1);
 }
 
-export function translatePath(
-  path: IPath64,
-  dx: bigint,
-  dy: bigint,
-): IPath64;
-export function translatePath(
-  path: IPathD,
-  dx: number,
-  dy: number,
-): IPathD;
+export function translatePath(path: IPath64, dx: bigint, dy: bigint): IPath64;
+export function translatePath(path: IPathD, dx: number, dy: number): IPathD;
 export function translatePath(
   path: IPath64 | IPathD,
   dx: bigint | number,
@@ -847,9 +839,7 @@ export function translatePaths(
 
 export function reversePath(path: IPath64): IPath64;
 export function reversePath(path: IPathD): IPathD;
-export function reversePath(
-  path: IPath64 | IPathD,
-): IPath64 | IPathD {
+export function reversePath(path: IPath64 | IPathD): IPath64 | IPathD {
   if (isPath64(path)) {
     const result = new Path64TypedArray();
     for (let i = path.length - 1; i >= 0; i--) {
@@ -1023,10 +1013,7 @@ export function stripNearDuplicates(
   return result;
 }
 
-export function stripDuplicates(
-  path: IPath64,
-  isClosedPath: boolean,
-): IPath64 {
+export function stripDuplicates(path: IPath64, isClosedPath: boolean): IPath64 {
   const cnt = path.length;
   const result = new Path64TypedArray();
   if (cnt === 0) {
@@ -1085,15 +1072,9 @@ export function polyTreeToPathsD(polyTree: PolyTreeD): PathsD {
   return result;
 }
 
-export function ramerDouglasPeucker(
-  path: IPath64,
-  epsilon: number,
-): IPath64;
+export function ramerDouglasPeucker(path: IPath64, epsilon: number): IPath64;
 export function ramerDouglasPeucker(path: Paths64, epsilon: number): Paths64;
-export function ramerDouglasPeucker(
-  path: IPathD,
-  epsilon: number,
-): IPathD;
+export function ramerDouglasPeucker(path: IPathD, epsilon: number): IPathD;
 export function ramerDouglasPeucker(path: PathsD, epsilon: number): PathsD;
 export function ramerDouglasPeucker(
   pathOrPaths: IPath64 | IPathD | Paths64 | PathsD,
