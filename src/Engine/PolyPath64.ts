@@ -1,11 +1,11 @@
 import { PolyPathBase } from "./PolyPathBase";
 import { area as clipperArea } from "../Clipper";
-import { Path64 } from "../Core/Path64";
+import { IPath64 } from "../Core/IPath64";
 
 export class PolyPath64 extends PolyPathBase {
-  polygon?: Path64;
+  polygon?: IPath64;
 
-  override addChild(p: Path64): PolyPathBase {
+  override addChild(p: IPath64): PolyPathBase {
     const newChild = new PolyPath64(this);
     newChild.polygon = p;
     this._childs.push(newChild);
@@ -14,7 +14,7 @@ export class PolyPath64 extends PolyPathBase {
 
   child(index: number): PolyPath64 {
     if (index < 0 || index >= this._childs.length) {
-      throw new Error("todo: change message");
+      throw new RangeError("Invalid array length.");
     }
     return this._childs[index] as PolyPath64;
   }

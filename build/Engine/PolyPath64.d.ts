@@ -1,8 +1,8 @@
 import { PolyPathBase } from "./PolyPathBase";
-import { Path64 } from "../Core/Path64";
+import { IPath64 } from "../Core/IPath64";
 export declare class PolyPath64 extends PolyPathBase {
-    polygon?: Path64;
-    addChild(p: Path64): PolyPathBase;
+    polygon?: IPath64;
+    addChild(p: IPath64): PolyPathBase;
     child(index: number): PolyPath64;
     area(): number;
 }

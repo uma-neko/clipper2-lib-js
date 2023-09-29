@@ -1,7 +1,9 @@
-import { PathD } from "./PathD";
+import { IPathD } from "./IPathD";
 import { PointD } from "./PointD";
+export declare const isRectD: (obj: unknown) => obj is RectD;
+export declare const RectDTypeName: unique symbol;
 export declare class RectD {
-    readonly isRectD: true;
+    readonly type: typeof RectDTypeName;
     left: number;
     top: number;
     right: number;
@@ -15,7 +17,7 @@ export declare class RectD {
     get height(): number;
     set height(value: number);
     midPoint(): PointD;
-    asPath(): PathD;
+    asPath(): IPathD;
     contains(pt: PointD): boolean;
     contains(rec: RectD): boolean;
     scale(scale: number): void;

@@ -1,25 +1,74 @@
+import { isNotNullish } from "../CommonUtils";
+import { IPath64, Path64TypeName } from "./IPath64";
 import { Point64 } from "./Point64";
 
-export const isPath64 = (obj: unknown): obj is Path64 => {
-  return obj instanceof Path64 && obj.type === Path64TypeName;
+export const isPath64 = (obj: unknown): obj is IPath64 => {
+  return isNotNullish(obj) && obj.type === Path64TypeName;
 };
 
-export const Path64TypeName = "Path64";
-
-export class Path64 extends Array<Point64> {
+export class Path64 extends Array<Point64> implements IPath64 {
   readonly type: typeof Path64TypeName;
-  constructor(path?: Iterable<Point64>) {
-    super();
+
+  constructor();
+  constructor(arrayLength: number);
+  constructor(...paths: Point64[]);
+  constructor(...args: [] | [number] | Point64[]);
+  constructor(...args: [] | [number] | Point64[]) {
+    if (args.length === 0) {
+      super();
+    } else if (typeof args[0] === "number") {
+      super(args[0]);
+    } else {
+      super();
+      this.pushRange(args as Point64[]);
+    }
     this.type = Path64TypeName;
-    if (path === undefined) {
-      return;
-    }
+  }
+
+  clone() {
+    const clonedPath = new Path64();
+    clonedPath.pushRange(this);
+    return clonedPath;
+  }
+
+  get(index: number): Point64 {
+    return this[index];
+  }
+
+  getX(index: number): bigint {
+    return this[index].x;
+  }
+
+  getY(index: number): bigint {
+    return this[index].y;
+  }
+
+  getClone(index: number): Point64 {
+    return { x: this[index].x, y: this[index].y };
+  }
+
+  set(index: number, x: bigint, y: bigint) {
+    this[index].x = x;
+    this[index].y = y;
+  }
+
+  override push(...path: Point64[]) {
     for (const pt of path) {
-      this.push(Point64.clone(pt));
+      super.push(Point64.clone(pt));
     }
+    return this.length;
+  }
+
+  pushRange(path: Iterable<Point64>) {
+    for (const pt of path) {
+      super.push(Point64.clone(pt));
+    }
+    return this.length;
   }
 
   clear() {
-    this.length = 0;
+    if (this.length !== 0) {
+      this.length = 0;
+    }
   }
 }

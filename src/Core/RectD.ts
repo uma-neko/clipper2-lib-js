@@ -1,19 +1,14 @@
 import { isNotNullish } from "../CommonUtils";
 import { PathD } from "./PathD";
+import { IPathD } from "./IPathD";
 import { PointD, isPointD } from "./PointD";
 
 export const isRectD = (obj: unknown): obj is RectD =>
-  isNotNullish(obj) &&
-  obj.type === RectDTypeName &&
-  typeof obj.left === "number" &&
-  typeof obj.top === "number" &&
-  typeof obj.right === "number" &&
-  typeof obj.bottom === "number";
+  isNotNullish(obj) && obj.type === RectDTypeName;
 
-export const RectDTypeName = "RectD";
+export const RectDTypeName = Symbol("RectD");
 
 export class RectD {
-  readonly isRectD: true;
   readonly type: typeof RectDTypeName;
   left: number;
   top: number;
@@ -31,7 +26,6 @@ export class RectD {
     right?: number,
     bottom?: number,
   ) {
-    this.isRectD = true;
     this.type = RectDTypeName;
     if (leftOrIsValidOrRec === undefined) {
       this.left = 0;
@@ -66,7 +60,7 @@ export class RectD {
       this.right = leftOrIsValidOrRec.right;
       this.bottom = leftOrIsValidOrRec.bottom;
     } else {
-      throw new Error("todo: change message");
+      throw new TypeError("Invalid argument types.");
     }
   }
 
@@ -90,13 +84,13 @@ export class RectD {
     return { x: (this.right + this.left) / 2, y: (this.bottom + this.top) / 2 };
   }
 
-  asPath(): PathD {
-    return new PathD([
+  asPath(): IPathD {
+    return new PathD(
       { x: this.left, y: this.top },
       { x: this.right, y: this.top },
       { x: this.right, y: this.bottom },
       { x: this.left, y: this.bottom },
-    ]);
+    );
   }
 
   contains(pt: PointD): boolean;
@@ -118,7 +112,7 @@ export class RectD {
         ptOrRec.bottom <= this.bottom
       );
     } else {
-      throw new Error("todo: change message");
+      throw new TypeError("Invalid argument types.");
     }
   }
 

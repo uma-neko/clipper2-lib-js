@@ -1,20 +1,15 @@
 import { numberToBigInt } from "../Clipper";
 import { isNotNullish } from "../CommonUtils";
-import { Path64 } from "./Path64";
+import type { IPath64 } from "./IPath64";
+import { Path64TypedArray } from "./Path64TypedArray";
 import { Point64, isPoint64 } from "./Point64";
 
 export const isRect64 = (obj: unknown): obj is Rect64 =>
-  isNotNullish(obj) &&
-  obj.type === Rect64TypeName &&
-  typeof obj.left === "bigint" &&
-  typeof obj.top === "bigint" &&
-  typeof obj.right === "bigint" &&
-  typeof obj.bottom === "bigint";
+  isNotNullish(obj) && obj.type === Rect64TypeName;
 
-export const Rect64TypeName = "Rect64";
+export const Rect64TypeName = Symbol("Rect64");
 
 export class Rect64 {
-  readonly isRect64: true;
   readonly type: typeof Rect64TypeName;
   left: bigint;
   top: bigint;
@@ -32,7 +27,6 @@ export class Rect64 {
     right?: bigint,
     bottom?: bigint,
   ) {
-    this.isRect64 = true;
     this.type = Rect64TypeName;
     if (leftOrIsValidOrRec === undefined) {
       this.left = 0n;
@@ -67,7 +61,7 @@ export class Rect64 {
       this.right = leftOrIsValidOrRec.right;
       this.bottom = leftOrIsValidOrRec.bottom;
     } else {
-      throw new Error("todo: change message");
+      throw new TypeError("Invalid argument types.");
     }
   }
 
@@ -94,13 +88,13 @@ export class Rect64 {
     };
   }
 
-  asPath(): Path64 {
-    return new Path64([
+  asPath(): IPath64 {
+    return new Path64TypedArray(
       { x: this.left, y: this.top },
       { x: this.right, y: this.top },
       { x: this.right, y: this.bottom },
       { x: this.left, y: this.bottom },
-    ]);
+    );
   }
 
   contains(pt: Point64): boolean;
@@ -122,7 +116,7 @@ export class Rect64 {
         ptOrRec.bottom <= this.bottom
       );
     } else {
-      throw new Error("todo: change message");
+      throw new TypeError("Invalid argument types.");
     }
   }
 
@@ -146,3 +140,5 @@ export class Rect64 {
     );
   }
 }
+
+export const EmptyRect64: Readonly<Rect64> = new Rect64();

@@ -1,8 +1,8 @@
 import { JoinWith } from "./EngineEnums";
-import { LocalMinima } from "./LocalMinima";
 import { OutRec } from "./OutRec";
 import { Vertex } from "./Vertex";
 import { Point64 } from "../Core/Point64";
+import { PathType } from "../Core/CoreEnums";
 export type Active = {
     bot: Point64;
     top: Point64;
@@ -18,7 +18,9 @@ export type Active = {
     nextInSEL?: Active;
     jump?: Active;
     vertexTop?: Vertex;
-    localMin: LocalMinima;
+    localMinVertex: Vertex;
+    localMinPolytype: PathType;
+    localMinIsOpen: boolean;
     isLeftBound: boolean;
     joinWith: JoinWith;
 };
