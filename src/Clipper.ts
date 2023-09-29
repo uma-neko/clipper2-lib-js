@@ -144,7 +144,7 @@ export function rdp(
       rdp(path, begin, idx, epsSqrd, flags);
     }
     if (idx < end - 1) {
-      rdp(path, begin, idx, epsSqrd, flags);
+      rdp(path, idx, end, epsSqrd, flags);
     }
   } else if (isPathD(path)) {
     const beginPt = path.getClone(begin);
@@ -169,7 +169,7 @@ export function rdp(
       rdp(path, begin, idx, epsSqrd, flags);
     }
     if (idx < end - 1) {
-      rdp(path, begin, idx, epsSqrd, flags);
+      rdp(path, idx, end, epsSqrd, flags);
     }
   } else {
     throw new TypeError("todo");
@@ -860,7 +860,7 @@ export function reversePath(
 ): Path64Base | PathDBase {
   if (isPath64(path)) {
     const result = new Path64TypedArray();
-    for (let i = 0, len = path.length; i < len; i++) {
+    for (let i = path.length - 1; i >= 0; i--) {
       result.push(path.getClone(i));
     }
     return result;
