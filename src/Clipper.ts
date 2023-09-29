@@ -1572,7 +1572,7 @@ export function pointInPolygon(
 ): PointInPolygonResult {
   if (isPoint64(pt) && isPath64(polygon)) {
     return internalPointInPolygon(pt, polygon);
-  } else if(isPointD(pt) && isPathD(polygon)) {
+  } else if (isPointD(pt) && isPathD(polygon)) {
     checkPrecision(precision);
     const scale = Math.pow(10, precision);
     const p = Point64.createScaledPoint(pt.x, pt.y, scale);
