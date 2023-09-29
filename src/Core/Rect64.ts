@@ -1,6 +1,6 @@
 import { numberToBigInt } from "../Clipper";
 import { isNotNullish } from "../CommonUtils";
-import type { Path64Base } from "./Path64Base";
+import type { IPath64 } from "./IPath64";
 import { Path64TypedArray } from "./Path64TypedArray";
 import { Point64, isPoint64 } from "./Point64";
 
@@ -90,7 +90,7 @@ export class Rect64 {
     };
   }
 
-  asPath(): Path64Base {
+  asPath(): IPath64 {
     return new Path64TypedArray(
       { x: this.left, y: this.top },
       { x: this.right, y: this.top },

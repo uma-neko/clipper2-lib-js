@@ -1,11 +1,11 @@
 import { PolyPathBase } from "./PolyPathBase";
 import { area as clipperArea } from "../Clipper";
-import { Path64Base } from "../Core/Path64Base";
+import { IPath64 } from "../Core/IPath64";
 
 export class PolyPath64 extends PolyPathBase {
-  polygon?: Path64Base;
+  polygon?: IPath64;
 
-  override addChild(p: Path64Base): PolyPathBase {
+  override addChild(p: IPath64): PolyPathBase {
     const newChild = new PolyPath64(this);
     newChild.polygon = p;
     this._childs.push(newChild);

@@ -1,6 +1,6 @@
 import { isNotNullish } from "../CommonUtils";
 import { isPath64 } from "./Path64";
-import { type Path64Base } from "./Path64Base";
+import { type IPath64 } from "./IPath64";
 import { Path64TypedArray } from "./Path64TypedArray";
 import { Point64 } from "./Point64";
 
@@ -10,14 +10,14 @@ export const isPaths64 = (obj: unknown): obj is Paths64 => {
 
 export const Paths64TypeName = "Paths64";
 
-export class Paths64 extends Array<Path64Base> {
+export class Paths64 extends Array<IPath64> {
   readonly type: typeof Paths64TypeName;
 
   constructor();
   constructor(arrayLength: number);
-  constructor(...paths: Path64Base[]);
-  constructor(...args: [] | [number] | Path64Base[]);
-  constructor(...args: [] | [number] | Path64Base[]) {
+  constructor(...paths: IPath64[]);
+  constructor(...args: [] | [number] | IPath64[]);
+  constructor(...args: [] | [number] | IPath64[]) {
     const len = args.length;
     if (len === 0) {
       super();
@@ -26,7 +26,7 @@ export class Paths64 extends Array<Path64Base> {
     } else {
       super();
       for (const path of args) {
-        this._push(path as Path64Base);
+        this._push(path as IPath64);
       }
     }
     this.type = Paths64TypeName;
@@ -48,7 +48,7 @@ export class Paths64 extends Array<Path64Base> {
   }
 
   _push(path: Iterable<Point64>) {
-    let clonedPath: Path64Base;
+    let clonedPath: IPath64;
     if (isPath64(path)) {
       clonedPath = path.clone();
     } else {
@@ -69,7 +69,7 @@ export class Paths64 extends Array<Path64Base> {
     super.push(clonedPath);
   }
 
-  directPush(path: Path64Base) {
+  directPush(path: IPath64) {
     super.push(path);
   }
 

@@ -1,4 +1,4 @@
-import type { Path64Base } from "./Path64Base";
+import type { IPath64 } from "./IPath64";
 import { Point64 } from "./Point64";
 import { PointD } from "./PointD";
 import { PointInPolygonResult } from "../Engine/EngineEnums";
@@ -119,7 +119,7 @@ export const getClosestPtOnSegment = (
 
 export const pointInPolygon = (
   pt: Point64,
-  polygon: Path64Base,
+  polygon: IPath64,
 ): PointInPolygonResult => {
   const len = polygon.length;
   let start = 0;

@@ -1,12 +1,12 @@
 import { isNotNullish } from "../CommonUtils";
-import { PathDTypeName, PathDBase } from "./PathDBase";
+import { PathDTypeName, IPathD } from "./IPathD";
 import { PointD } from "./PointD";
 
-export const isPathD = (obj: unknown): obj is PathDBase => {
+export const isPathD = (obj: unknown): obj is IPathD => {
   return isNotNullish(obj) && obj.type === PathDTypeName;
 };
 
-export class PathD extends Array<PointD> implements PathDBase {
+export class PathD extends Array<PointD> implements IPathD {
   readonly type: typeof PathDTypeName;
 
   constructor();

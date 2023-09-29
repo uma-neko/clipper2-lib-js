@@ -1,18 +1,18 @@
 import { PolyPathBase } from "./PolyPathBase";
 import { area as clipperArea, scalePathD } from "../Clipper";
-import type { Path64Base } from "../Core/Path64Base";
-import { PathDBase } from "../Core/PathDBase";
+import type { IPath64 } from "../Core/IPath64";
+import { IPathD } from "../Core/IPathD";
 
 export class PolyPathD extends PolyPathBase {
   scale: number;
-  polygon?: PathDBase;
+  polygon?: IPathD;
 
   constructor(parent?: PolyPathBase) {
     super(parent);
     this.scale = 0;
   }
 
-  override addChild(p: Path64Base): PolyPathBase {
+  override addChild(p: IPath64): PolyPathBase {
     const newChild = new PolyPathD(this);
     newChild.scale = this.scale;
     newChild.polygon = scalePathD(p, 1 / this.scale);

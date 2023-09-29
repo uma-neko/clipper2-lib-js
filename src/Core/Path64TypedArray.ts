@@ -1,6 +1,6 @@
 import { numberToBigInt } from "../Clipper";
 import { IScalablePath } from "./IScalablePath";
-import { Path64Base, Path64TypeName } from "./Path64Base";
+import { IPath64, Path64TypeName } from "./IPath64";
 import { PathDTypedArray } from "./PathDTypedArray";
 import { Point64 } from "./Point64";
 
@@ -42,7 +42,7 @@ const Point64Proxy = {
   },
 };
 
-export class Path64TypedArray implements Path64Base, IScalablePath {
+export class Path64TypedArray implements IPath64, IScalablePath {
   readonly type: typeof Path64TypeName;
   private _realLength: number;
   private _innerLength: number;

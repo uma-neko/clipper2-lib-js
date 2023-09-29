@@ -2,7 +2,7 @@ import { Active } from "./Active";
 import { OutPt } from "./OutPt";
 import { PolyPathBase } from "./PolyPathBase";
 import { Rect64 } from "../Core/Rect64";
-import { Path64Base } from "../Core/Path64Base";
+import { IPath64 } from "../Core/IPath64";
 
 export type OutRec = {
   idx: number;
@@ -12,7 +12,7 @@ export type OutRec = {
   pts?: OutPt;
   polypath?: PolyPathBase;
   bounds: Rect64;
-  path: Path64Base;
+  path: IPath64;
   isOpen: boolean;
   splits?: number[];
   recursiveSplit?: OutRec;

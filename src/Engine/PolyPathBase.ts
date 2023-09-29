@@ -1,4 +1,4 @@
-import type { Path64Base } from "../Core/Path64Base";
+import type { IPath64 } from "../Core/IPath64";
 
 export class PolyPathBase {
   _parent?: PolyPathBase;
@@ -33,7 +33,7 @@ export class PolyPathBase {
   }
 
   /* @ts-ignore abstract method */
-  addChild(_: Path64Base): PolyPathBase {}
+  addChild(_: IPath64): PolyPathBase {}
 
   *[Symbol.iterator]() {
     for (const child of this._childs) {
