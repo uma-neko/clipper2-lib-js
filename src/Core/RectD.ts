@@ -4,12 +4,7 @@ import { PathDBase } from "./PathDBase";
 import { PointD, isPointD } from "./PointD";
 
 export const isRectD = (obj: unknown): obj is RectD =>
-  isNotNullish(obj) &&
-  obj.type === RectDTypeName &&
-  typeof obj.left === "number" &&
-  typeof obj.top === "number" &&
-  typeof obj.right === "number" &&
-  typeof obj.bottom === "number";
+  isNotNullish(obj) && obj.type === RectDTypeName;
 
 export const RectDTypeName = "RectD";
 

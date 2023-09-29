@@ -164,7 +164,7 @@ export class ClipperOffset {
       return { x: 0, y: 0 };
     }
 
-    const f = 1.0 / Math.sqrt(Number(dx * dx) + Number(dy * dy));
+    const f = 1.0 / Math.sqrt(dx * dx + dy * dy);
 
     dx *= f;
     dy *= f;
@@ -177,26 +177,28 @@ export class ClipperOffset {
     let lpx: bigint = -9223372036854775808n; //long.min
 
     let index = -1;
-
-    for (const indexedPath of paths.map((path, i) => ({ path, i }))) {
-      const { path, i } = indexedPath;
-      for (const pt of path.getClones()) {
-        if (pt.y >= rec.bottom) {
-          if (pt.y > rec.bottom || pt.x < lpx) {
+    let i = 0;
+    for (const path of paths) {
+      for (let j = 0, len = path.length; j < len; j++) {
+        const ptX = path.getX(j);
+        const ptY = path.getY(j);
+        if (ptY >= rec.bottom) {
+          if (ptY > rec.bottom || ptX < lpx) {
             index = i;
-            lpx = pt.x;
-            rec.bottom = pt.y;
+            lpx = ptX;
+            rec.bottom = ptY;
           }
-        } else if (pt.y < rec.top) {
-          rec.top = pt.y;
+        } else if (ptY < rec.top) {
+          rec.top = ptY;
         }
 
-        if (pt.x > rec.right) {
-          rec.right = pt.x;
-        } else if (pt.x < rec.left) {
-          rec.left = pt.x;
+        if (ptX > rec.right) {
+          rec.right = ptX;
+        } else if (ptX < rec.left) {
+          rec.left = ptX;
         }
       }
+      i++;
     }
     return { rec: rec, index: index };
   }
@@ -214,7 +216,7 @@ export class ClipperOffset {
   }
 
   hypotenuse(x: number, y: number): number {
-    return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+    return Math.sqrt(x * x + y * y);
   }
 
   normalizeVector(vec: PointD): PointD {
@@ -265,8 +267,8 @@ export class ClipperOffset {
 
   getPerpendic(pt: Point64, norm: PointD): Point64 {
     return {
-      x: numberToBigInt(Number(pt.x) + norm.x * this._groupDelta),
-      y: numberToBigInt(Number(pt.y) + norm.y * this._groupDelta),
+      x: pt.x + numberToBigInt(norm.x * this._groupDelta),
+      y: pt.y + numberToBigInt(norm.y * this._groupDelta),
     };
   }
 
@@ -293,9 +295,7 @@ export class ClipperOffset {
 
     const absDelta = Math.abs(this._groupDelta);
 
-    const clonedPath = path.getClone(j);
-
-    let ptQ: PointD = { x: Number(clonedPath.x), y: Number(clonedPath.y) };
+    let ptQ: PointD = { x: Number(path.getX(j)), y: Number(path.getY(j)) };
     ptQ = this.translatePoint(ptQ, absDelta * vec.x, absDelta * vec.y);
 
     const pt1 = this.translatePoint(
@@ -354,12 +354,8 @@ export class ClipperOffset {
     const kNormalPt = this._normals.getClone(k);
     const jNormalPt = this._normals.getClone(j);
     group.outPath.push({
-      x: numberToBigInt(
-        Number(path.getClone(j).x) + (kNormalPt.x + jNormalPt.x) * q,
-      ),
-      y: numberToBigInt(
-        Number(path.getClone(j).y) + (kNormalPt.y + jNormalPt.y) * q,
-      ),
+      x: path.getX(j) + numberToBigInt((kNormalPt.x + jNormalPt.x) * q),
+      y: path.getY(j) + numberToBigInt((kNormalPt.y + jNormalPt.y) * q),
     });
   }
 
@@ -399,8 +395,8 @@ export class ClipperOffset {
     }
 
     group.outPath.push({
-      x: numberToBigInt(Number(pt.x) + offsetVec.x),
-      y: numberToBigInt(Number(pt.y) + offsetVec.y),
+      x: pt.x + numberToBigInt(offsetVec.x),
+      y: pt.y + numberToBigInt(offsetVec.y),
     });
 
     const steps = Math.ceil(this._stepsPerRad * Math.abs(angle));
@@ -412,8 +408,8 @@ export class ClipperOffset {
       };
 
       group.outPath.push({
-        x: numberToBigInt(Number(pt.x) + offsetVec.x),
-        y: numberToBigInt(Number(pt.y) + offsetVec.y),
+        x: pt.x + numberToBigInt(offsetVec.x),
+        y: pt.y + numberToBigInt(offsetVec.y),
       });
     }
 
@@ -457,15 +453,17 @@ export class ClipperOffset {
       }
     }
 
+    const jPath = path.getClone(j);
+
     if (Math.abs(this._groupDelta) < tolerance) {
-      group.outPath.push(path.getClone(j));
+      group.outPath.push(jPath);
       return k;
     }
 
     if (cosA > -0.99 && sinA * this._groupDelta < 0) {
-      group.outPath.push(this.getPerpendic(path.getClone(j), kNormalPt));
-      group.outPath.push(path.getClone(j));
-      group.outPath.push(this.getPerpendic(path.getClone(j), jNormalPt));
+      group.outPath.push(this.getPerpendic(jPath, kNormalPt));
+      group.outPath.push(jPath);
+      group.outPath.push(this.getPerpendic(jPath, jNormalPt));
     } else if (cosA > 0.999) {
       this.doMiter(group, path, j, k, cosA);
     } else if (this._joinType === JoinType.Miter) {
@@ -493,8 +491,8 @@ export class ClipperOffset {
       }
     }
 
-    group.outPath = new Path64TypedArray();
     const cnt = path.length;
+    group.outPath = new Path64TypedArray(cnt + 1);
     let prev = cnt - 1;
 
     for (let i = 0; i < cnt; i++) {
@@ -526,12 +524,8 @@ export class ClipperOffset {
       switch (this._endType) {
         case EndType.Butt:
           group.outPath.push({
-            x: numberToBigInt(
-              Number(startPt.x) - startNormalPt.x * this._groupDelta,
-            ),
-            y: numberToBigInt(
-              Number(startPt.y) - startNormalPt.y * this._groupDelta,
-            ),
+            x: startPt.x - numberToBigInt(startNormalPt.x * this._groupDelta),
+            y: startPt.y - numberToBigInt(startNormalPt.y * this._groupDelta),
           });
           group.outPath.push(this.getPerpendic(startPt, startNormalPt));
           break;
@@ -566,12 +560,8 @@ export class ClipperOffset {
       switch (this._endType) {
         case EndType.Butt:
           group.outPath.push({
-            x: numberToBigInt(
-              Number(highPt.x) - highNormalPt.x * this._groupDelta,
-            ),
-            y: numberToBigInt(
-              Number(highPt.y) - highNormalPt.y * this._groupDelta,
-            ),
+            x: highPt.x - numberToBigInt(highNormalPt.x * this._groupDelta),
+            y: highPt.y - numberToBigInt(highNormalPt.y * this._groupDelta),
           });
           group.outPath.push(this.getPerpendic(highPt, highNormalPt));
           break;

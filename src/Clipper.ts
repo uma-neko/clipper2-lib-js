@@ -558,16 +558,24 @@ export function area(
     }
 
     if (isPath64(pathOrPaths)) {
-      let prevPt = pathOrPaths.getClone(pathOrPaths.length - 1);
-      for (const pt of pathOrPaths.getClones()) {
-        resultArea += Number((prevPt.y + pt.y) * (prevPt.x - pt.x));
-        prevPt = pt;
+      let prevX = pathOrPaths.getX(pathOrPaths.length - 1);
+      let prevY = pathOrPaths.getY(pathOrPaths.length - 1);
+      for (let i = 0, len = pathOrPaths.length; i < len; i++) {
+        const currX = pathOrPaths.getX(i);
+        const currY = pathOrPaths.getY(i);
+        resultArea += Number((prevY + currY) * (prevX - currX));
+        prevX = currX;
+        prevY = currY;
       }
     } else if (isPathD(pathOrPaths)) {
-      let prevPt = pathOrPaths.getClone(pathOrPaths.length - 1);
-      for (const pt of pathOrPaths.getClones()) {
-        resultArea += (prevPt.y + pt.y) * (prevPt.x - pt.x);
-        prevPt = pt;
+      let prevX = pathOrPaths.getX(pathOrPaths.length - 1);
+      let prevY = pathOrPaths.getY(pathOrPaths.length - 1);
+      for (let i = 0, len = pathOrPaths.length; i < len; i++) {
+        const currX = pathOrPaths.getX(i);
+        const currY = pathOrPaths.getY(i);
+        resultArea += (prevY + currY) * (prevX - currX);
+        prevX = currX;
+        prevY = currY;
       }
     } else {
       throw new TypeError("todo");
@@ -663,10 +671,10 @@ export function scalePath(
     }
     const result: Path64Base = new Path64TypedArray(path.length);
 
-    for (const pt of path.getClones()) {
+    for (let i = 0, len = path.length; i < len; i++) {
       result.push({
-        x: numberToBigInt(Number(pt.x) * scale),
-        y: numberToBigInt(Number(pt.y) * scale),
+        x: numberToBigInt(Number(path.getX(i)) * scale),
+        y: numberToBigInt(Number(path.getY(i)) * scale),
       });
     }
     return result;
@@ -676,8 +684,8 @@ export function scalePath(
     }
     const result: PathDBase = new PathDTypedArray(path.length);
 
-    for (const pt of path.getClones()) {
-      result.push({ x: pt.x * scale, y: pt.y * scale });
+    for (let i = 0, len = path.length; i < len; i++) {
+      result.push({ x: path.getX(i) * scale, y: path.getY(i) * scale });
     }
     return result;
   }
@@ -699,10 +707,10 @@ export function scalePaths(
 
     for (const path of paths) {
       const tmpPath: Path64Base = new Path64TypedArray(path.length);
-      for (const pt of path.getClones()) {
+      for (let i = 0, len = path.length; i < len; i++) {
         tmpPath.push({
-          x: numberToBigInt(Number(pt.x) * scale),
-          y: numberToBigInt(Number(pt.y) * scale),
+          x: numberToBigInt(Number(path.getX(i)) * scale),
+          y: numberToBigInt(Number(path.getY(i)) * scale),
         });
       }
       result.push(tmpPath);
@@ -718,8 +726,8 @@ export function scalePaths(
 
     for (const path of paths) {
       const tmpPath: PathDBase = new PathDTypedArray(path.length);
-      for (const pt of path.getClones()) {
-        tmpPath.push({ x: pt.x * scale, y: pt.y * scale });
+      for (let i = 0, len = path.length; i < len; i++) {
+        tmpPath.push({ x: path.getX(i) * scale, y: path.getY(i) * scale });
       }
       result.push(tmpPath);
     }
@@ -731,10 +739,10 @@ export function scalePaths(
 
 export function scalePath64(path: PathDBase, scale: number): Path64Base {
   const result: Path64Base = new Path64TypedArray(path.length);
-  for (const pt of path.getClones()) {
+  for (let i = 0, len = path.length; i < len; i++) {
     result.push({
-      x: numberToBigInt(Number(pt.x) * scale),
-      y: numberToBigInt(Number(pt.y) * scale),
+      x: numberToBigInt(Number(path.getX(i)) * scale),
+      y: numberToBigInt(Number(path.getY(i)) * scale),
     });
   }
   return result;
@@ -742,8 +750,11 @@ export function scalePath64(path: PathDBase, scale: number): Path64Base {
 
 export function scalePathD(path: Path64Base, scale: number): PathDBase {
   const result: PathDBase = new PathDTypedArray(path.length);
-  for (const pt of path.getClones()) {
-    result.push({ x: Number(pt.x) * scale, y: Number(pt.y) * scale });
+  for (let i = 0, len = path.length; i < len; i++) {
+    result.push({
+      x: Number(path.getX(i)) * scale,
+      y: Number(path.getY(i)) * scale,
+    });
   }
   return result;
 }
@@ -849,8 +860,8 @@ export function reversePath(
 ): Path64Base | PathDBase {
   if (isPath64(path)) {
     const result = new Path64TypedArray();
-    for (const pt of path.getClones()) {
-      result.push(pt);
+    for (let i = 0, len = path.length; i < len; i++) {
+      result.push(path.getClone(i));
     }
     return result;
   } else if (isPathD(path)) {
@@ -1502,7 +1513,7 @@ export function trimCollinear(
           path.getClone(len - 1),
           path.getClone(i),
           path.getClone(i + 1),
-        ) === 0
+        ) === 0n
       ) {
         i++;
       }
@@ -1512,7 +1523,7 @@ export function trimCollinear(
           path.getClone(len - 2),
           path.getClone(len - 1),
           path.getClone(i),
-        ) === 0
+        ) === 0n
       ) {
         len--;
       }
@@ -1534,7 +1545,7 @@ export function trimCollinear(
     let last = path.getClone(i);
 
     for (i++; i < len - 1; i++) {
-      if (crossProduct64(last, path.getClone(i), path.getClone(i + 1)) === 0) {
+      if (crossProduct64(last, path.getClone(i), path.getClone(i + 1)) === 0n) {
         continue;
       }
       last = path.getClone(i);
@@ -1544,17 +1555,18 @@ export function trimCollinear(
     if (isOpen) {
       result.push(path.getClone(len - 1));
     } else if (
-      crossProduct64(last, path.getClone(len - 1), result.getClone(0)) !== 0
+      crossProduct64(last, path.getClone(len - 1), result.getClone(0)) !== 0n
     ) {
       result.push(path.getClone(len - 1));
     } else {
+      const startPt = result.getClone(0);
       while (
         result.length > 2 &&
         crossProduct64(
           result.getClone(result.length - 1),
           result.getClone(result.length - 2),
-          result.getClone(0),
-        ) === 0
+          startPt,
+        ) === 0n
       ) {
         result.pop();
       }
@@ -1636,14 +1648,14 @@ export function ellipse(
   let dy = si;
 
   if (isPoint64(center)) {
-    const centerX = Number(center.x);
-    const centerY = Number(center.y);
-    const result: Path64Base = new Path64TypedArray();
-    result.push({ x: numberToBigInt(centerX + radiusX), y: center.y });
+    const centerX = center.x;
+    const centerY = center.y;
+    const result: Path64Base = new Path64TypedArray(steps);
+    result.push({ x: centerX + numberToBigInt(radiusX), y: centerY });
     for (let i = 1; i < steps; i++) {
       result.push({
-        x: numberToBigInt(centerX + radiusX * dx),
-        y: numberToBigInt(centerY + radiusY * dy),
+        x: centerX + numberToBigInt(radiusX * dx),
+        y: centerY + numberToBigInt(radiusY * dy),
       });
       const x = dx * co - dy * si;
       dy = dy * co + dx * si;

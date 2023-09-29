@@ -35,6 +35,14 @@ export class Path64 extends Array<Point64> implements Path64Base {
     return this[index];
   }
 
+  getX(index: number): bigint {
+    return this[index].x;
+  }
+
+  getY(index: number): bigint {
+    return this[index].y;
+  }
+
   getClone(index: number): Point64 {
     return { x: this[index].x, y: this[index].y };
   }
@@ -61,12 +69,6 @@ export class Path64 extends Array<Point64> implements Path64Base {
   clear() {
     if (this.length !== 0) {
       this.length = 0;
-    }
-  }
-
-  *getClones() {
-    for (const pt of this) {
-      yield Point64.clone(pt);
     }
   }
 }

@@ -19,7 +19,7 @@ export class Clipper64 extends ClipperBase {
     polytype: PathType,
     isOpen: boolean = false,
   ) {
-    super.addPaths(new Paths64Like(paths, 0), polytype, isOpen);
+    super.addPaths(new Paths64Like(paths, 1), polytype, isOpen);
   }
 
   override addSubject(

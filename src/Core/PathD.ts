@@ -35,6 +35,14 @@ export class PathD extends Array<PointD> implements PathDBase {
     return this[index];
   }
 
+  getX(index: number): number {
+    return this[index].x;
+  }
+
+  getY(index: number): number {
+    return this[index].y;
+  }
+
   getClone(index: number): PointD {
     return { x: this[index].x, y: this[index].y };
   }
@@ -61,12 +69,6 @@ export class PathD extends Array<PointD> implements PathDBase {
   clear() {
     if (this.length !== 0) {
       this.length = 0;
-    }
-  }
-
-  *getClones() {
-    for (const pt of this) {
-      yield PointD.clone(pt);
     }
   }
 }

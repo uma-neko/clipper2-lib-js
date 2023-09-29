@@ -1,10 +1,11 @@
+import { isNotNullish } from "../CommonUtils";
 import { isPathD } from "./PathD";
 import { PathDBase } from "./PathDBase";
 import { PathDTypedArray } from "./PathDTypedArray";
 import { PointD } from "./PointD";
 
 export const isPathsD = (obj: unknown): obj is PathsD => {
-  return obj instanceof PathsD && obj.type === PathsDTypeName;
+  return isNotNullish(obj) && obj.type === PathsDTypeName;
 };
 
 export const PathsDTypeName = "PathsD";

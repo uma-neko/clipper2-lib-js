@@ -24,6 +24,7 @@ import { Point64 } from "../Core/Point64";
 import { EmptyRect64, Rect64 } from "../Core/Rect64";
 import type { Path64Base } from "../Core/Path64Base";
 import { Path64TypedArray } from "../Core/Path64TypedArray";
+import { bigintAbs } from "../CommonUtils";
 
 const isOdd = (val: number) => {
   return (val & 1) !== 0;
@@ -229,20 +230,20 @@ const setOwner = (outrec: OutRec, newOwner: OutRec) => {
 };
 
 const area = (op: OutPt): number => {
-  let area = 0.0;
+  let area = 0n;
   let op2: OutPt = op;
   do {
-    area += Number((op2.prev.pt.y + op2.pt.y) * (op2.prev.pt.x - op2.pt.x));
+    area += (op2.prev.pt.y + op2.pt.y) * (op2.prev.pt.x - op2.pt.x);
     op2 = op2.next!;
   } while (op2 !== op);
-  return area * 0.5;
+  return Number(area) * 0.5;
 };
 
 const areaTriangle = (pt1: Point64, pt2: Point64, pt3: Point64): number => {
-  return (
-    Number((pt3.y + pt1.y) * (pt3.x - pt1.x)) +
-    Number((pt1.y + pt2.y) * (pt1.x - pt2.x)) +
-    Number((pt2.y + pt3.y) * (pt2.x - pt3.x))
+  return Number(
+    (pt3.y + pt1.y) * (pt3.x - pt1.x) +
+      (pt1.y + pt2.y) * (pt1.x - pt2.x) +
+      (pt2.y + pt3.y) * (pt2.x - pt3.x),
   );
 };
 
@@ -360,8 +361,8 @@ const isValidAelOrder = (resident: Active, newcomer: Active): boolean => {
   }
 
   const d = crossProduct64(resident.top, newcomer.bot, newcomer.top);
-  if (d !== 0) {
-    return d < 0;
+  if (d !== 0n) {
+    return d < 0n;
   }
 
   if (!isMaximaActive(resident) && resident.top.y > newcomer.top.y) {
@@ -389,7 +390,7 @@ const isValidAelOrder = (resident: Active, newcomer: Active): boolean => {
 
   if (
     crossProduct64(prevPrevVertex(resident).pt, resident.bot, resident.top) ===
-    0
+    0n
   ) {
     return true;
   }
@@ -706,10 +707,10 @@ const pointInOpPolygon = (pt: Point64, op: OutPt): PointInPolygonResult => {
         val = !val;
       } else {
         const d = crossProduct64(op2.prev.pt, op2.pt, pt);
-        if (d === 0) {
+        if (d === 0n) {
           return PointInPolygonResult.IsOn;
         }
-        if (d < 0 === isAbove) {
+        if (d < 0n === isAbove) {
           val = !val;
         }
       }
@@ -721,10 +722,10 @@ const pointInOpPolygon = (pt: Point64, op: OutPt): PointInPolygonResult => {
 
   if (isAbove !== startingAbove) {
     const d = crossProduct64(op2.prev.pt, op2.pt, pt);
-    if (d === 0) {
+    if (d === 0n) {
       return PointInPolygonResult.IsOn;
     }
-    if (d < 0 === isAbove) {
+    if (d < 0n === isAbove) {
       val = !val;
     }
   }
@@ -764,8 +765,7 @@ const path1InsidePath2 = (op1: OutPt, op2: OutPt): boolean => {
 };
 
 const ptsReallyClose = (pt1: Point64, pt2: Point64): boolean =>
-  Math.abs(Number(pt1.x - pt2.x)) < 2.0 &&
-  Math.abs(Number(pt1.y - pt2.y)) < 2.0;
+  bigintAbs(pt1.x - pt2.x) < 2n && bigintAbs(pt1.y - pt2.y) < 2n;
 
 const isVerySmallTriangle = (op: OutPt): boolean =>
   op.next!.next === op.prev &&
@@ -796,27 +796,29 @@ const buildPath = (
 
   path.clear();
 
-  let lastPt: Point64;
-  let op2: OutPt;
-
   if (reverse) {
-    lastPt = op.pt;
-    op2 = op.prev;
+    let lastPt: Point64 = op.pt;
+    let op2: OutPt = op.prev;
+    path.push(lastPt);
+
+    while (op2 !== op) {
+      if (Point64.notEquals(op2.pt, lastPt)) {
+        lastPt = op2.pt;
+        path.push(lastPt);
+      }
+      op2 = op2.prev;
+    }
   } else {
     op = op.next!;
-    lastPt = op.pt;
-    op2 = op.next!;
-  }
-  path.push(lastPt);
+    let lastPt: Point64 = op.pt;
+    let op2: OutPt = op.next!;
+    path.push(lastPt);
 
-  while (op2 !== op) {
-    if (Point64.notEquals(op2.pt, lastPt)) {
-      lastPt = op2.pt;
-      path.push(lastPt);
-    }
-    if (reverse) {
-      op2 = op2.prev;
-    } else {
+    while (op2 !== op) {
+      if (Point64.notEquals(op2.pt, lastPt)) {
+        lastPt = op2.pt;
+        path.push(lastPt);
+      }
       op2 = op2.next!;
     }
   }
@@ -828,18 +830,18 @@ const getBounds = (path: Path64Base): Rect64 => {
     return new Rect64();
   }
   const result = new Rect64(false);
-  for (const pt of path.getClones()) {
-    if (pt.x < result.left) {
-      result.left = pt.x;
+  for (let i = 0, len = path.length; i < len; i++) {
+    if (path.getX(i) < result.left) {
+      result.left = path.getX(i);
     }
-    if (pt.x > result.right) {
-      result.right = pt.x;
+    if (path.getX(i) > result.right) {
+      result.right = path.getX(i);
     }
-    if (pt.y < result.top) {
-      result.top = pt.y;
+    if (path.getY(i) < result.top) {
+      result.top = path.getY(i);
     }
-    if (pt.y > result.bottom) {
-      result.bottom = pt.y;
+    if (path.getY(i) > result.bottom) {
+      result.bottom = path.getY(i);
     }
   }
 
@@ -1842,6 +1844,7 @@ export class ClipperBase {
     }
 
     const node: IntersectNode = { pt: ip, edge1: ae1, edge2: ae2 };
+
     this._intersectList.push(node);
   }
 
@@ -1863,8 +1866,7 @@ export class ClipperBase {
         left.jump = rEnd;
         while (left !== lEnd && right !== rEnd) {
           if (right!.curX < left!.curX) {
-            let tmp: Active | undefined;
-            tmp = right!.prevInSEL;
+            let tmp: Active | undefined = right!.prevInSEL;
             while (true) {
               this.addNewIntersectNode(tmp!, right!, topY);
               if (tmp === left) {
@@ -1962,7 +1964,6 @@ export class ClipperBase {
   }
 
   doHorizontal(horz: Active) {
-    let pt: Point64;
     const horzIsOpen = isOpen(horz);
     const y = horz.bot.y;
 
@@ -2024,7 +2025,7 @@ export class ClipperBase {
           }
 
           if (ae.curX === horz.top.x && !isHorizontal(ae)) {
-            pt = nextVertex(horz).pt;
+            const pt = nextVertex(horz).pt;
 
             if (isOpen(ae) && !isSamePolyType(ae, horz) && !isHotEdge(ae)) {
               if (
@@ -2042,7 +2043,7 @@ export class ClipperBase {
           }
         }
 
-        pt = { x: ae.curX, y };
+        const pt = { x: ae.curX, y };
 
         if (isLeftToRight) {
           this.intersectEdges(horz, ae, pt);
@@ -2230,7 +2231,7 @@ export class ClipperBase {
       return;
     }
 
-    if (crossProduct64(e.top, pt, prev.top) !== 0) {
+    if (crossProduct64(e.top, pt, prev.top) !== 0n) {
       return;
     }
 
@@ -2274,7 +2275,7 @@ export class ClipperBase {
       return;
     }
 
-    if (crossProduct64(e.top, pt, next.top) !== 0) {
+    if (crossProduct64(e.top, pt, next.top) !== 0n) {
       return;
     }
 
@@ -2448,11 +2449,11 @@ export class ClipperBase {
 
     while (true) {
       if (
-        crossProduct64(op2!.prev.pt, op2!.pt, op2!.next!.pt) === 0 &&
         (!this.preserveCollinear ||
           Point64.equals(op2!.pt, op2!.prev.pt) ||
           Point64.equals(op2!.pt, op2!.next!.pt) ||
-          dotProduct64(op2!.prev.pt, op2!.pt, op2!.next!.pt) < 0)
+          dotProduct64(op2!.prev.pt, op2!.pt, op2!.next!.pt) < 0n) &&
+        crossProduct64(op2!.prev.pt, op2!.pt, op2!.next!.pt) === 0n
       ) {
         if (op2 === outrec.pts) {
           outrec.pts = op2!.prev;
@@ -2575,24 +2576,24 @@ export class ClipperBase {
     solutionOpen?.clear();
     let i = 0;
 
-    const cachedPath: Path64Base = new Path64TypedArray();
     while (i < this._outrecList.length) {
       const outrec = this._outrecList[i++];
       if (outrec.pts === undefined) {
         continue;
       }
 
-      if (outrec.isOpen) {
-        if (buildPath(outrec.pts, this.reverseSolution, true, cachedPath)) {
-          solutionOpen?.push(cachedPath);
-        }
-      } else {
+      const path: Path64Base = new Path64TypedArray();
+
+      if (!outrec.isOpen) {
         this.cleanCollinear(outrec);
-        if (buildPath(outrec.pts, this.reverseSolution, false, cachedPath)) {
-          solutionClosed.push(cachedPath);
+        if (buildPath(outrec.pts, this.reverseSolution, false, path)) {
+          solutionClosed.directPush(path);
+        }
+      } else if (solutionOpen !== undefined) {
+        if (buildPath(outrec.pts, this.reverseSolution, true, path)) {
+          solutionOpen?.directPush(path);
         }
       }
-      cachedPath.clear();
     }
 
     return true;
@@ -2701,9 +2702,11 @@ export class ClipperBase {
       }
 
       if (outrec.isOpen) {
-        const open_path: Path64Base = new Path64TypedArray();
-        if (buildPath(outrec.pts, this.reverseSolution, true, open_path)) {
-          solutionOpen?.directPush(open_path);
+        if (solutionOpen !== undefined) {
+          const open_path: Path64Base = new Path64TypedArray();
+          if (buildPath(outrec.pts, this.reverseSolution, true, open_path)) {
+            solutionOpen.directPush(open_path);
+          }
         }
         continue;
       }

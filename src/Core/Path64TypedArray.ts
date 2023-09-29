@@ -4,36 +4,43 @@ import { Path64Base, Path64TypeName } from "./Path64Base";
 import { PathDTypedArray } from "./PathDTypedArray";
 import { Point64 } from "./Point64";
 
-const Point64Proxy = (
-  innerObj: Path64TypedArray,
-  index: number,
-): ProxyHandler<Point64> => ({
-  get(_target: any, prop: string, _receiver: Point64) {
+type Point64ProxyInner = {
+  index: number;
+  source: Path64TypedArray;
+};
+
+const Point64Proxy = {
+  get(target: Point64ProxyInner, prop: string, _receiver: Point64) {
     if (typeof prop === "string") {
       if (prop === "x") {
-        return innerObj.getX(index);
+        return target.source.getX(target.index);
       } else if (prop === "y") {
-        return innerObj.getY(index);
+        return target.source.getY(target.index);
       }
     }
     return undefined;
   },
-  set(_target: any, prop: string, value: any, _receiver: Point64) {
+  set(
+    target: Point64ProxyInner,
+    prop: string,
+    value: bigint,
+    _receiver: Point64,
+  ) {
     if (typeof prop === "string") {
       if (prop === "x") {
-        innerObj.setX(index, value);
+        target.source.setX(target.index, value);
         return true;
       } else if (prop === "y") {
-        innerObj.setY(index, value);
+        target.source.setY(target.index, value);
         return true;
       }
     }
     throw new TypeError();
   },
-  has(_target, prop: string | symbol) {
+  has(_target: Point64ProxyInner, prop: string | symbol) {
     return (["x", "y"] as (string | symbol)[]).includes(prop);
   },
-});
+};
 
 export class Path64TypedArray implements Path64Base, IScalablePath {
   readonly type: typeof Path64TypeName;
@@ -97,7 +104,7 @@ export class Path64TypedArray implements Path64Base, IScalablePath {
     this._innerLength++;
   }
 
-  _pushDecomposed(x: bigint, y: bigint) {
+  pushDecomposed(x: bigint, y: bigint) {
     if (this._realLength === this._innerLength) {
       this._realloc(Math.ceil(this._realLength * 2));
     }
@@ -110,7 +117,10 @@ export class Path64TypedArray implements Path64Base, IScalablePath {
     if (index < 0 || index >= this._innerLength) {
       throw new RangeError("index over.");
     }
-    return new Proxy<Point64>({} as any, Point64Proxy(this, index));
+    return new Proxy<Point64ProxyInner, Point64>(
+      { index: index, source: this },
+      Point64Proxy,
+    );
   }
 
   set(index: number, x: bigint, y: bigint) {
@@ -178,19 +188,13 @@ export class Path64TypedArray implements Path64Base, IScalablePath {
     return this._innerLength;
   }
 
-  *getClones() {
-    for (let index = 0; index < this._innerLength; index++) {
-      yield this.getClone(index);
-    }
-  }
-
   asScaledPath64(scale: number) {
     if (scale === 1) {
       return new Path64TypedArray(this);
     } else {
       const scaledPath = new Path64TypedArray(this._innerLength);
       for (let index = 0; index < this._innerLength; index++) {
-        scaledPath._pushDecomposed(
+        scaledPath.pushDecomposed(
           numberToBigInt(Number(this.getX(index)) * scale),
           numberToBigInt(Number(this.getY(index)) * scale),
         );
@@ -202,7 +206,7 @@ export class Path64TypedArray implements Path64Base, IScalablePath {
   asScaledPathD(scale: number) {
     const scaledPath = new PathDTypedArray(this._innerLength);
     for (let index = 0; index < this._innerLength; index++) {
-      scaledPath._pushDecomposed(
+      scaledPath.pushDecomposed(
         Number(this.getX(index)) * scale,
         Number(this.getY(index)) * scale,
       );

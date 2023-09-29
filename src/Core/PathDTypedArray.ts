@@ -4,36 +4,43 @@ import { Path64TypedArray } from "./Path64TypedArray";
 import { PathDBase, PathDTypeName } from "./PathDBase";
 import { PointD } from "./PointD";
 
-const PointDProxy = (
-  innerObj: PathDTypedArray,
-  index: number,
-): ProxyHandler<PointD> => ({
-  get(_target: any, prop: string, _receiver: PointD) {
+type PointDProxyInner = {
+  index: number;
+  source: PathDTypedArray;
+};
+
+const PointDProxy = {
+  get(target: PointDProxyInner, prop: string, _receiver: PointD) {
     if (typeof prop === "string") {
       if (prop === "x") {
-        return innerObj.getX(index);
+        return target.source.getX(target.index);
       } else if (prop === "y") {
-        return innerObj.getY(index);
+        return target.source.getY(target.index);
       }
     }
     return undefined;
   },
-  set(_target: any, prop: string, value: any, _receiver: PointD) {
+  set(
+    target: PointDProxyInner,
+    prop: string,
+    value: number,
+    _receiver: PointD,
+  ) {
     if (typeof prop === "string") {
       if (prop === "x") {
-        innerObj.setX(index, value);
+        target.source.setX(target.index, value);
         return true;
       } else if (prop === "y") {
-        innerObj.setY(index, value);
+        target.source.setY(target.index, value);
         return true;
       }
     }
     throw new TypeError();
   },
-  has(_target, prop: string | symbol) {
+  has(_target: PointDProxyInner, prop: string | symbol) {
     return (["x", "y"] as (string | symbol)[]).includes(prop);
   },
-});
+};
 
 export class PathDTypedArray implements PathDBase, IScalablePath {
   readonly type: typeof PathDTypeName;
@@ -96,7 +103,7 @@ export class PathDTypedArray implements PathDBase, IScalablePath {
     this._innerLength++;
   }
 
-  _pushDecomposed(x: number, y: number) {
+  pushDecomposed(x: number, y: number) {
     if (this._realLength === this._innerLength) {
       this._realloc(Math.ceil(this._realLength * 2));
     }
@@ -109,7 +116,10 @@ export class PathDTypedArray implements PathDBase, IScalablePath {
     if (index < 0 || index >= this._innerLength) {
       throw new RangeError("index over.");
     }
-    return new Proxy<PointD>({} as any, PointDProxy(this, index));
+    return new Proxy<PointDProxyInner, PointD>(
+      { index: index, source: this },
+      PointDProxy,
+    );
   }
 
   set(index: number, x: number, y: number) {
@@ -183,16 +193,10 @@ export class PathDTypedArray implements PathDBase, IScalablePath {
     return this._innerLength;
   }
 
-  *getClones() {
-    for (let index = 0; index < this._innerLength; index++) {
-      yield this.getClone(index);
-    }
-  }
-
   asScaledPath64(scale: number) {
     const scaledPath = new Path64TypedArray(this._innerLength);
     for (let index = 0; index < this._innerLength; index++) {
-      scaledPath._pushDecomposed(
+      scaledPath.pushDecomposed(
         numberToBigInt(this.getX(index) * scale),
         numberToBigInt(this.getY(index) * scale),
       );
@@ -206,7 +210,7 @@ export class PathDTypedArray implements PathDBase, IScalablePath {
     } else {
       const scaledPath = new PathDTypedArray(this._innerLength);
       for (let index = 0; index < this._innerLength; index++) {
-        scaledPath._pushDecomposed(
+        scaledPath.pushDecomposed(
           this.getX(index) * scale,
           this.getY(index) * scale,
         );

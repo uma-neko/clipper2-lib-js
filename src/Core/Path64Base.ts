@@ -11,7 +11,8 @@ export type Path64Base = Iterable<Readonly<Point64>> & {
   pop(): Point64 | undefined;
   getClone(index: number): Point64;
   get(index: number): Point64;
+  getX(index: number): bigint;
+  getY(index: number): bigint;
   set(index: number, x: bigint, y: bigint): void;
-  getClones(): IterableIterator<Point64>;
   readonly length: number;
 };

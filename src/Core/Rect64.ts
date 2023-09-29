@@ -5,12 +5,7 @@ import { Path64TypedArray } from "./Path64TypedArray";
 import { Point64, isPoint64 } from "./Point64";
 
 export const isRect64 = (obj: unknown): obj is Rect64 =>
-  isNotNullish(obj) &&
-  obj.type === Rect64TypeName &&
-  typeof obj.left === "bigint" &&
-  typeof obj.top === "bigint" &&
-  typeof obj.right === "bigint" &&
-  typeof obj.bottom === "bigint";
+  isNotNullish(obj) && obj.type === Rect64TypeName;
 
 export const Rect64TypeName = "Rect64";
 

@@ -236,10 +236,10 @@ const getSegmentIntersection = (
   const res1 = crossProduct64(p1, p3, p4);
   const res2 = crossProduct64(p2, p3, p4);
   let ip: Point64;
-  if (res1 === 0) {
+  if (res1 === 0n) {
     ip = Point64.clone(p1);
     let result: boolean;
-    if (res2 === 0) {
+    if (res2 === 0n) {
       result = false;
     } else if (Point64.equals(p1, p3) || Point64.equals(p1, p4)) {
       result = true;
@@ -249,7 +249,7 @@ const getSegmentIntersection = (
       result = p1.y > p3.y === p1.y < p4.y;
     }
     return { result, ip };
-  } else if (res2 === 0) {
+  } else if (res2 === 0n) {
     ip = Point64.clone(p2);
     let result: boolean;
     if (Point64.equals(p2, p3) || Point64.equals(p2, p4)) {
@@ -270,7 +270,7 @@ const getSegmentIntersection = (
   const res3 = crossProduct64(p3, p1, p2);
   const res4 = crossProduct64(p4, p1, p2);
 
-  if (res3 === 0) {
+  if (res3 === 0n) {
     ip = Point64.clone(p3);
     let result: boolean;
     if (Point64.equals(p3, p1) || Point64.equals(p3, p2)) {
@@ -281,7 +281,7 @@ const getSegmentIntersection = (
       result = p3.y > p1.y === p3.y < p2.y;
     }
     return { result, ip };
-  } else if (res4 === 0) {
+  } else if (res4 === 0n) {
     ip = Point64.clone(p4);
     let result: boolean;
     if (Point64.equals(p4, p1) || Point64.equals(p4, p2)) {
@@ -592,7 +592,7 @@ export class RectClip64 {
   ): { loc: Location; i: number } {
     switch (loc) {
       case Location.left: {
-        while (i <= highI && path.getClone(i).x <= this._rect.left) {
+        while (i <= highI && path.getX(i) <= this._rect.left) {
           i++;
         }
 
@@ -614,7 +614,7 @@ export class RectClip64 {
         break;
       }
       case Location.top: {
-        while (i <= highI && path.getClone(i).y <= this._rect.top) {
+        while (i <= highI && path.getY(i) <= this._rect.top) {
           i++;
         }
         const currPt = path.getClone(i);
@@ -635,7 +635,7 @@ export class RectClip64 {
         break;
       }
       case Location.right: {
-        while (i <= highI && path.getClone(i).x >= this._rect.right) {
+        while (i <= highI && path.getX(i) >= this._rect.right) {
           i++;
         }
         const currPt = path.getClone(i);
@@ -656,7 +656,7 @@ export class RectClip64 {
         break;
       }
       case Location.bottom: {
-        while (i <= highI && path.getClone(i).y >= this._rect.bottom) {
+        while (i <= highI && path.getY(i) >= this._rect.bottom) {
           i++;
         }
         const currPt = path.getClone(i);
@@ -913,7 +913,7 @@ export class RectClip64 {
       }
 
       do {
-        if (crossProduct64(op2!.prev!.pt, op2!.pt, op2!.next!.pt) === 0) {
+        if (crossProduct64(op2!.prev!.pt, op2!.pt, op2!.next!.pt) === 0n) {
           if (op2 === op) {
             op2 = unlinkOpBack(op2!);
             if (op2 === undefined) {
@@ -1119,7 +1119,7 @@ export class RectClip64 {
     let op2: OutPt2 | undefined = op.next;
 
     while (op2 !== undefined && op2 !== op) {
-      if (crossProduct64(op2.prev!.pt, op2.pt, op2.next!.pt) === 0) {
+      if (crossProduct64(op2.prev!.pt, op2.pt, op2.next!.pt) === 0n) {
         op = op2.prev;
         op2 = unlinkOp(op2);
       } else {

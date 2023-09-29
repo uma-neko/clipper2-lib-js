@@ -9,8 +9,9 @@ export type PathDBase = Iterable<Readonly<PointD>> & {
   pop(): PointD | undefined;
   getClone(index: number): PointD;
   get(index: number): PointD;
+  getX(index: number): number;
+  getY(index: number): number;
   set(index: number, x: number, y: number): void;
-  getClones(): IterableIterator<PointD>;
   readonly length: number;
 };
 

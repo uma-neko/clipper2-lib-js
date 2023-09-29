@@ -1,10 +1,11 @@
+import { isNotNullish } from "../CommonUtils";
 import { isPath64 } from "./Path64";
 import { type Path64Base } from "./Path64Base";
 import { Path64TypedArray } from "./Path64TypedArray";
 import { Point64 } from "./Point64";
 
 export const isPaths64 = (obj: unknown): obj is Paths64 => {
-  return obj instanceof Paths64 && obj.type === Paths64TypeName;
+  return isNotNullish(obj) && obj.type === Paths64TypeName;
 };
 
 export const Paths64TypeName = "Paths64";

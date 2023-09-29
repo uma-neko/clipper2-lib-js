@@ -20,21 +20,16 @@ export function crossProduct64(
   pt1: Point64,
   pt2: Point64,
   pt3: Point64,
-): number {
-  return Number(
-    (pt2.x - pt1.x) * (pt3.y - pt2.y) - (pt2.y - pt1.y) * (pt3.x - pt2.x),
-  );
+): bigint {
+  return (pt2.x - pt1.x) * (pt3.y - pt2.y) - (pt2.y - pt1.y) * (pt3.x - pt2.x);
 }
 
 export function crossProductD(vec1: PointD, vec2: PointD): number {
   return vec1.y * vec2.x - vec2.y * vec1.x;
 }
 
-export function dotProduct64(pt1: Point64, pt2: Point64, pt3: Point64): number {
-  return (
-    Number((pt2.x - pt1.x) * (pt3.x - pt2.x)) +
-    Number((pt2.y - pt1.y) * (pt3.y - pt2.y))
-  );
+export function dotProduct64(pt1: Point64, pt2: Point64, pt3: Point64): bigint {
+  return (pt2.x - pt1.x) * (pt3.x - pt2.x) + (pt2.y - pt1.y) * (pt3.y - pt2.y);
 }
 
 export function dotProductD(vec1: PointD, vec2: PointD): number {
@@ -83,19 +78,19 @@ export const segsIntersect = (
   if (inclusive) {
     const res1 = crossProduct64(seg1a, seg2a, seg2b);
     const res2 = crossProduct64(seg1b, seg2a, seg2b);
-    if (res1 * res2 > 0) return false;
+    if (res1 * res2 > 0n) return false;
     const res3 = crossProduct64(seg2a, seg1a, seg1b);
     const res4 = crossProduct64(seg2b, seg1a, seg1b);
-    if (res3 * res4 > 0) return false;
-    return res1 !== 0 || res2 !== 0 || res3 !== 0 || res4 !== 0;
+    if (res3 * res4 > 0n) return false;
+    return res1 !== 0n || res2 !== 0n || res3 !== 0n || res4 !== 0n;
   } else {
     return (
       crossProduct64(seg1a, seg2a, seg2b) *
         crossProduct64(seg1b, seg2a, seg2b) <
-        0 &&
+        0n &&
       crossProduct64(seg2a, seg1a, seg1b) *
         crossProduct64(seg2b, seg1a, seg1b) <
-        0
+        0n
     );
   }
 };
@@ -106,19 +101,19 @@ export const getClosestPtOnSegment = (
   seg2: Point64,
 ): Point64 => {
   if (Point64.equals(seg1, seg2)) return Point64.clone(seg1);
-  const dx = Number(seg2.x - seg1.x);
-  const dy = Number(seg2.y - seg1.y);
+  const dx = seg2.x - seg1.x;
+  const dy = seg2.y - seg1.y;
   const q =
-    (Number(offPt.x - seg1.x) * dx + Number(offPt.y - seg1.y) * dy) /
-    (dx * dx + dy * dy);
+    Number((offPt.x - seg1.x) * dx + (offPt.y - seg1.y) * dy) /
+    Number(dx * dx + dy * dy);
   if (q < 0) {
     return Point64.clone(seg1);
   } else if (q > 1) {
     return Point64.clone(seg2);
   }
   return {
-    x: seg1.x + numberToBigInt(q * dx),
-    y: seg1.y + numberToBigInt(q * dy),
+    x: seg1.x + numberToBigInt(q * Number(dx)),
+    y: seg1.y + numberToBigInt(q * Number(dy)),
   };
 };
 
@@ -133,7 +128,7 @@ export const pointInPolygon = (
     return PointInPolygonResult.IsOutside;
   }
 
-  while (start < len && polygon.getClone(start).y === pt.y) {
+  while (start < len && polygon.getY(start) === pt.y) {
     start++;
   }
 
@@ -141,8 +136,7 @@ export const pointInPolygon = (
     return PointInPolygonResult.IsOutside;
   }
 
-  let d = 0;
-  let isAbove = polygon.getClone(start).y < pt.y;
+  let isAbove = polygon.getY(start) < pt.y;
   const startingAbove = isAbove;
   let val = false;
   let i = start + 1;
@@ -158,14 +152,14 @@ export const pointInPolygon = (
     }
 
     if (isAbove) {
-      while (i < end && polygon.getClone(i).y < pt.y) {
+      while (i < end && polygon.getY(i) < pt.y) {
         i++;
       }
       if (i === end) {
         continue;
       }
     } else {
-      while (i < end && polygon.getClone(i).y > pt.y) {
+      while (i < end && polygon.getY(i) > pt.y) {
         i++;
       }
       if (i === end) {
@@ -194,11 +188,11 @@ export const pointInPolygon = (
     if (pt.x > prev.x && pt.x > curr.x) {
       val = !val;
     } else if (pt.x >= prev.x || pt.x >= curr.x) {
-      d = crossProduct64(prev, curr, pt);
-      if (d === 0) {
+      const d = crossProduct64(prev, curr, pt);
+      if (d === 0n) {
         return PointInPolygonResult.IsOn;
       }
-      if (d < 0 === isAbove) {
+      if (d < 0n === isAbove) {
         val = !val;
       }
     }
@@ -210,16 +204,16 @@ export const pointInPolygon = (
     if (i === len) {
       i = 0;
     }
-
+    let d: bigint;
     if (i === 0) {
       d = crossProduct64(polygon.getClone(len - 1), polygon.getClone(0), pt);
     } else {
       d = crossProduct64(polygon.getClone(i - 1), polygon.getClone(i), pt);
     }
-    if (d === 0) {
+    if (d === 0n) {
       return PointInPolygonResult.IsOn;
     }
-    if (d < 0 === isAbove) {
+    if (d < 0n === isAbove) {
       val = !val;
     }
   }
