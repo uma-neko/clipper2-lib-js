@@ -1612,19 +1612,25 @@ export function ellipse(
 export function ellipse(
   center: Point64 | PointD,
   radiusX: number,
-  radiusY: number = 0,
-  steps: number = 0,
+  radiusY?: number,
+  steps?: number,
 ): IPath64 | IPathD {
   if (isPoint64(center)) {
-    if (radiusX <= 0) {
-      return new Path64TypedArray();
-    }
+    return ellipse64(center, radiusX, radiusY, steps);
   } else if (isPointD(center)) {
-    if (radiusX <= 0) {
-      return new PathDTypedArray();
-    }
-  } else {
+    return ellipseD(center, radiusX, radiusY, steps);
+  }
   throw new TypeError("Invalid argument types.");
+}
+
+function ellipse64(
+  center: Point64,
+  radiusX: number,
+  radiusY: number = 0,
+  steps: number = 0,
+): IPath64 {
+  if (radiusX <= 0) {
+    return new Path64TypedArray();
   }
 
   if (radiusY <= 0) {
@@ -1639,34 +1645,55 @@ export function ellipse(
   let dx = co;
   let dy = si;
 
-  if (isPoint64(center)) {
-    const centerX = center.x;
-    const centerY = center.y;
-    const result: Path64Base = new Path64TypedArray(steps);
-    result.push({ x: centerX + numberToBigInt(radiusX), y: centerY });
-    for (let i = 1; i < steps; i++) {
-      result.push({
-        x: centerX + numberToBigInt(radiusX * dx),
-        y: centerY + numberToBigInt(radiusY * dy),
-      });
-      const x = dx * co - dy * si;
-      dy = dy * co + dx * si;
-      dx = x;
-    }
-    return result;
-  } else {
-    const centerX = center.x;
-    const centerY = center.y;
-    const result: PathDBase = new PathDTypedArray();
-    result.push({ x: centerX + radiusX, y: center.y });
-    for (let i = 1; i < steps; i++) {
-      result.push({ x: centerX + radiusX * dx, y: centerY + radiusY * dy });
-      const x = dx * co - dy * si;
-      dy = dy * co + dx * si;
-      dx = x;
-    }
-    return result;
+  const centerX = center.x;
+  const centerY = center.y;
+  const result: IPath64 = new Path64TypedArray(steps);
+  result.push({ x: centerX + numberToBigInt(radiusX), y: centerY });
+  for (let i = 1; i < steps; i++) {
+    result.push({
+      x: centerX + numberToBigInt(radiusX * dx),
+      y: centerY + numberToBigInt(radiusY * dy),
+    });
+    const x = dx * co - dy * si;
+    dy = dy * co + dx * si;
+    dx = x;
   }
+  return result;
+}
+
+function ellipseD(
+  center: PointD,
+  radiusX: number,
+  radiusY: number = 0,
+  steps: number = 0,
+): IPathD {
+  if (radiusX <= 0) {
+    return new PathDTypedArray();
+  }
+
+  if (radiusY <= 0) {
+    radiusY = radiusX;
+  }
+  if (steps <= 2) {
+    steps = Math.ceil(Math.PI * Math.sqrt((radiusX + radiusY) / 2));
+  }
+  const si = Math.sin((2 * Math.PI) / steps);
+  const co = Math.cos((2 * Math.PI) / steps);
+
+  let dx = co;
+  let dy = si;
+
+  const centerX = center.x;
+  const centerY = center.y;
+  const result: IPathD = new PathDTypedArray(steps);
+  result.push({ x: centerX + radiusX, y: center.y });
+  for (let i = 1; i < steps; i++) {
+    result.push({ x: centerX + radiusX * dx, y: centerY + radiusY * dy });
+    const x = dx * co - dy * si;
+    dy = dy * co + dx * si;
+    dx = x;
+  }
+  return result;
 }
 
 export function showPolyPathStructure(pp: PolyPathBase, level: number): void {
