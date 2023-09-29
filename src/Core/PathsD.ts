@@ -1,6 +1,6 @@
 import { isNotNullish } from "../CommonUtils";
 import { isPathD } from "./PathD";
-import { PathDBase } from "./PathDBase";
+import { IPathD } from "./IPathD";
 import { PathDTypedArray } from "./PathDTypedArray";
 import { PointD } from "./PointD";
 
@@ -10,14 +10,14 @@ export const isPathsD = (obj: unknown): obj is PathsD => {
 
 export const PathsDTypeName = "PathsD";
 
-export class PathsD extends Array<PathDBase> {
+export class PathsD extends Array<IPathD> {
   readonly type: typeof PathsDTypeName;
 
   constructor();
   constructor(arrayLength: number);
-  constructor(...paths: PathDBase[]);
-  constructor(...args: [] | [number] | PathDBase[]);
-  constructor(...args: [] | [number] | PathDBase[]) {
+  constructor(...paths: IPathD[]);
+  constructor(...args: [] | [number] | IPathD[]);
+  constructor(...args: [] | [number] | IPathD[]) {
     const len = args.length;
     if (len === 0) {
       super();
@@ -26,7 +26,7 @@ export class PathsD extends Array<PathDBase> {
     } else {
       super();
       for (const path of args) {
-        this._push(path as PathDBase);
+        this._push(path as IPathD);
       }
     }
     this.type = PathsDTypeName;
@@ -48,7 +48,7 @@ export class PathsD extends Array<PathDBase> {
   }
 
   _push(path: Iterable<PointD>) {
-    let clonedPath: PathDBase;
+    let clonedPath: IPathD;
     if (isPathD(path)) {
       clonedPath = path.clone();
     } else {
@@ -68,7 +68,7 @@ export class PathsD extends Array<PathDBase> {
     super.push(clonedPath);
   }
 
-  directPush(path: PathDBase) {
+  directPush(path: IPathD) {
     super.push(path);
   }
 

@@ -22,7 +22,7 @@ import {
 import { Paths64 } from "../Core/Paths64";
 import { Point64 } from "../Core/Point64";
 import { EmptyRect64, Rect64 } from "../Core/Rect64";
-import type { Path64Base } from "../Core/Path64Base";
+import type { IPath64 } from "../Core/IPath64";
 import { Path64TypedArray } from "../Core/Path64TypedArray";
 import { bigintAbs } from "../CommonUtils";
 
@@ -617,8 +617,8 @@ const duplicateOp = (op: OutPt, insert_after: boolean): OutPt => {
   return result;
 };
 
-const getCleanPath = (op: OutPt): Path64Base => {
-  const result: Path64Base = new Path64TypedArray();
+const getCleanPath = (op: OutPt): IPath64 => {
+  const result: IPath64 = new Path64TypedArray();
   let op2 = op;
 
   while (
@@ -788,7 +788,7 @@ const buildPath = (
   op: OutPt | undefined,
   reverse: boolean,
   isOpen: boolean,
-  path: Path64Base,
+  path: IPath64,
 ): boolean => {
   if (op === undefined || op.next === op || (!isOpen && op.next === op.prev)) {
     return false;
@@ -825,7 +825,7 @@ const buildPath = (
   return !(path.length === 3 && isVerySmallTriangle(op));
 };
 
-const getBounds = (path: Path64Base): Rect64 => {
+const getBounds = (path: IPath64): Rect64 => {
   if (path.length === 0) {
     return new Rect64();
   }
@@ -2582,7 +2582,7 @@ export class ClipperBase {
         continue;
       }
 
-      const path: Path64Base = new Path64TypedArray();
+      const path: IPath64 = new Path64TypedArray();
 
       if (!outrec.isOpen) {
         this.cleanCollinear(outrec);
@@ -2703,7 +2703,7 @@ export class ClipperBase {
 
       if (outrec.isOpen) {
         if (solutionOpen !== undefined) {
-          const open_path: Path64Base = new Path64TypedArray();
+          const open_path: IPath64 = new Path64TypedArray();
           if (buildPath(outrec.pts, this.reverseSolution, true, open_path)) {
             solutionOpen.directPush(open_path);
           }

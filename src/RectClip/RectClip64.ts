@@ -9,7 +9,7 @@ import { Paths64 } from "../Core/Paths64";
 import { Point64 } from "../Core/Point64";
 import { Rect64 } from "../Core/Rect64";
 import { PointInPolygonResult } from "../Engine/EngineEnums";
-import type { Path64Base } from "../Core/Path64Base";
+import type { IPath64 } from "../Core/IPath64";
 import { Path64TypedArray } from "../Core/Path64TypedArray";
 
 export const Location = {
@@ -21,7 +21,7 @@ export const Location = {
 } as const;
 export type Location = (typeof Location)[keyof typeof Location];
 
-const path1ContainsPath2 = (path1: Path64Base, path2: Path64Base): boolean => {
+const path1ContainsPath2 = (path1: IPath64, path2: IPath64): boolean => {
   let ioCount = 0;
   for (const pt of path2) {
     const pip = pointInPolygon(pt, path1);
@@ -305,7 +305,7 @@ const getSegmentIntersection = (
 export class RectClip64 {
   _rect: Rect64;
   _mp: Point64;
-  _rectPath: Path64Base;
+  _rectPath: IPath64;
   _pathBounds: Rect64;
   _results: (OutPt2 | undefined)[];
   _edges: (OutPt2 | undefined)[][];
@@ -375,7 +375,7 @@ export class RectClip64 {
   }
 
   getIntersection(
-    rectPath: Path64Base,
+    rectPath: IPath64,
     p: Point64,
     p2: Point64,
     loc: Location,
@@ -585,7 +585,7 @@ export class RectClip64 {
   }
 
   getNextLocation(
-    path: Path64Base,
+    path: IPath64,
     loc: Location,
     i: number,
     highI: number,
@@ -703,7 +703,7 @@ export class RectClip64 {
     return { loc, i };
   }
 
-  executeInternal(path: Path64Base) {
+  executeInternal(path: IPath64) {
     if (path.length < 3 || this._rect.isEmpty()) {
       return;
     }
@@ -1113,7 +1113,7 @@ export class RectClip64 {
     }
   }
 
-  getPath(op: OutPt2 | undefined): Path64Base {
+  getPath(op: OutPt2 | undefined): IPath64 {
     if (op === undefined || op.prev === op.next) {
       return new Path64TypedArray();
     }
@@ -1133,7 +1133,7 @@ export class RectClip64 {
       return new Path64TypedArray();
     }
 
-    const result: Path64Base = new Path64TypedArray();
+    const result: IPath64 = new Path64TypedArray();
     result.push(op!.pt);
     op2 = op!.next;
 

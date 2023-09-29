@@ -1,11 +1,13 @@
 import { PointD } from "./PointD";
 
-export type PathDBase = Iterable<Readonly<PointD>> & {
+export const PathDTypeName = Symbol("Path64");
+
+export interface IPathD extends Iterable<PointD>{
   readonly type: typeof PathDTypeName;
   push(...path: PointD[]): number;
   pushRange(path: Iterable<PointD>): number;
   clear(): void;
-  clone(): PathDBase;
+  clone(): IPathD;
   pop(): PointD | undefined;
   getClone(index: number): PointD;
   get(index: number): PointD;
@@ -14,5 +16,3 @@ export type PathDBase = Iterable<Readonly<PointD>> & {
   set(index: number, x: number, y: number): void;
   readonly length: number;
 };
-
-export const PathDTypeName = "PathD";

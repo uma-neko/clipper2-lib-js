@@ -1,7 +1,7 @@
 import { numberToBigInt } from "../Clipper";
 import { IScalablePath } from "./IScalablePath";
 import { Path64TypedArray } from "./Path64TypedArray";
-import { PathDBase, PathDTypeName } from "./PathDBase";
+import { IPathD, PathDTypeName } from "./IPathD";
 import { PointD } from "./PointD";
 
 type PointDProxyInner = {
@@ -42,7 +42,7 @@ const PointDProxy = {
   },
 };
 
-export class PathDTypedArray implements PathDBase, IScalablePath {
+export class PathDTypedArray implements IPathD, IScalablePath {
   readonly type: typeof PathDTypeName;
   private _realLength: number;
   private _innerLength: number;

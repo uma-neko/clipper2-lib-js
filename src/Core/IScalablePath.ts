@@ -1,6 +1,6 @@
 import { isNotNullish } from "../CommonUtils";
-import { Path64Base } from "./Path64Base";
-import { PathDBase } from "./PathDBase";
+import { IPath64 } from "./IPath64";
+import { IPathD } from "./IPathD";
 
 export const isScalablePath = (obj: unknown): obj is IScalablePath =>
   isNotNullish(obj) &&
@@ -10,6 +10,6 @@ export const isScalablePath = (obj: unknown): obj is IScalablePath =>
   typeof obj.asScaledPath64 === "function";
 
 export interface IScalablePath {
-  asScaledPathD(scale: number): PathDBase;
-  asScaledPath64(scale: number): Path64Base;
+  asScaledPathD(scale: number): IPathD;
+  asScaledPath64(scale: number): IPath64;
 }

@@ -1,12 +1,12 @@
 import { isNotNullish } from "../CommonUtils";
-import { Path64Base, Path64TypeName } from "./Path64Base";
+import { IPath64, Path64TypeName } from "./IPath64";
 import { Point64 } from "./Point64";
 
-export const isPath64 = (obj: unknown): obj is Path64Base => {
+export const isPath64 = (obj: unknown): obj is IPath64 => {
   return isNotNullish(obj) && obj.type === Path64TypeName;
 };
 
-export class Path64 extends Array<Point64> implements Path64Base {
+export class Path64 extends Array<Point64> implements IPath64 {
   readonly type: typeof Path64TypeName;
 
   constructor();
