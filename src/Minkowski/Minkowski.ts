@@ -6,14 +6,17 @@ import {
   union,
 } from "../Clipper";
 import { FillRule } from "../Core/CoreEnums";
-import { Path64, isPath64 } from "../Core/Path64";
-import { PathD, isPathD } from "../Core/PathD";
+import { isPath64 } from "../Core/Path64";
+import type { Path64Base } from "../Core/Path64Base";
+import { isPathD } from "../Core/PathD";
+import { PathDBase } from "../Core/PathDBase";
 import { Paths64 } from "../Core/Paths64";
 import { PathsD } from "../Core/PathsD";
+import { Path64TypedArray } from "../clipper2lib";
 
 const minkowskiInternal = (
-  pattern: Path64,
-  path: Path64,
+  pattern: Path64Base,
+  path: Path64Base,
   isSum: boolean,
   isClosed: boolean,
 ): Paths64 => {
@@ -23,7 +26,7 @@ const minkowskiInternal = (
   const tmp = new Paths64();
 
   for (const pathPt of path) {
-    const path2: Path64 = new Path64();
+    const path2: Path64Base = new Path64TypedArray();
 
     if (isSum) {
       for (const basePt of pattern) {
@@ -43,8 +46,13 @@ const minkowskiInternal = (
   let h = patLen - 1;
   for (let i = delta; i < pathLen; i++) {
     for (let j = 0; j < patLen; j++) {
-      const quad: Path64 = new Path64();
-      quad.pushRange([tmp[g][h], tmp[i][h], tmp[i][j], tmp[g][j]]);
+      const quad: Path64Base = new Path64TypedArray();
+      quad.pushRange([
+        tmp[g].getClone(h),
+        tmp[i].getClone(h),
+        tmp[i].getClone(j),
+        tmp[g].getClone(j),
+      ]);
       if (!isPositive(quad)) {
         result.push(reversePath(quad));
       } else {
@@ -58,23 +66,27 @@ const minkowskiInternal = (
   return result;
 };
 
-export function sum(pattern: Path64, path: Path64, isClosed: boolean): Paths64;
 export function sum(
-  pattern: PathD,
-  path: PathD,
+  pattern: Path64Base,
+  path: Path64Base,
+  isClosed: boolean,
+): Paths64;
+export function sum(
+  pattern: PathDBase,
+  path: PathDBase,
   isClosed: boolean,
   decimalPlaces?: number,
 ): PathsD;
 export function sum(
-  pattern: Path64 | PathD,
-  path: Path64 | PathD,
+  pattern: Path64Base | PathDBase,
+  path: Path64Base | PathDBase,
   isClosed: boolean,
   decimalPlaces?: number,
 ): Paths64 | PathsD;
 
 export function sum(
-  pattern: Path64 | PathD,
-  path: Path64 | PathD,
+  pattern: Path64Base | PathDBase,
+  path: Path64Base | PathDBase,
   isClosed: boolean,
   decimalPlaces: number = 2,
 ): Paths64 | PathsD {
@@ -99,23 +111,27 @@ export function sum(
   throw new Error("todo: change message");
 }
 
-export function diff(pattern: Path64, path: Path64, isClosed: boolean): Paths64;
 export function diff(
-  pattern: PathD,
-  path: PathD,
+  pattern: Path64Base,
+  path: Path64Base,
+  isClosed: boolean,
+): Paths64;
+export function diff(
+  pattern: PathDBase,
+  path: PathDBase,
   isClosed: boolean,
   decimalPlaces?: number,
 ): PathsD;
 export function diff(
-  pattern: Path64 | PathD,
-  path: Path64 | PathD,
+  pattern: Path64Base | PathDBase,
+  path: Path64Base | PathDBase,
   isClosed: boolean,
   decimalPlaces?: number,
 ): Paths64 | PathsD;
 
 export function diff(
-  pattern: Path64 | PathD,
-  path: Path64 | PathD,
+  pattern: Path64Base | PathDBase,
+  path: Path64Base | PathDBase,
   isClosed: boolean,
   decimalPlaces: number = 2,
 ): Paths64 | PathsD {

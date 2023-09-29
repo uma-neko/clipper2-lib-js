@@ -1,9 +1,10 @@
 import { OutPt2 } from "./OutPt2";
 import { Location, RectClip64, getLocation } from "./RectClip64";
 import { getBounds } from "../Clipper";
-import { Path64 } from "../Core/Path64";
 import { Paths64 } from "../Core/Paths64";
 import { Point64 } from "../Core/Point64";
+import type { Path64Base } from "../Core/Path64Base";
+import { Path64TypedArray } from "../Core/Path64TypedArray";
 
 export class RectClipLines64 extends RectClip64 {
   override execute(paths: Paths64): Paths64 {
@@ -40,8 +41,8 @@ export class RectClipLines64 extends RectClip64 {
     return result;
   }
 
-  override getPath(op: OutPt2 | undefined): Path64 {
-    const result: Path64 = new Path64();
+  override getPath(op: OutPt2 | undefined): Path64Base {
+    const result: Path64Base = new Path64TypedArray();
     if (op === undefined || op === op.next) {
       return result;
     }
@@ -55,7 +56,7 @@ export class RectClipLines64 extends RectClip64 {
     return result;
   }
 
-  override executeInternal(path: Path64): void {
+  override executeInternal(path: Path64Base): void {
     this._results.length = 0;
     if (path.length < 2 || this._rect.isEmpty()) {
       return;
@@ -65,10 +66,10 @@ export class RectClipLines64 extends RectClip64 {
     let i = 1;
     const highI = path.length - 1;
     let loc: Location;
-    if (!({ loc } = getLocation(this._rect, path[0])).result) {
+    if (!({ loc } = getLocation(this._rect, path.getClone(0))).result) {
       while (
         i <= highI &&
-        !({ loc: prev } = getLocation(this._rect, path[i])).result
+        !({ loc: prev } = getLocation(this._rect, path.getClone(i))).result
       ) {
         i++;
       }
@@ -82,8 +83,11 @@ export class RectClipLines64 extends RectClip64 {
       }
       i = 1;
     }
+
+    const currPt = path.getClone(0);
+
     if (loc === Location.inside) {
-      this.add(path[0]);
+      this.add(currPt);
     }
 
     while (i <= highI) {
@@ -92,7 +96,7 @@ export class RectClipLines64 extends RectClip64 {
       if (i > highI) {
         break;
       }
-      const prevPt = path[i - 1];
+      const prevPt = path.getClone(i - 1);
 
       let crossingLoc: Location = loc;
       let ip: Point64;
@@ -100,7 +104,7 @@ export class RectClipLines64 extends RectClip64 {
       if (
         !({ loc: crossingLoc, ip } = this.getIntersection(
           this._rectPath,
-          path[i],
+          currPt,
           prevPt,
           crossingLoc,
         )).result
@@ -117,7 +121,7 @@ export class RectClipLines64 extends RectClip64 {
         ({ loc: crossingLoc, ip: ip2 } = this.getIntersection(
           this._rectPath,
           prevPt,
-          path[i],
+          currPt,
           crossingLoc,
         ));
         this.add(ip2);

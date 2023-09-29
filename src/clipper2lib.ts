@@ -1,7 +1,9 @@
 export { ClipType, FillRule, PathType } from "./Core/CoreEnums";
 export { Clipper } from "./Clipper";
 export { InternalClipper } from "./Core/InternalClipper";
+export type { Path64Base } from "./Core/Path64Base";
 export { Path64, isPath64 } from "./Core/Path64";
+export type { PathDBase } from "./Core/PathDBase";
 export { PathD, isPathD } from "./Core/PathD";
 export { Paths64, isPaths64 } from "./Core/Paths64";
 export { PathsD, isPathsD } from "./Core/PathsD";
@@ -9,7 +11,8 @@ export { Point64, isPoint64 } from "./Core/Point64";
 export { PointD, isPointD } from "./Core/PointD";
 export { Rect64, isRect64 } from "./Core/Rect64";
 export { RectD, isRectD } from "./Core/RectD";
-
+export { Path64TypedArray } from "./Core/Path64TypedArray";
+export { PathDTypedArray } from "./Core/PathDTypedArray";
 export { ClipperBase } from "./Engine/ClipperBase";
 export { Clipper64 } from "./Engine/Clipper64";
 export { ClipperD } from "./Engine/ClipperD";

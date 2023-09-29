@@ -1,12 +1,12 @@
-import { PointD, isPointD } from "./PointD";
+import { isNotNullish } from "../CommonUtils";
+import { PathDTypeName, PathDBase } from "./PathDBase";
+import { PointD } from "./PointD";
 
-export const isPathD = (obj: unknown): obj is PathD => {
-  return obj instanceof PathD && obj.type === PathDTypeName;
+export const isPathD = (obj: unknown): obj is PathDBase => {
+  return isNotNullish(obj) && obj.type === PathDTypeName;
 };
 
-export const PathDTypeName = "PathD";
-
-export class PathD extends Array<PointD> {
+export class PathD extends Array<PointD> implements PathDBase {
   readonly type: typeof PathDTypeName;
 
   constructor();
@@ -14,29 +14,42 @@ export class PathD extends Array<PointD> {
   constructor(...paths: PointD[]);
   constructor(...args: [] | [number] | PointD[]);
   constructor(...args: [] | [number] | PointD[]) {
-    const len = args.length;
-    if (len === 0) {
+    if (args.length === 0) {
       super();
     } else if (typeof args[0] === "number") {
       super(args[0]);
     } else {
-      super(len);
-      for (let i = 0; i < len; i++) {
-        const pt = args[i];
-        if (isPointD(pt)) {
-          this[i] = PointD.clone(pt);
-        } else {
-          throw Error("todo: change message");
-        }
-      }
+      super();
+      this.pushRange(args as PointD[]);
     }
     this.type = PathDTypeName;
   }
 
-  static clone(path: Iterable<PointD>): PathD {
-    const result = new PathD();
-    result.pushRange(path);
-    return result;
+  clone() {
+    const clonedPath = new PathD();
+    clonedPath.pushRange(this);
+    return clonedPath;
+  }
+
+  get(index: number): PointD {
+    return this[index];
+  }
+
+  getX(index: number): number {
+    return this[index].x;
+  }
+
+  getY(index: number): number {
+    return this[index].y;
+  }
+
+  getClone(index: number): PointD {
+    return { x: this[index].x, y: this[index].y };
+  }
+
+  set(index: number, x: number, y: number) {
+    this[index].x = x;
+    this[index].y = y;
   }
 
   override push(...path: PointD[]) {
@@ -54,6 +67,8 @@ export class PathD extends Array<PointD> {
   }
 
   clear() {
-    this.length = 0;
+    if (this.length !== 0) {
+      this.length = 0;
+    }
   }
 }

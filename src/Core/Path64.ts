@@ -1,12 +1,12 @@
-import { Point64, isPoint64 } from "./Point64";
+import { isNotNullish } from "../CommonUtils";
+import { Path64Base, Path64TypeName } from "./Path64Base";
+import { Point64 } from "./Point64";
 
-export const isPath64 = (obj: unknown): obj is Path64 => {
-  return obj instanceof Path64 && obj.type === Path64TypeName;
+export const isPath64 = (obj: unknown): obj is Path64Base => {
+  return isNotNullish(obj) && obj.type === Path64TypeName;
 };
 
-export const Path64TypeName = "Path64";
-
-export class Path64 extends Array<Point64> {
+export class Path64 extends Array<Point64> implements Path64Base {
   readonly type: typeof Path64TypeName;
 
   constructor();
@@ -14,29 +14,42 @@ export class Path64 extends Array<Point64> {
   constructor(...paths: Point64[]);
   constructor(...args: [] | [number] | Point64[]);
   constructor(...args: [] | [number] | Point64[]) {
-    const len = args.length;
-    if (len === 0) {
+    if (args.length === 0) {
       super();
     } else if (typeof args[0] === "number") {
       super(args[0]);
     } else {
-      super(len);
-      for (let i = 0; i < len; i++) {
-        const pt = args[i];
-        if (isPoint64(pt)) {
-          this[i] = Point64.clone(pt);
-        } else {
-          throw Error("todo: change message");
-        }
-      }
+      super();
+      this.pushRange(args as Point64[]);
     }
     this.type = Path64TypeName;
   }
 
-  static clone(path: Iterable<Point64>): Path64 {
-    const result = new Path64();
-    result.pushRange(path);
-    return result;
+  clone() {
+    const clonedPath = new Path64();
+    clonedPath.pushRange(this);
+    return clonedPath;
+  }
+
+  get(index: number): Point64 {
+    return this[index];
+  }
+
+  getX(index: number): bigint {
+    return this[index].x;
+  }
+
+  getY(index: number): bigint {
+    return this[index].y;
+  }
+
+  getClone(index: number): Point64 {
+    return { x: this[index].x, y: this[index].y };
+  }
+
+  set(index: number, x: bigint, y: bigint) {
+    this[index].x = x;
+    this[index].y = y;
   }
 
   override push(...path: Point64[]) {
@@ -54,6 +67,8 @@ export class Path64 extends Array<Point64> {
   }
 
   clear() {
-    this.length = 0;
+    if (this.length !== 0) {
+      this.length = 0;
+    }
   }
 }

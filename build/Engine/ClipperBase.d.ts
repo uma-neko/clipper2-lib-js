@@ -87,10 +87,10 @@ export declare class ClipperBase {
     cleanCollinear(outrec?: OutRec): void;
     doSplitOp(outrec: OutRec, splitOp: OutPt): void;
     fixSelfIntersects(outrec: OutRec): void;
-    buildPaths(solutionClosed: Paths64, solutionOpen: Paths64): boolean;
+    buildPaths(solutionClosed: Paths64, solutionOpen?: Paths64): boolean;
     checkBounds(outrec: OutRec): boolean;
     checkSplitOwner(outrec: OutRec, splits?: number[]): boolean;
     recursiveCheckOwners(outrec: OutRec, polypath: PolyPathBase): void;
-    buildTree(polytree: PolyPathBase, solutionOpen: Paths64): void;
+    buildTree(polytree: PolyPathBase, solutionOpen?: Paths64): void;
     getBounds(): Rect64;
 }

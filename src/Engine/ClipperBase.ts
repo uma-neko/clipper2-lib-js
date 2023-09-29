@@ -9,20 +9,22 @@ import { OutPt } from "./OutPt";
 import { OutRec } from "./OutRec";
 import { PolyPathBase } from "./PolyPathBase";
 import { Vertex } from "./Vertex";
-import { perpendicDistFromLineSqrd, numberToBigInt, roundToEven } from "../Clipper";
+import { numberToBigInt, perpendicDistFromLineSqrd64 } from "../Clipper";
 import { ClipType, FillRule, PathType } from "../Core/CoreEnums";
 import {
-  crossProduct,
-  dotProduct,
+  crossProduct64,
+  dotProduct64,
   getClosestPtOnSegment,
   getIntersectPoint,
   pointInPolygon,
   segsIntersect,
 } from "../Core/InternalClipper";
-import { Path64 } from "../Core/Path64";
 import { Paths64 } from "../Core/Paths64";
 import { Point64 } from "../Core/Point64";
-import { Rect64 } from "../Core/Rect64";
+import { EmptyRect64, Rect64 } from "../Core/Rect64";
+import type { Path64Base } from "../Core/Path64Base";
+import { Path64TypedArray } from "../Core/Path64TypedArray";
+import { bigintAbs } from "../CommonUtils";
 
 const isOdd = (val: number) => {
   return (val & 1) !== 0;
@@ -33,21 +35,21 @@ const isHotEdge = (ae: Active) => {
 };
 
 const isOpen = (ae: Active) => {
-  return ae.localMin.isOpen;
+  return ae.localMinIsOpen;
 };
 
-type IsOpenEnd = {
-  (ae: Active): boolean;
-  (v: Vertex): boolean;
-};
-
-const isOpenEnd: IsOpenEnd = (aeOrV: Active | Vertex) => {
-  if ("localMin" in aeOrV) {
-    return aeOrV.localMin.isOpen && isOpenEnd(aeOrV.vertexTop!);
-  }
+const isOpenEndVertex = (vertex: Vertex): boolean => {
   return (
-    (aeOrV.flags & (VertexFlags.OpenStart | VertexFlags.OpenEnd)) !==
+    (vertex.flags & (VertexFlags.OpenStart | VertexFlags.OpenEnd)) !==
     VertexFlags.None
+  );
+};
+
+const isOpenEndActive = (ae: Active): boolean => {
+  return (
+    ae.localMinIsOpen &&
+    (ae.vertexTop!.flags & (VertexFlags.OpenStart | VertexFlags.OpenEnd)) !==
+      VertexFlags.None
   );
 };
 
@@ -79,7 +81,7 @@ const topX = (ae: Active, currentY: bigint): bigint => {
   } else if (currentY === ae.bot.y) {
     return ae.bot.x;
   }
-  return ae.bot.x + BigInt(roundToEven(ae.dx * Number(currentY - ae.bot.y)));
+  return ae.bot.x + numberToBigInt(ae.dx * Number(currentY - ae.bot.y));
 };
 
 const isHorizontal = (ae: Active) => {
@@ -95,11 +97,11 @@ const isHeadingLeftHorz = (ae: Active) => {
 };
 
 const getPolyType = (ae: Active) => {
-  return ae.localMin.polytype;
+  return ae.localMinPolytype;
 };
 
 const isSamePolyType = (ae1: Active, ae2: Active) => {
-  return ae1.localMin.polytype === ae2.localMin.polytype;
+  return ae1.localMinPolytype === ae2.localMinPolytype;
 };
 
 const setDx = (ae: Active) => {
@@ -114,18 +116,12 @@ const prevPrevVertex = (ae: Active): Vertex => {
   return ae.windDx > 0 ? ae.vertexTop!.prev!.prev! : ae.vertexTop!.next!.next!;
 };
 
-type IsMaxima = {
-  (vertex: Vertex): boolean;
-  (ae: Active): boolean;
+const isMaximaVertex = (vertex: Vertex): boolean => {
+  return (vertex.flags & VertexFlags.LocalMax) !== VertexFlags.None;
 };
 
-const isMaxima: IsMaxima = (vertexOrAe) => {
-  if ("flags" in vertexOrAe) {
-    return (vertexOrAe.flags & VertexFlags.LocalMax) !== VertexFlags.None;
-  }
-  return (
-    (vertexOrAe.vertexTop!.flags & VertexFlags.LocalMax) !== VertexFlags.None
-  );
+const isMaximaActive = (ae: Active): boolean => {
+  return (ae.vertexTop!.flags & VertexFlags.LocalMax) !== VertexFlags.None;
 };
 
 const getMaximaPair = (ae: Active) => {
@@ -158,7 +154,7 @@ const getCurrYMaximaVertex_Open = (ae: Active): Vertex | undefined => {
       result = result!.prev;
     }
   }
-  if (!isMaxima(result!)) {
+  if (!isMaximaVertex(result!)) {
     result = undefined;
   }
   return result;
@@ -175,7 +171,7 @@ const getCurrYMaximaVertex = (ae: Active) => {
       result = result!.prev;
     }
   }
-  if (!isMaxima(result!)) {
+  if (!isMaximaVertex(result!)) {
     result = undefined;
   }
   return result;
@@ -234,20 +230,20 @@ const setOwner = (outrec: OutRec, newOwner: OutRec) => {
 };
 
 const area = (op: OutPt): number => {
-  let area = 0.0;
+  let area = 0n;
   let op2: OutPt = op;
   do {
-    area += Number((op2.prev.pt.y + op2.pt.y) * (op2.prev.pt.x - op2.pt.x));
+    area += (op2.prev.pt.y + op2.pt.y) * (op2.prev.pt.x - op2.pt.x);
     op2 = op2.next!;
   } while (op2 !== op);
-  return area * 0.5;
+  return Number(area) * 0.5;
 };
 
 const areaTriangle = (pt1: Point64, pt2: Point64, pt3: Point64): number => {
-  return (
-    Number((pt3.y + pt1.y) * (pt3.x - pt1.x)) +
-    Number((pt1.y + pt2.y) * (pt1.x - pt2.x)) +
-    Number((pt2.y + pt3.y) * (pt2.x - pt3.x))
+  return Number(
+    (pt3.y + pt1.y) * (pt3.x - pt1.x) +
+      (pt1.y + pt2.y) * (pt1.x - pt2.x) +
+      (pt2.y + pt3.y) * (pt2.x - pt3.x),
   );
 };
 
@@ -346,7 +342,7 @@ const trimHorz = (horzEdge: Active, preserveCollinear: boolean) => {
     horzEdge.vertexTop = nextVertex(horzEdge);
     horzEdge.top = Point64.clone(pt);
     wasTrimmed = true;
-    if (isMaxima(horzEdge)) {
+    if (isMaximaActive(horzEdge)) {
       break;
     }
     pt = nextVertex(horzEdge).pt;
@@ -364,27 +360,27 @@ const isValidAelOrder = (resident: Active, newcomer: Active): boolean => {
     return newcomer.curX > resident.curX;
   }
 
-  const d = crossProduct(resident.top, newcomer.bot, newcomer.top);
-  if (d !== 0) {
-    return d < 0;
+  const d = crossProduct64(resident.top, newcomer.bot, newcomer.top);
+  if (d !== 0n) {
+    return d < 0n;
   }
 
-  if (!isMaxima(resident) && resident.top.y > newcomer.top.y) {
+  if (!isMaximaActive(resident) && resident.top.y > newcomer.top.y) {
     return (
-      crossProduct(newcomer.bot, resident.top, nextVertex(resident).pt) <= 0
+      crossProduct64(newcomer.bot, resident.top, nextVertex(resident).pt) <= 0
     );
   }
 
-  if (!isMaxima(newcomer) && newcomer.top.y > resident.top.y) {
+  if (!isMaximaActive(newcomer) && newcomer.top.y > resident.top.y) {
     return (
-      crossProduct(newcomer.bot, newcomer.top, nextVertex(newcomer).pt) >= 0
+      crossProduct64(newcomer.bot, newcomer.top, nextVertex(newcomer).pt) >= 0
     );
   }
 
   const y = newcomer.bot.y;
   const newcomerIsLeft = newcomer.isLeftBound;
 
-  if (resident.bot.y !== y || resident.localMin.vertex.pt.y !== y) {
+  if (resident.bot.y !== y || resident.localMinVertex.pt.y !== y) {
     return newcomer.isLeftBound;
   }
 
@@ -393,13 +389,14 @@ const isValidAelOrder = (resident: Active, newcomer: Active): boolean => {
   }
 
   if (
-    crossProduct(prevPrevVertex(resident).pt, resident.bot, resident.top) === 0
+    crossProduct64(prevPrevVertex(resident).pt, resident.bot, resident.top) ===
+    0n
   ) {
     return true;
   }
 
   return (
-    crossProduct(
+    crossProduct64(
       prevPrevVertex(resident).pt,
       newcomer.bot,
       prevPrevVertex(newcomer).pt,
@@ -451,7 +448,7 @@ const joinOutrecPaths = (ae1: Active, ae2: Active) => {
   ae2.outrec!.pts = undefined;
   setOwner(ae2.outrec!, ae1.outrec!);
 
-  if (isOpenEnd(ae1)) {
+  if (isOpenEndActive(ae1)) {
     ae2.outrec!.pts = ae1.outrec!.pts;
     ae1.outrec!.pts = undefined;
   }
@@ -490,7 +487,7 @@ const addOutPt = (ae: Active, pt: Point64): OutPt => {
 const findEdgeWithMatchingLocMin = (e: Active): Active | undefined => {
   let result: Active | undefined = e.nextInAEL;
   while (result !== undefined) {
-    if (result.localMin.vertex === e.localMin.vertex) {
+    if (result.localMinVertex === e.localMinVertex) {
       return result;
     }
     if (!isHorizontal(result) && Point64.notEquals(e.bot, result.bot)) {
@@ -502,7 +499,7 @@ const findEdgeWithMatchingLocMin = (e: Active): Active | undefined => {
   result = e.prevInAEL;
 
   while (result !== undefined) {
-    if (result.localMin.vertex === e.localMin.vertex) {
+    if (result.localMinVertex === e.localMinVertex) {
       return result;
     }
     if (!isHorizontal(result) && Point64.notEquals(e.bot, result.bot)) {
@@ -620,8 +617,8 @@ const duplicateOp = (op: OutPt, insert_after: boolean): OutPt => {
   return result;
 };
 
-const getCleanPath = (op: OutPt): Path64 => {
-  const result: Path64 = new Path64();
+const getCleanPath = (op: OutPt): Path64Base => {
+  const result: Path64Base = new Path64TypedArray();
   let op2 = op;
 
   while (
@@ -709,11 +706,11 @@ const pointInOpPolygon = (pt: Point64, op: OutPt): PointInPolygonResult => {
       if (op2.prev.pt.x < pt.x && op2.pt.x < pt.x) {
         val = !val;
       } else {
-        const d = crossProduct(op2.prev.pt, op2.pt, pt);
-        if (d === 0) {
+        const d = crossProduct64(op2.prev.pt, op2.pt, pt);
+        if (d === 0n) {
           return PointInPolygonResult.IsOn;
         }
-        if (d < 0 === isAbove) {
+        if (d < 0n === isAbove) {
           val = !val;
         }
       }
@@ -724,11 +721,11 @@ const pointInOpPolygon = (pt: Point64, op: OutPt): PointInPolygonResult => {
   }
 
   if (isAbove !== startingAbove) {
-    const d = crossProduct(op2.prev.pt, op2.pt, pt);
-    if (d === 0) {
+    const d = crossProduct64(op2.prev.pt, op2.pt, pt);
+    if (d === 0n) {
       return PointInPolygonResult.IsOn;
     }
-    if (d < 0 === isAbove) {
+    if (d < 0n === isAbove) {
       val = !val;
     }
   }
@@ -768,7 +765,7 @@ const path1InsidePath2 = (op1: OutPt, op2: OutPt): boolean => {
 };
 
 const ptsReallyClose = (pt1: Point64, pt2: Point64): boolean =>
-  Math.abs(Number(pt1.x - pt2.x)) < 2 && Math.abs(Number(pt1.y - pt2.y)) < 2;
+  bigintAbs(pt1.x - pt2.x) < 2n && bigintAbs(pt1.y - pt2.y) < 2n;
 
 const isVerySmallTriangle = (op: OutPt): boolean =>
   op.next!.next === op.prev &&
@@ -791,58 +788,60 @@ const buildPath = (
   op: OutPt | undefined,
   reverse: boolean,
   isOpen: boolean,
-  path: Path64,
+  path: Path64Base,
 ): boolean => {
   if (op === undefined || op.next === op || (!isOpen && op.next === op.prev)) {
     return false;
   }
 
-  path.length = 0;
-
-  let lastPt: Point64;
-  let op2: OutPt;
+  path.clear();
 
   if (reverse) {
-    lastPt = op.pt;
-    op2 = op.prev;
+    let lastPt: Point64 = op.pt;
+    let op2: OutPt = op.prev;
+    path.push(lastPt);
+
+    while (op2 !== op) {
+      if (Point64.notEquals(op2.pt, lastPt)) {
+        lastPt = op2.pt;
+        path.push(lastPt);
+      }
+      op2 = op2.prev;
+    }
   } else {
     op = op.next!;
-    lastPt = op.pt;
-    op2 = op.next!;
-  }
-  path.push(lastPt);
+    let lastPt: Point64 = op.pt;
+    let op2: OutPt = op.next!;
+    path.push(lastPt);
 
-  while (op2 !== op) {
-    if (Point64.notEquals(op2.pt, lastPt)) {
-      lastPt = op2.pt;
-      path.push(lastPt);
-    }
-    if (reverse) {
-      op2 = op2.prev;
-    } else {
+    while (op2 !== op) {
+      if (Point64.notEquals(op2.pt, lastPt)) {
+        lastPt = op2.pt;
+        path.push(lastPt);
+      }
       op2 = op2.next!;
     }
   }
-  return !(path.length === 3 && isVerySmallTriangle(op2));
+  return !(path.length === 3 && isVerySmallTriangle(op));
 };
 
-const getBounds = (path: Path64): Rect64 => {
+const getBounds = (path: Path64Base): Rect64 => {
   if (path.length === 0) {
     return new Rect64();
   }
   const result = new Rect64(false);
-  for (const pt of path) {
-    if (pt.x < result.left) {
-      result.left = pt.x;
+  for (let i = 0, len = path.length; i < len; i++) {
+    if (path.getX(i) < result.left) {
+      result.left = path.getX(i);
     }
-    if (pt.x > result.right) {
-      result.right = pt.x;
+    if (path.getX(i) > result.right) {
+      result.right = path.getX(i);
     }
-    if (pt.y < result.top) {
-      result.top = pt.y;
+    if (path.getY(i) < result.top) {
+      result.top = path.getY(i);
     }
-    if (pt.y > result.bottom) {
-      result.bottom = pt.y;
+    if (path.getY(i) > result.bottom) {
+      result.bottom = path.getY(i);
     }
   }
 
@@ -894,17 +893,17 @@ export class ClipperBase {
     while (this._actives !== undefined) {
       this.deleteFromAEL(this._actives);
     }
-    this._scanlineList.length = 0;
+    this._scanlineList = [];
     this.disposeIntersectNodes();
-    this._outrecList.length = 0;
-    this._horzSegList.length = 0;
-    this._horzJoinList.length = 0;
+    this._outrecList = [];
+    this._horzSegList = [];
+    this._horzJoinList = [];
   }
 
   clear() {
     this.clearSolutionOnly();
-    this._minimaList.length = 0;
-    this._vertexList.length = 0;
+    this._minimaList = [];
+    this._vertexList = [];
     this._currentLocMin = 0;
     this._isSortedMinimaList = false;
     this._hasOpenPaths = false;
@@ -928,10 +927,11 @@ export class ClipperBase {
   }
 
   insertScanLine(y: bigint) {
-    if (this._scanlineList.find((value) => value === y) === undefined) {
+    const index = this._scanlineList.findIndex((value) => y <= value);
+    if (index === -1) {
       this._scanlineList.push(y);
-      this._scanlineList.sort((a, b) => (a === b ? 0 : a > b ? 1 : -1));
     }
+    this._scanlineList.splice(index, 0, y);
   }
 
   popScanline(): { result: boolean; y: bigint } {
@@ -1225,11 +1225,9 @@ export class ClipperBase {
           vertexTop: localMinima.vertex.prev,
           top: Point64.clone(localMinima.vertex.prev!.pt),
           outrec: undefined,
-          localMin: {
-            vertex: localMinima.vertex,
-            polytype: localMinima.polytype,
-            isOpen: localMinima.isOpen,
-          },
+          localMinVertex: localMinima.vertex,
+          localMinPolytype: localMinima.polytype,
+          localMinIsOpen: localMinima.isOpen,
 
           isLeftBound: false,
           dx: 0,
@@ -1253,11 +1251,9 @@ export class ClipperBase {
           vertexTop: localMinima.vertex.next,
           top: Point64.clone(localMinima.vertex.next!.pt),
           outrec: undefined,
-          localMin: {
-            vertex: localMinima.vertex,
-            polytype: localMinima.polytype,
-            isOpen: localMinima.isOpen,
-          },
+          localMinVertex: localMinima.vertex,
+          localMinPolytype: localMinima.polytype,
+          localMinIsOpen: localMinima.isOpen,
 
           isLeftBound: false,
           dx: 0,
@@ -1267,28 +1263,21 @@ export class ClipperBase {
         };
         setDx(rightBound);
       }
-
-      if (leftBound !== undefined && rightBound !== undefined) {
+      if (leftBound === undefined) {
+        leftBound = rightBound;
+        rightBound = undefined;
+      } else if (rightBound !== undefined) {
         if (isHorizontal(leftBound)) {
           if (isHeadingRightHorz(leftBound)) {
-            const tmp = rightBound;
-            rightBound = leftBound;
-            leftBound = tmp;
+            [leftBound, rightBound] = [rightBound, leftBound];
           }
         } else if (isHorizontal(rightBound)) {
           if (isHeadingLeftHorz(rightBound)) {
-            const tmp = rightBound;
-            rightBound = leftBound;
-            leftBound = tmp;
+            [leftBound, rightBound] = [rightBound, leftBound];
           }
         } else if (leftBound.dx < rightBound.dx) {
-          const tmp = rightBound;
-          rightBound = leftBound;
-          leftBound = tmp;
+          [leftBound, rightBound] = [rightBound, leftBound];
         }
-      } else if (leftBound === undefined) {
-        leftBound = rightBound;
-        rightBound = undefined;
       }
 
       let contributing: boolean;
@@ -1421,9 +1410,9 @@ export class ClipperBase {
     }
 
     if (isFront(ae1) === isFront(ae2)) {
-      if (isOpenEnd(ae1)) {
+      if (isOpenEndActive(ae1)) {
         swapFrontBackSides(ae1.outrec!);
-      } else if (isOpenEnd(ae2)) {
+      } else if (isOpenEndActive(ae2)) {
         swapFrontBackSides(ae2.outrec!);
       } else {
         this._succeeded = false;
@@ -1463,8 +1452,8 @@ export class ClipperBase {
   newOutRec(): OutRec {
     const result: OutRec = {
       idx: this._outrecList.length,
-      bounds: new Rect64(),
-      path: new Path64(),
+      bounds: EmptyRect64,
+      path: new Path64TypedArray(),
       isOpen: false,
     };
 
@@ -1522,9 +1511,7 @@ export class ClipperBase {
         return undefined;
       }
       if (isOpen(ae2)) {
-        const tmp = ae2;
-        ae2 = ae1;
-        ae1 = tmp;
+        [ae1, ae2] = [ae2, ae1];
       }
       if (isJoined(ae2)) {
         this.split(ae2, pt);
@@ -1534,7 +1521,7 @@ export class ClipperBase {
         if (!isHotEdge(ae2)) {
           return undefined;
         }
-      } else if (ae2.localMin.polytype === PathType.Subject) {
+      } else if (ae2.localMinPolytype === PathType.Subject) {
         return undefined;
       }
 
@@ -1566,8 +1553,8 @@ export class ClipperBase {
         }
         ae1.outrec = undefined;
       } else if (
-        Point64.equals(pt, ae1.localMin.vertex.pt) &&
-        !isOpenEnd(ae1.localMin.vertex)
+        Point64.equals(pt, ae1.localMinVertex.pt) &&
+        !isOpenEndVertex(ae1.localMinVertex)
       ) {
         const ae3 = findEdgeWithMatchingLocMin(ae1);
         if (ae3 !== undefined && isHotEdge(ae3)) {
@@ -1596,7 +1583,7 @@ export class ClipperBase {
     let oldE1WindCount: number;
     let oldE2WindCount: number;
 
-    if (ae1.localMin.polytype === ae2.localMin.polytype) {
+    if (ae1.localMinPolytype === ae2.localMinPolytype) {
       if (this._fillrule === FillRule.EvenOdd) {
         oldE1WindCount = ae1.windCount;
         ae1.windCount = ae2.windCount;
@@ -1656,7 +1643,7 @@ export class ClipperBase {
       if (
         (oldE1WindCount !== 0 && oldE1WindCount !== 1) ||
         (oldE2WindCount !== 0 && oldE2WindCount !== 1) ||
-        (ae1.localMin.polytype !== ae2.localMin.polytype &&
+        (ae1.localMinPolytype !== ae2.localMinPolytype &&
           this._cliptype !== ClipType.Xor)
       ) {
         resultOp = this.addLocalMaxPoly(ae1, ae2, pt);
@@ -1787,7 +1774,7 @@ export class ClipperBase {
 
       if (this._horzSegList.length > 0) {
         this.convertHorzSegsToJoins();
-        this._horzSegList.length = 0;
+        this._horzSegList = [];
       }
 
       this._currentBotY = y;
@@ -1816,7 +1803,7 @@ export class ClipperBase {
   }
 
   disposeIntersectNodes() {
-    this._intersectList.length = 0;
+    this._intersectList = [];
   }
 
   addNewIntersectNode(ae1: Active, ae2: Active, topY: bigint) {
@@ -1857,6 +1844,7 @@ export class ClipperBase {
     }
 
     const node: IntersectNode = { pt: ip, edge1: ae1, edge2: ae2 };
+
     this._intersectList.push(node);
   }
 
@@ -1867,24 +1855,18 @@ export class ClipperBase {
 
     this.adjustCurrXAndCopyToSEL(topY);
     let left: Active | undefined = this._sel;
-    let right: Active | undefined;
-    let lEnd: Active | undefined;
-    let rEnd: Active | undefined;
-    let currBase: Active | undefined;
-    let prevBase: Active | undefined;
-    let tmp: Active | undefined;
 
     while (left!.jump !== undefined) {
-      prevBase = undefined;
+      let prevBase: Active | undefined = undefined;
       while (left !== undefined && left.jump !== undefined) {
-        currBase = left;
-        right = left.jump;
-        lEnd = right;
-        rEnd = right.jump;
+        let currBase: Active | undefined = left;
+        let right: Active | undefined = left.jump;
+        let lEnd: Active | undefined = right;
+        const rEnd: Active | undefined = right.jump;
         left.jump = rEnd;
         while (left !== lEnd && right !== rEnd) {
           if (right!.curX < left!.curX) {
-            tmp = right!.prevInSEL;
+            let tmp: Active | undefined = right!.prevInSEL;
             while (true) {
               this.addNewIntersectNode(tmp!, right!, topY);
               if (tmp === left) {
@@ -1930,9 +1912,11 @@ export class ClipperBase {
         while (!edgesAdjacentInAEL(this._intersectList[j])) {
           j++;
         }
-        const tmp = this._intersectList[j];
-        this._intersectList[j] = this._intersectList[i];
-        this._intersectList[i] = tmp;
+
+        [this._intersectList[i], this._intersectList[j]] = [
+          this._intersectList[j],
+          this._intersectList[i],
+        ];
       }
 
       const node = this._intersectList[i];
@@ -1980,7 +1964,6 @@ export class ClipperBase {
   }
 
   doHorizontal(horz: Active) {
-    let pt: Point64;
     const horzIsOpen = isOpen(horz);
     const y = horz.bot.y;
 
@@ -2033,7 +2016,7 @@ export class ClipperBase {
           return;
         }
 
-        if (vertex_max !== horz.vertexTop || isOpenEnd(horz)) {
+        if (vertex_max !== horz.vertexTop || isOpenEndActive(horz)) {
           if (
             (isLeftToRight && ae.curX > rightX) ||
             (!isLeftToRight && ae.curX < leftX)
@@ -2042,7 +2025,7 @@ export class ClipperBase {
           }
 
           if (ae.curX === horz.top.x && !isHorizontal(ae)) {
-            pt = nextVertex(horz).pt;
+            const pt = nextVertex(horz).pt;
 
             if (isOpen(ae) && !isSamePolyType(ae, horz) && !isHotEdge(ae)) {
               if (
@@ -2060,7 +2043,7 @@ export class ClipperBase {
           }
         }
 
-        pt = { x: ae.curX, y };
+        const pt = { x: ae.curX, y };
 
         if (isLeftToRight) {
           this.intersectEdges(horz, ae, pt);
@@ -2079,7 +2062,7 @@ export class ClipperBase {
         }
       }
 
-      if (horzIsOpen && isOpenEnd(horz)) {
+      if (horzIsOpen && isOpenEndActive(horz)) {
         if (isHotEdge(horz)) {
           addOutPt(horz, horz.top);
           if (isFront(horz)) {
@@ -2126,7 +2109,7 @@ export class ClipperBase {
     while (ae !== undefined) {
       if (ae.top.y === y) {
         ae.curX = ae.top.x;
-        if (isMaxima(ae)) {
+        if (isMaximaActive(ae)) {
           ae = this.doMaxima(ae);
           continue;
         }
@@ -2152,7 +2135,7 @@ export class ClipperBase {
     const prevE: Active | undefined = ae.prevInAEL;
     let nextE: Active | undefined = ae.nextInAEL;
 
-    if (isOpenEnd(ae)) {
+    if (isOpenEndActive(ae)) {
       if (isHotEdge(ae)) {
         addOutPt(ae, ae.top);
       }
@@ -2234,21 +2217,21 @@ export class ClipperBase {
     }
 
     if (
-      (pt.y < e.top.y + 2n || pt.y < prev.top.y + 2n) &&
+      (pt.y - e.top.y < 2n || pt.y - prev.top.y < 2n) &&
       (e.bot.y > pt.y || prev.bot.y > pt.y)
     ) {
       return;
     }
 
     if (checkCurrX) {
-      if (perpendicDistFromLineSqrd(pt, prev.bot, prev.top) > 0.25) {
+      if (perpendicDistFromLineSqrd64(pt, prev.bot, prev.top) > 0.25) {
         return;
       }
     } else if (e.curX !== prev.curX) {
       return;
     }
 
-    if (crossProduct(e.top, pt, prev.top) !== 0) {
+    if (crossProduct64(e.top, pt, prev.top) !== 0n) {
       return;
     }
 
@@ -2267,10 +2250,10 @@ export class ClipperBase {
     const next = e.nextInAEL;
 
     if (
+      next === undefined ||
       isOpen(e) ||
       !isHotEdge(e) ||
       isJoined(e) ||
-      next === undefined ||
       isOpen(next) ||
       !isHotEdge(next)
     ) {
@@ -2278,21 +2261,21 @@ export class ClipperBase {
     }
 
     if (
-      (pt.y < e.top.y + 2n || pt.y < next.top.y + 2n) &&
+      (pt.y - e.top.y < 2n || pt.y - next.top.y < 2n) &&
       (e.bot.y > pt.y || next.bot.y > pt.y)
     ) {
       return;
     }
 
     if (checkCurrX) {
-      if (perpendicDistFromLineSqrd(pt, next.bot, next.top) > 0.25) {
+      if (perpendicDistFromLineSqrd64(pt, next.bot, next.top) > 0.25) {
         return;
       }
     } else if (e.curX !== next.curX) {
       return;
     }
 
-    if (crossProduct(e.top, pt, next.top) !== 0) {
+    if (crossProduct64(e.top, pt, next.top) !== 0n) {
       return;
     }
 
@@ -2329,8 +2312,8 @@ export class ClipperBase {
         const hs2 = this._horzSegList[j];
 
         if (
-          hs2.leftOp!.pt.x >= hs1.rightOp!.pt.x ||
           hs2.leftToRight === hs1.leftToRight ||
+          hs2.leftOp!.pt.x >= hs1.rightOp!.pt.x ||
           hs2.rightOp!.pt.x <= hs1.leftOp!.pt.x
         ) {
           continue;
@@ -2466,11 +2449,11 @@ export class ClipperBase {
 
     while (true) {
       if (
-        crossProduct(op2!.prev.pt, op2!.pt, op2!.next!.pt) === 0 &&
-        (Point64.equals(op2!.pt, op2!.prev.pt) ||
+        (!this.preserveCollinear ||
+          Point64.equals(op2!.pt, op2!.prev.pt) ||
           Point64.equals(op2!.pt, op2!.next!.pt) ||
-          !this.preserveCollinear ||
-          dotProduct(op2!.prev.pt, op2!.pt, op2!.next!.pt) < 0)
+          dotProduct64(op2!.prev.pt, op2!.pt, op2!.next!.pt) < 0n) &&
+        crossProduct64(op2!.prev.pt, op2!.pt, op2!.next!.pt) === 0n
       ) {
         if (op2 === outrec.pts) {
           outrec.pts = op2!.prev;
@@ -2588,25 +2571,27 @@ export class ClipperBase {
     }
   }
 
-  buildPaths(solutionClosed: Paths64, solutionOpen: Paths64): boolean {
+  buildPaths(solutionClosed: Paths64, solutionOpen?: Paths64): boolean {
     solutionClosed.clear();
-    solutionOpen.clear();
+    solutionOpen?.clear();
     let i = 0;
+
     while (i < this._outrecList.length) {
       const outrec = this._outrecList[i++];
       if (outrec.pts === undefined) {
         continue;
       }
 
-      const path: Path64 = new Path64();
-      if (outrec.isOpen) {
-        if (buildPath(outrec.pts, this.reverseSolution, true, path)) {
-          solutionOpen.push(path);
-        }
-      } else {
+      const path: Path64Base = new Path64TypedArray();
+
+      if (!outrec.isOpen) {
         this.cleanCollinear(outrec);
         if (buildPath(outrec.pts, this.reverseSolution, false, path)) {
-          solutionClosed.push(path);
+          solutionClosed.directPush(path);
+        }
+      } else if (solutionOpen !== undefined) {
+        if (buildPath(outrec.pts, this.reverseSolution, true, path)) {
+          solutionOpen?.directPush(path);
         }
       }
     }
@@ -2704,9 +2689,9 @@ export class ClipperBase {
     }
   }
 
-  buildTree(polytree: PolyPathBase, solutionOpen: Paths64) {
+  buildTree(polytree: PolyPathBase, solutionOpen?: Paths64) {
     polytree.clear();
-    solutionOpen.clear();
+    solutionOpen?.clear();
 
     let i = 0;
 
@@ -2717,9 +2702,11 @@ export class ClipperBase {
       }
 
       if (outrec.isOpen) {
-        const open_path: Path64 = new Path64();
-        if (buildPath(outrec.pts, this.reverseSolution, true, open_path)) {
-          solutionOpen.push(open_path);
+        if (solutionOpen !== undefined) {
+          const open_path: Path64Base = new Path64TypedArray();
+          if (buildPath(outrec.pts, this.reverseSolution, true, open_path)) {
+            solutionOpen.directPush(open_path);
+          }
         }
         continue;
       }

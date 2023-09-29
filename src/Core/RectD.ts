@@ -1,14 +1,10 @@
 import { isNotNullish } from "../CommonUtils";
 import { PathD } from "./PathD";
+import { PathDBase } from "./PathDBase";
 import { PointD, isPointD } from "./PointD";
 
 export const isRectD = (obj: unknown): obj is RectD =>
-  isNotNullish(obj) &&
-  obj.type === RectDTypeName &&
-  typeof obj.left === "number" &&
-  typeof obj.top === "number" &&
-  typeof obj.right === "number" &&
-  typeof obj.bottom === "number";
+  isNotNullish(obj) && obj.type === RectDTypeName;
 
 export const RectDTypeName = "RectD";
 
@@ -90,7 +86,7 @@ export class RectD {
     return { x: (this.right + this.left) / 2, y: (this.bottom + this.top) / 2 };
   }
 
-  asPath(): PathD {
+  asPath(): PathDBase {
     return new PathD(
       { x: this.left, y: this.top },
       { x: this.right, y: this.top },
