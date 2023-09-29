@@ -413,6 +413,7 @@ export function inflatePaths(
     co.execute(delta * scale, tmp);
     return scalePathsD(tmp, 1 / scale);
   }
+  throw new TypeError("Invalid argument types.");
 }
 
 export function rectClip(rect: Rect64, pathOrpaths: IPath64 | Paths64): Paths64;
@@ -620,7 +621,7 @@ export function pathsDToString(paths: PathsD): string {
 }
 
 export function offsetPath(path: IPath64, dx: bigint, dy: bigint): IPath64 {
-  const result: IPath64 = new Path64TypedArray();
+  const result = new Path64TypedArray();
   for (let i = 0, len = path.length; i < len; i++) {
     result.push({ x: path.getX(i) + dx, y: path.getY(i) + dy });
   }
@@ -661,7 +662,7 @@ export function scalePath(
     if (isAlmostZero(scale - 1)) {
       return path.clone();
     }
-    const result: IPath64 = new Path64TypedArray(path.length);
+    const result = new Path64TypedArray(path.length);
 
     for (let i = 0, len = path.length; i < len; i++) {
       result.push({
@@ -674,7 +675,7 @@ export function scalePath(
     if (isAlmostZero(scale - 1)) {
       return path.clone();
     }
-    const result: IPathD = new PathDTypedArray(path.length);
+    const result = new PathDTypedArray(path.length);
 
     for (let i = 0, len = path.length; i < len; i++) {
       result.push({ x: path.getX(i) * scale, y: path.getY(i) * scale });
@@ -698,7 +699,7 @@ export function scalePaths(
     const result = new Paths64();
 
     for (const path of paths) {
-      const tmpPath: Path64Base = new Path64TypedArray(path.length);
+      const tmpPath = new Path64TypedArray(path.length);
       for (let i = 0, len = path.length; i < len; i++) {
         tmpPath.push({
           x: numberToBigInt(Number(path.getX(i)) * scale),
@@ -717,7 +718,7 @@ export function scalePaths(
     const result = new PathsD();
 
     for (const path of paths) {
-      const tmpPath: PathDBase = new PathDTypedArray(path.length);
+      const tmpPath = new PathDTypedArray(path.length);
       for (let i = 0, len = path.length; i < len; i++) {
         tmpPath.push({ x: path.getX(i) * scale, y: path.getY(i) * scale });
       }
@@ -730,18 +731,18 @@ export function scalePaths(
 }
 
 export function scalePath64(path: IPathD, scale: number): IPath64 {
-  const result: IPath64 = new Path64TypedArray(path.length);
+  const result = new Path64TypedArray(path.length);
   for (let i = 0, len = path.length; i < len; i++) {
     result.push({
-      x: numberToBigInt(Number(path.getX(i)) * scale),
-      y: numberToBigInt(Number(path.getY(i)) * scale),
+      x: numberToBigInt(path.getX(i) * scale),
+      y: numberToBigInt(path.getY(i) * scale),
     });
   }
   return result;
 }
 
 export function scalePathD(path: IPath64, scale: number): IPathD {
-  const result: IPathD = new PathDTypedArray(path.length);
+  const result = new PathDTypedArray(path.length);
   for (let i = 0, len = path.length; i < len; i++) {
     result.push({
       x: Number(path.getX(i)) * scale,
@@ -783,16 +784,8 @@ export function pathsD(paths: Paths64): PathsD {
   return scalePathsD(paths, 1);
 }
 
-export function translatePath(
-  path: IPath64,
-  dx: bigint,
-  dy: bigint,
-): IPath64;
-export function translatePath(
-  path: IPathD,
-  dx: number,
-  dy: number,
-): IPathD;
+export function translatePath(path: IPath64, dx: bigint, dy: bigint): IPath64;
+export function translatePath(path: IPathD, dx: number, dy: number): IPathD;
 export function translatePath(
   path: IPath64 | IPathD,
   dx: bigint | number,
@@ -800,8 +793,8 @@ export function translatePath(
 ): IPath64 | IPathD {
   if (isPath64(path) && typeof dx === "bigint" && typeof dy === "bigint") {
     const result = new Path64TypedArray();
-    for (const pt of path) {
-      result.push({ x: pt.x + dx, y: pt.y + dy });
+    for (let i = 0, len = path.length; i < len; i++) {
+      result.push({ x: path.getX(i) + dx, y: path.getY(i) + dy });
     }
     return result;
   } else if (
@@ -810,8 +803,8 @@ export function translatePath(
     typeof dy === "number"
   ) {
     const result = new PathDTypedArray();
-    for (const pt of path) {
-      result.push({ x: pt.x + dx, y: pt.y + dy });
+    for (let i = 0, len = path.length; i < len; i++) {
+      result.push({ x: path.getX(i) + dx, y: path.getY(i) + dy });
     }
     return result;
   }
@@ -847,9 +840,7 @@ export function translatePaths(
 
 export function reversePath(path: IPath64): IPath64;
 export function reversePath(path: IPathD): IPathD;
-export function reversePath(
-  path: IPath64 | IPathD,
-): IPath64 | IPathD {
+export function reversePath(path: IPath64 | IPathD): IPath64 | IPathD {
   if (isPath64(path)) {
     const result = new Path64TypedArray();
     for (let i = path.length - 1; i >= 0; i--) {
@@ -896,72 +887,72 @@ export function getBounds(
   if (isPaths64(pathOrPaths)) {
     const result = invalidRect64();
     for (const path of pathOrPaths) {
-      for (const pt of path) {
-        if (pt.x < result.left) {
-          result.left = pt.x;
+      for (let i = 0, len = path.length; i < len; i++) {
+        if (path.getX(i) < result.left) {
+          result.left = path.getX(i);
         }
-        if (pt.x > result.right) {
-          result.right = pt.x;
+        if (path.getX(i) > result.right) {
+          result.right = path.getX(i);
         }
-        if (pt.y < result.top) {
-          result.top = pt.y;
+        if (path.getY(i) < result.top) {
+          result.top = path.getY(i);
         }
-        if (pt.y > result.bottom) {
-          result.bottom = pt.y;
+        if (path.getY(i) > result.bottom) {
+          result.bottom = path.getY(i);
         }
       }
     }
     return result.left === 9223372036854775807n ? new Rect64() : result;
   } else if (isPath64(pathOrPaths)) {
     const result = invalidRect64();
-    for (const pt of pathOrPaths) {
-      if (pt.x < result.left) {
-        result.left = pt.x;
+    for (let i = 0, len = pathOrPaths.length; i < len; i++) {
+      if (pathOrPaths.getX(i) < result.left) {
+        result.left = pathOrPaths.getX(i);
       }
-      if (pt.x > result.right) {
-        result.right = pt.x;
+      if (pathOrPaths.getX(i) > result.right) {
+        result.right = pathOrPaths.getX(i);
       }
-      if (pt.y < result.top) {
-        result.top = pt.y;
+      if (pathOrPaths.getY(i) < result.top) {
+        result.top = pathOrPaths.getY(i);
       }
-      if (pt.y > result.bottom) {
-        result.bottom = pt.y;
+      if (pathOrPaths.getY(i) > result.bottom) {
+        result.bottom = pathOrPaths.getY(i);
       }
     }
     return result.left === 9223372036854775807n ? new Rect64() : result;
   } else if (isPathsD(pathOrPaths)) {
     const result = invalidRectD();
     for (const path of pathOrPaths) {
-      for (const pt of path) {
-        if (pt.x < result.left) {
-          result.left = pt.x;
+      for (let i = 0, len = path.length; i < len; i++) {
+        if (path.getX(i) < result.left) {
+          result.left = path.getX(i);
         }
-        if (pt.x > result.right) {
-          result.right = pt.x;
+        if (path.getX(i) > result.right) {
+          result.right = path.getX(i);
         }
-        if (pt.y < result.top) {
-          result.top = pt.y;
+        if (path.getY(i) < result.top) {
+          result.top = path.getY(i);
         }
-        if (pt.y > result.bottom) {
-          result.bottom = pt.y;
+        if (path.getY(i) > result.bottom) {
+          result.bottom = path.getY(i);
         }
       }
     }
     return result.left === Infinity ? new RectD() : result;
   } else if (isPathD(pathOrPaths)) {
     const result = invalidRectD();
-    for (const pt of pathOrPaths) {
-      if (pt.x < result.left) {
-        result.left = pt.x;
+    for (let i = 0, len = pathOrPaths.length; i < len; i++) {
+      if (pathOrPaths.getX(i) < result.left) {
+        result.left = pathOrPaths.getX(i);
       }
-      if (pt.x > result.right) {
-        result.right = pt.x;
+      if (pathOrPaths.getX(i) > result.right) {
+        result.right = pathOrPaths.getX(i);
       }
-      if (pt.y < result.top) {
-        result.top = pt.y;
+      if (pathOrPaths.getY(i) < result.top) {
+        result.top = pathOrPaths.getY(i);
       }
-      if (pt.y > result.bottom) {
-        result.bottom = pt.y;
+      if (pathOrPaths.getY(i) > result.bottom) {
+        result.bottom = pathOrPaths.getY(i);
       }
     }
     return result.left === Infinity ? new RectD() : result;
@@ -972,7 +963,7 @@ export function getBounds(
 export function makePath64(arr: ArrayLike<number>): IPath64;
 export function makePath64(arr: ArrayLike<bigint>): IPath64;
 export function makePath64(arr: ArrayLike<number> | ArrayLike<bigint>) {
-  const path: IPath64 = new Path64TypedArray();
+  const path = new Path64TypedArray();
   for (let i = 0; i < arr.length; i = i + 2) {
     path.push({ x: BigInt(arr[i]), y: BigInt(arr[i + 1]) });
   }
@@ -980,7 +971,7 @@ export function makePath64(arr: ArrayLike<number> | ArrayLike<bigint>) {
 }
 
 export function makePathD(arr: ArrayLike<number>): IPathD {
-  const path: IPathD = new PathDTypedArray();
+  const path = new PathDTypedArray();
   for (let i = 0; i < arr.length; i = i + 2) {
     path.push({ x: arr[i], y: arr[i + 1] });
   }
@@ -1001,7 +992,7 @@ export function stripNearDuplicates(
   isClosedPath: boolean,
 ): IPathD {
   const cnt = path.length;
-  const result: IPathD = new PathDTypedArray();
+  const result = new PathDTypedArray();
   if (cnt === 0) {
     return result;
   }
@@ -1023,12 +1014,9 @@ export function stripNearDuplicates(
   return result;
 }
 
-export function stripDuplicates(
-  path: IPath64,
-  isClosedPath: boolean,
-): IPath64 {
+export function stripDuplicates(path: IPath64, isClosedPath: boolean): IPath64 {
   const cnt = path.length;
-  const result: IPath64 = new Path64TypedArray();
+  const result = new Path64TypedArray();
   if (cnt === 0) {
     return result;
   }
@@ -1085,15 +1073,9 @@ export function polyTreeToPathsD(polyTree: PolyTreeD): PathsD {
   return result;
 }
 
-export function ramerDouglasPeucker(
-  path: IPath64,
-  epsilon: number,
-): IPath64;
+export function ramerDouglasPeucker(path: IPath64, epsilon: number): IPath64;
 export function ramerDouglasPeucker(path: Paths64, epsilon: number): Paths64;
-export function ramerDouglasPeucker(
-  path: IPathD,
-  epsilon: number,
-): IPathD;
+export function ramerDouglasPeucker(path: IPathD, epsilon: number): IPathD;
 export function ramerDouglasPeucker(path: PathsD, epsilon: number): PathsD;
 export function ramerDouglasPeucker(
   pathOrPaths: IPath64 | IPathD | Paths64 | PathsD,
@@ -1488,7 +1470,7 @@ export function trimCollinear(
     isOpen = mayBeIsOpen;
     checkPrecision(precision);
     const scale = Math.pow(10, precision);
-    let p = scalePath64(path as IPathD, scale);
+    let p = scalePath64(path, scale);
     p = trimCollinear(p, isOpen);
     return scalePathD(p, 1 / scale);
   } else if (
@@ -1532,7 +1514,7 @@ export function trimCollinear(
 
       return path.clone();
     }
-    const result: IPath64 = new Path64TypedArray();
+    const result = new Path64TypedArray();
 
     let last = path.getClone(i);
 
@@ -1585,16 +1567,17 @@ export function pointInPolygon(
   pt: Point64 | PointD,
   polygon: IPath64 | IPathD,
   precision: number = 2,
-) {
-  if (isPoint64(pt)) {
-    return internalPointInPolygon(pt, polygon as IPath64);
-  } else {
+): PointInPolygonResult {
+  if (isPoint64(pt) && isPath64(polygon)) {
+    return internalPointInPolygon(pt, polygon);
+  } else if(isPointD(pt) && isPathD(polygon)) {
     checkPrecision(precision);
     const scale = Math.pow(10, precision);
     const p = Point64.createScaledPoint(pt.x, pt.y, scale);
-    const path = scalePath64(polygon as IPathD, scale);
+    const path = scalePath64(polygon, scale);
     return internalPointInPolygon(p, path);
   }
+  throw new TypeError("Invalid argument types.");
 }
 
 export function ellipse(
@@ -1612,19 +1595,25 @@ export function ellipse(
 export function ellipse(
   center: Point64 | PointD,
   radiusX: number,
-  radiusY: number = 0,
-  steps: number = 0,
+  radiusY?: number,
+  steps?: number,
 ): IPath64 | IPathD {
   if (isPoint64(center)) {
-    if (radiusX <= 0) {
-      return new Path64TypedArray();
-    }
+    return ellipse64(center, radiusX, radiusY, steps);
   } else if (isPointD(center)) {
-    if (radiusX <= 0) {
-      return new PathDTypedArray();
-    }
-  } else {
+    return ellipseD(center, radiusX, radiusY, steps);
+  }
   throw new TypeError("Invalid argument types.");
+}
+
+function ellipse64(
+  center: Point64,
+  radiusX: number,
+  radiusY: number = 0,
+  steps: number = 0,
+): IPath64 {
+  if (radiusX <= 0) {
+    return new Path64TypedArray();
   }
 
   if (radiusY <= 0) {
@@ -1639,34 +1628,55 @@ export function ellipse(
   let dx = co;
   let dy = si;
 
-  if (isPoint64(center)) {
-    const centerX = center.x;
-    const centerY = center.y;
-    const result: Path64Base = new Path64TypedArray(steps);
-    result.push({ x: centerX + numberToBigInt(radiusX), y: centerY });
-    for (let i = 1; i < steps; i++) {
-      result.push({
-        x: centerX + numberToBigInt(radiusX * dx),
-        y: centerY + numberToBigInt(radiusY * dy),
-      });
-      const x = dx * co - dy * si;
-      dy = dy * co + dx * si;
-      dx = x;
-    }
-    return result;
-  } else {
-    const centerX = center.x;
-    const centerY = center.y;
-    const result: PathDBase = new PathDTypedArray();
-    result.push({ x: centerX + radiusX, y: center.y });
-    for (let i = 1; i < steps; i++) {
-      result.push({ x: centerX + radiusX * dx, y: centerY + radiusY * dy });
-      const x = dx * co - dy * si;
-      dy = dy * co + dx * si;
-      dx = x;
-    }
-    return result;
+  const centerX = center.x;
+  const centerY = center.y;
+  const result = new Path64TypedArray(steps);
+  result.push({ x: centerX + numberToBigInt(radiusX), y: centerY });
+  for (let i = 1; i < steps; i++) {
+    result.push({
+      x: centerX + numberToBigInt(radiusX * dx),
+      y: centerY + numberToBigInt(radiusY * dy),
+    });
+    const x = dx * co - dy * si;
+    dy = dy * co + dx * si;
+    dx = x;
   }
+  return result;
+}
+
+function ellipseD(
+  center: PointD,
+  radiusX: number,
+  radiusY: number = 0,
+  steps: number = 0,
+): IPathD {
+  if (radiusX <= 0) {
+    return new PathDTypedArray();
+  }
+
+  if (radiusY <= 0) {
+    radiusY = radiusX;
+  }
+  if (steps <= 2) {
+    steps = Math.ceil(Math.PI * Math.sqrt((radiusX + radiusY) / 2));
+  }
+  const si = Math.sin((2 * Math.PI) / steps);
+  const co = Math.cos((2 * Math.PI) / steps);
+
+  let dx = co;
+  let dy = si;
+
+  const centerX = center.x;
+  const centerY = center.y;
+  const result = new PathDTypedArray(steps);
+  result.push({ x: centerX + radiusX, y: center.y });
+  for (let i = 1; i < steps; i++) {
+    result.push({ x: centerX + radiusX * dx, y: centerY + radiusY * dy });
+    const x = dx * co - dy * si;
+    dy = dy * co + dx * si;
+    dx = x;
+  }
+  return result;
 }
 
 export function showPolyPathStructure(pp: PolyPathBase, level: number): void {

@@ -6,10 +6,9 @@ import { PointD, isPointD } from "./PointD";
 export const isRectD = (obj: unknown): obj is RectD =>
   isNotNullish(obj) && obj.type === RectDTypeName;
 
-export const RectDTypeName = "RectD";
+export const RectDTypeName = Symbol("RectD");
 
 export class RectD {
-  readonly isRectD: true;
   readonly type: typeof RectDTypeName;
   left: number;
   top: number;
@@ -27,7 +26,6 @@ export class RectD {
     right?: number,
     bottom?: number,
   ) {
-    this.isRectD = true;
     this.type = RectDTypeName;
     if (leftOrIsValidOrRec === undefined) {
       this.left = 0;

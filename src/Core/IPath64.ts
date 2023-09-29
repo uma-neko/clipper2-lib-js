@@ -2,7 +2,7 @@ import { Point64 } from "./Point64";
 
 export const Path64TypeName = Symbol("Path64");
 
-export interface IPath64 extends Iterable<Point64>{
+export interface IPath64 extends Iterable<Point64> {
   readonly type: typeof Path64TypeName;
   push(...path: Point64[]): number;
   pushRange(path: Iterable<Point64>): number;
@@ -15,4 +15,4 @@ export interface IPath64 extends Iterable<Point64>{
   getY(index: number): bigint;
   set(index: number, x: bigint, y: bigint): void;
   readonly length: number;
-};
+}
