@@ -53,5 +53,10 @@
       "import": "./build/clipper2lib.module.js",
       "require": "./build/clipper2lib.cjs"
     }
-  }
+  },
+  "keywords": [
+    "clipping",
+    "clipper",
+    "polygon"
+  ]
 }
