@@ -75,7 +75,7 @@ export class ClipperOffset {
     this._stepsPerRad = 0;
     this._stepSin = 0;
     this._stepCos = 0;
-    this._joinType = JoinType.Square;
+    this._joinType = JoinType.Bevel;
     this._endType = EndType.Polygon;
   }
 
@@ -279,6 +279,37 @@ export class ClipperOffset {
     };
   }
 
+  doBevel(group: ClipperGroup, path: IPath64, j: number, k: number): void {
+    if (j == k) {
+      const absDelta = Math.abs(this._groupDelta);
+      group.outPath.push({
+        x: path.getX(j) - numberToBigInt(absDelta * this._normals.getX(j)),
+        y: path.getY(j) - numberToBigInt(absDelta * this._normals.getY(j)),
+      });
+      group.outPath.push({
+        x: path.getX(j) + numberToBigInt(absDelta * this._normals.getX(j)),
+        y: path.getY(j) + numberToBigInt(absDelta * this._normals.getY(j)),
+      });
+    } else {
+      group.outPath.push({
+        x:
+          path.getX(j) +
+          numberToBigInt(this._groupDelta * this._normals.getX(k)),
+        y:
+          path.getY(j) +
+          numberToBigInt(this._groupDelta * this._normals.getY(k)),
+      });
+      group.outPath.push({
+        x:
+          path.getX(j) +
+          numberToBigInt(this._groupDelta * this._normals.getX(j)),
+        y:
+          path.getY(j) +
+          numberToBigInt(this._groupDelta * this._normals.getY(j)),
+      });
+    }
+  }
+
   doSquare(group: ClipperGroup, path: IPath64, j: number, k: number): void {
     let vec: PointD;
     const kNormalPt = this._normals.getClone(k);
@@ -472,10 +503,12 @@ export class ClipperOffset {
       } else {
         this.doSquare(group, path, j, k);
       }
-    } else if (cosA > 0.99 || this._joinType === JoinType.Square) {
-      this.doSquare(group, path, j, k);
-    } else {
+    } else if (cosA > 0.99 || this._joinType === JoinType.Bevel) {
+      this.doBevel(group, path, j, k);
+    } else if (this._joinType === JoinType.Round) {
       this.doRound(group, path, j, k, Math.atan2(sinA, cosA));
+    } else {
+      this.doSquare(group, path, j, k);
     }
 
     return j;
@@ -523,11 +556,7 @@ export class ClipperOffset {
       const startNormalPt = this._normals.getClone(0);
       switch (this._endType) {
         case EndType.Butt:
-          group.outPath.push({
-            x: startPt.x - numberToBigInt(startNormalPt.x * this._groupDelta),
-            y: startPt.y - numberToBigInt(startNormalPt.y * this._groupDelta),
-          });
-          group.outPath.push(this.getPerpendic(startPt, startNormalPt));
+          this.doBevel(group, path, 0, 0);
           break;
         case EndType.Round:
           this.doRound(group, path, 0, 0, Math.PI);
@@ -559,11 +588,7 @@ export class ClipperOffset {
     } else {
       switch (this._endType) {
         case EndType.Butt:
-          group.outPath.push({
-            x: highPt.x - numberToBigInt(highNormalPt.x * this._groupDelta),
-            y: highPt.y - numberToBigInt(highNormalPt.y * this._groupDelta),
-          });
-          group.outPath.push(this.getPerpendic(highPt, highNormalPt));
+          this.doBevel(group, path, highI, highI);
           break;
         case EndType.Round:
           this.doRound(group, path, highI, highI, Math.PI);
