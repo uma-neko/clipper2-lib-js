@@ -2,6 +2,7 @@ export const JoinType = {
   Square: 0,
   Round: 1,
   Miter: 2,
+  Bevel: 3,
 } as const;
 export type JoinType = (typeof JoinType)[keyof typeof JoinType];
 
