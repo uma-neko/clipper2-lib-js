@@ -553,7 +553,6 @@ export class ClipperOffset {
     if (Math.abs(this._groupDelta) < tolerance) {
       group.outPath.push(startPt);
     } else {
-      const startNormalPt = this._normals.getClone(0);
       switch (this._endType) {
         case EndType.Butt:
           this.doBevel(group, path, 0, 0);
