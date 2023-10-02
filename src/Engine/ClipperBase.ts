@@ -9,7 +9,10 @@ import { OutPt } from "./OutPt";
 import { OutRec } from "./OutRec";
 import { PolyPathBase } from "./PolyPathBase";
 import { Vertex } from "./Vertex";
-import { numberToBigInt, perpendicDistFromLineSqrd64 } from "../Clipper";
+import {
+  perpendicDistFromLineSqrd64,
+  roundToEven,
+} from "../Clipper";
 import { ClipType, FillRule, PathType } from "../Core/CoreEnums";
 import {
   crossProduct64,
@@ -81,7 +84,7 @@ const topX = (ae: Active, currentY: bigint): bigint => {
   } else if (currentY === ae.bot.y) {
     return ae.bot.x;
   }
-  return ae.bot.x + numberToBigInt(ae.dx * Number(currentY - ae.bot.y));
+  return ae.bot.x + BigInt(roundToEven(ae.dx * Number(currentY - ae.bot.y)));
 };
 
 const isHorizontal = (ae: Active) => {
