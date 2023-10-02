@@ -2,7 +2,7 @@ import type { IPath64 } from "./IPath64";
 import { Point64 } from "./Point64";
 import { PointD } from "./PointD";
 import { PointInPolygonResult } from "../Engine/EngineEnums";
-import { numberToBigInt } from "../Clipper";
+import { numberToBigInt, roundToEven } from "../Clipper";
 
 const floatingPointTolerance = 1e-12;
 
@@ -112,8 +112,8 @@ export const getClosestPtOnSegment = (
     return Point64.clone(seg2);
   }
   return {
-    x: seg1.x + numberToBigInt(q * Number(dx)),
-    y: seg1.y + numberToBigInt(q * Number(dy)),
+    x: seg1.x + BigInt(roundToEven(q * Number(dx))),
+    y: seg1.y + BigInt(roundToEven(q * Number(dy))),
   };
 };
 
