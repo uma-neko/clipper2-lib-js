@@ -126,8 +126,8 @@ const getClosestPtOnSegment = (offPt, seg1, seg2) => {
     return Point64.clone(seg2);
   }
   return {
-    x: seg1.x + numberToBigInt(q * Number(dx)),
-    y: seg1.y + numberToBigInt(q * Number(dy))
+    x: seg1.x + BigInt(Math.trunc(q * Number(dx))),
+    y: seg1.y + BigInt(Math.trunc(q * Number(dy)))
   };
 };
 const pointInPolygon$1 = (pt, polygon) => {
@@ -1206,7 +1206,7 @@ const topX = (ae, currentY) => {
   } else if (currentY === ae.bot.y) {
     return ae.bot.x;
   }
-  return ae.bot.x + numberToBigInt(ae.dx * Number(currentY - ae.bot.y));
+  return ae.bot.x + BigInt(roundToEven(ae.dx * Number(currentY - ae.bot.y)));
 };
 const isHorizontal$1 = (ae) => {
   return ae.top.y === ae.bot.y;
@@ -3664,7 +3664,8 @@ const Minkowski = {
 const JoinType = {
   Square: 0,
   Round: 1,
-  Miter: 2
+  Miter: 2,
+  Bevel: 3
 };
 const EndType = {
   Polygon: 0,
@@ -3723,7 +3724,7 @@ class ClipperOffset {
     this._stepsPerRad = 0;
     this._stepSin = 0;
     this._stepCos = 0;
-    this._joinType = JoinType.Square;
+    this._joinType = JoinType.Bevel;
     this._endType = EndType.Polygon;
   }
   clear() {
@@ -3886,6 +3887,28 @@ class ClipperOffset {
       y: Number(pt.y) + norm.y * this._groupDelta
     };
   }
+  doBevel(group, path, j, k) {
+    if (j == k) {
+      const absDelta = Math.abs(this._groupDelta);
+      group.outPath.push({
+        x: path.getX(j) - numberToBigInt(absDelta * this._normals.getX(j)),
+        y: path.getY(j) - numberToBigInt(absDelta * this._normals.getY(j))
+      });
+      group.outPath.push({
+        x: path.getX(j) + numberToBigInt(absDelta * this._normals.getX(j)),
+        y: path.getY(j) + numberToBigInt(absDelta * this._normals.getY(j))
+      });
+    } else {
+      group.outPath.push({
+        x: path.getX(j) + numberToBigInt(this._groupDelta * this._normals.getX(k)),
+        y: path.getY(j) + numberToBigInt(this._groupDelta * this._normals.getY(k))
+      });
+      group.outPath.push({
+        x: path.getX(j) + numberToBigInt(this._groupDelta * this._normals.getX(j)),
+        y: path.getY(j) + numberToBigInt(this._groupDelta * this._normals.getY(j))
+      });
+    }
+  }
   doSquare(group, path, j, k) {
     let vec;
     const kNormalPt = this._normals.getClone(k);
@@ -4035,10 +4058,12 @@ class ClipperOffset {
       } else {
         this.doSquare(group, path, j, k);
       }
-    } else if (cosA > 0.99 || this._joinType === JoinType.Square) {
-      this.doSquare(group, path, j, k);
-    } else {
+    } else if (cosA > 0.99 || this._joinType === JoinType.Bevel) {
+      this.doBevel(group, path, j, k);
+    } else if (this._joinType === JoinType.Round) {
       this.doRound(group, path, j, k, Math.atan2(sinA, cosA));
+    } else {
+      this.doSquare(group, path, j, k);
     }
     return j;
   }
@@ -4075,14 +4100,9 @@ class ClipperOffset {
     if (Math.abs(this._groupDelta) < tolerance) {
       group.outPath.push(startPt);
     } else {
-      const startNormalPt = this._normals.getClone(0);
       switch (this._endType) {
         case EndType.Butt:
-          group.outPath.push({
-            x: startPt.x - numberToBigInt(startNormalPt.x * this._groupDelta),
-            y: startPt.y - numberToBigInt(startNormalPt.y * this._groupDelta)
-          });
-          group.outPath.push(this.getPerpendic(startPt, startNormalPt));
+          this.doBevel(group, path, 0, 0);
           break;
         case EndType.Round:
           this.doRound(group, path, 0, 0, Math.PI);
@@ -4110,11 +4130,7 @@ class ClipperOffset {
     } else {
       switch (this._endType) {
         case EndType.Butt:
-          group.outPath.push({
-            x: highPt.x - numberToBigInt(highNormalPt.x * this._groupDelta),
-            y: highPt.y - numberToBigInt(highNormalPt.y * this._groupDelta)
-          });
-          group.outPath.push(this.getPerpendic(highPt, highNormalPt));
+          this.doBevel(group, path, highI, highI);
           break;
         case EndType.Round:
           this.doRound(group, path, highI, highI, Math.PI);
@@ -5249,6 +5265,15 @@ class RectClipLines64 extends RectClip64 {
     }
   }
 }
+const roundToEven = (num) => {
+  if (Number.isInteger(num)) {
+    return num;
+  } else if (Number.isInteger(num * 2)) {
+    const truncated = Math.trunc(num);
+    return truncated + truncated % 2;
+  }
+  return awayFromZeroRounding(num);
+};
 const awayFromZeroRounding = (num) => num >= 0 ? Math.trunc(num + 0.5) : Math.trunc(num - 0.5);
 function numberToBigInt(num) {
   return BigInt(awayFromZeroRounding(num));

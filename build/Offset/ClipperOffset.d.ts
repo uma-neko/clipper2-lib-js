@@ -46,6 +46,7 @@ export declare class ClipperOffset {
     intersectPoint(pt1a: PointD, pt1b: PointD, pt2a: PointD, pt2b: PointD): PointD;
     getPerpendic(pt: Point64, norm: PointD): Point64;
     getPerpendicD(pt: Point64, norm: PointD): PointD;
+    doBevel(group: ClipperGroup, path: IPath64, j: number, k: number): void;
     doSquare(group: ClipperGroup, path: IPath64, j: number, k: number): void;
     doMiter(group: ClipperGroup, path: IPath64, j: number, k: number, cosA: number): void;
     doRound(group: ClipperGroup, path: IPath64, j: number, k: number, angle: number): void;
