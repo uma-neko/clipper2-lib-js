@@ -9,10 +9,7 @@ import { OutPt } from "./OutPt";
 import { OutRec } from "./OutRec";
 import { PolyPathBase } from "./PolyPathBase";
 import { Vertex } from "./Vertex";
-import {
-  perpendicDistFromLineSqrd64,
-  roundToEven,
-} from "../Clipper";
+import { perpendicDistFromLineSqrd64, roundToEven } from "../Clipper";
 import { ClipType, FillRule, PathType } from "../Core/CoreEnums";
 import {
   crossProduct64,

@@ -32,7 +32,12 @@ const solution = Clipper.intersect(subj, clip, FillRule.NonZero);
 - [x] TypedArray Path.  
 
 ## Release notes
-### version 0.0.3
+### version 0.0.4
+#### Changes
+  - Added a new join type `JoinType.Bevel`` for offsetting.
+  - Followed rounding rules of the original code.
+
+### version 0.0.3  
 #### Breaking Changes
   - Changed to `Path64` and `PathD` constructor.  
     Obsolutde `Paths64` and `PathsD` constructor methods whose argument is `Iterable<Iterable<Point>>`.  

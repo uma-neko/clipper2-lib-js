@@ -2,6 +2,7 @@ export declare const JoinType: {
     readonly Square: 0;
     readonly Round: 1;
     readonly Miter: 2;
+    readonly Bevel: 3;
 };
 export type JoinType = (typeof JoinType)[keyof typeof JoinType];
 export declare const EndType: {
