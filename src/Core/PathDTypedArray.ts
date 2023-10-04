@@ -182,12 +182,7 @@ export class PathDTypedArray implements IPathD, IScalablePath {
       return undefined;
     }
 
-    const orig = this.get(this._innerLength);
-
-    const result = {
-      x: orig.x,
-      y: orig.y,
-    };
+    const result = this.getClone(this._innerLength - 1);
 
     this._innerLength--;
 

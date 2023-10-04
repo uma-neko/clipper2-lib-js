@@ -183,7 +183,7 @@ export class Path64TypedArray implements IPath64, IScalablePath {
       return undefined;
     }
 
-    const result = this.getClone(this._innerLength);
+    const result = this.getClone(this._innerLength - 1);
     this._innerLength--;
 
     return result;
