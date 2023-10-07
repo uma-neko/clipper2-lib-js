@@ -2680,7 +2680,7 @@ export class ClipperBase {
     }
 
     if (outrec.owner !== undefined) {
-      if (outrec.owner.polypath !== undefined) {
+      if (outrec.owner.polypath === undefined) {
         this.recursiveCheckOwners(outrec.owner, polypath);
       }
       outrec.polypath = outrec.owner.polypath!.addChild(outrec.path);
