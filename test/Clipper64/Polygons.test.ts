@@ -59,11 +59,14 @@ describe(
 
         clipperPolytree.execute(
           ClipType[testCase.clipType],
-          FillRule[testCase.fillRule],solutionPolytree, solutionPolytreeOpen);
-
+          FillRule[testCase.fillRule],
+          solutionPolytree,
+          solutionPolytreeOpen,
+        );
 
         const mesuredAreaPolytree = solutionPolytree.area();
-        const solutionPolytreePaths = Clipper.polyTreeToPaths64(solutionPolytree);
+        const solutionPolytreePaths =
+          Clipper.polyTreeToPaths64(solutionPolytree);
         const mesuredCountPolytree = solutionPolytreePaths.length;
 
         expect(
@@ -75,13 +78,9 @@ describe(
           `area:{mesured:${mesuredArea}, solution:${solutionArea}}`,
         ).toBeLessThanOrEqual(toleranceAreaRatio);
 
-        expect(
-          mesuredArea
-        ).eq(mesuredAreaPolytree);
+        expect(mesuredArea).eq(mesuredAreaPolytree);
 
-        expect(
-          mesuredCount
-        ).eq(mesuredCountPolytree);
+        expect(mesuredCount).eq(mesuredCountPolytree);
       });
     }
   },

@@ -15,7 +15,7 @@ export type TestCases = {
       }
     | {
         type: "d";
-        paths: string[][];
+        paths: number[][];
       };
   subjects_open:
     | {
@@ -24,7 +24,7 @@ export type TestCases = {
       }
     | {
         type: "d";
-        paths: string[][];
+        paths: number[][];
       };
   clips:
     | {
@@ -33,6 +33,6 @@ export type TestCases = {
       }
     | {
         type: "d";
-        paths: string[][];
+        paths: number[][];
       };
 }[];
