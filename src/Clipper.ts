@@ -1505,7 +1505,7 @@ export function trimCollinear(
       }
     }
 
-    if (len - 1 < 3) {
+    if (len - i < 3) {
       if (
         !isOpen ||
         len < 2 ||
@@ -1519,6 +1519,7 @@ export function trimCollinear(
     const result = new Path64TypedArray();
 
     let last = path.getClone(i);
+    result.push(last);
 
     for (i++; i < len - 1; i++) {
       if (crossProduct64(last, path.getClone(i), path.getClone(i + 1)) === 0n) {

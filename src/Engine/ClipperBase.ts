@@ -213,7 +213,7 @@ const swapOutrecs = (ae1: Active, ae2: Active) => {
 };
 
 const setOwner = (outrec: OutRec, newOwner: OutRec) => {
-  while (newOwner.owner !== undefined && newOwner.owner.pts !== undefined) {
+  while (newOwner.owner !== undefined && newOwner.owner.pts === undefined) {
     newOwner.owner = newOwner.owner.owner;
   }
 
@@ -258,7 +258,7 @@ const isValidOwner = (outrec?: OutRec, testOwner?: OutRec): boolean => {
   while (testOwner !== undefined && testOwner !== outrec) {
     testOwner = testOwner.owner;
   }
-  return testOwner !== undefined;
+  return testOwner === undefined;
 };
 
 const uncoupleOutRec = (ae: Active): void => {
