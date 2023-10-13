@@ -1,12 +1,5 @@
 import { test, expect, describe } from "vitest";
-import {
-  Clipper,
-  Clipper64,
-  ClipType,
-  FillRule,
-  Paths64,
-  PolyTree64,
-} from "../../src/clipper2lib";
+import { Clipper } from "../../src/clipper2lib";
 
 describe(
   "Trim collinear test",

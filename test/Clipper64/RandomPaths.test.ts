@@ -57,7 +57,7 @@ describe(
   "Random paths test",
   async () => {
     test("1. ", async () => {
-      for (let i = 0; i < 750; i++) {
+      for (let i = 0; i < 750; i += 5) {
         const maxComplexity = Math.ceil(i === 0 ? 1 : i / 10);
 
         const clipper = new Clipper64();

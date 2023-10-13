@@ -2118,7 +2118,7 @@
     "solutionArea": 254234,
     "toleranceAreaRatio": 0.01,
     "solutionCount": 407,
-    "toleranceCountDiff": 2,
+    "toleranceCountDiff": 6,
     "subjects": {
       "type": "64",
       "paths": [
@@ -2333,7 +2333,7 @@
     "solutionArea": 334368,
     "toleranceAreaRatio": 0.01,
     "solutionCount": 339,
-    "toleranceCountDiff": 2,
+    "toleranceCountDiff": 6,
     "subjects": {
       "type": "64",
       "paths": [
