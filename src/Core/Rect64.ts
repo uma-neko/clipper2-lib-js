@@ -134,9 +134,9 @@ export class Rect64 {
   intersects(rec: Rect64) {
     return (
       (this.left >= rec.left ? this.left : rec.left) <=
-        (this.right >= rec.right ? this.right : rec.right) &&
+        (this.right <= rec.right ? this.right : rec.right) &&
       (this.top >= rec.top ? this.top : rec.top) <=
-        (this.bottom >= rec.bottom ? this.bottom : rec.bottom)
+        (this.bottom <= rec.bottom ? this.bottom : rec.bottom)
     );
   }
 }
