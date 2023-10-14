@@ -23,7 +23,7 @@ const solution = Clipper.intersect(subj, clip, FillRule.NonZero);
 
 ## Todo
 - [ ] Add build process.  
-- [ ] Add tests.  
+- [x] Add tests.  
 - [ ] Add comments.  
 - [ ] Add demo.  
 - [ ] Add benchmark.  
@@ -32,9 +32,34 @@ const solution = Clipper.intersect(subj, clip, FillRule.NonZero);
 - [x] TypedArray Path.  
 
 ## Release notes
+### version 0.0.5
+#### Changes
+  - Followed rounding rules of the original code.  
+    Re-fixed because it was not fixed in the version 0.0.4.
+  - Changed build src script.
+  - Added C++ version like test.  
+    - Added offset test.
+    - Added polytree test to polygons test.
+    - Added offset orientation test.
+    - Added orientation test.
+    - Added polytree tests.
+    - Added random path test.
+    - Prettified test code.
+  - Fixed "polygons.json" tolerance.
+
+#### Performance improvements
+  - Changed to generate `OutRec.path` when needed.
+
+#### Bug fixes
+  - Fixed Path64(d)TypedArray.pop.
+  - Fixed polypath condition bug.
+  - Fixed Clipper.trimCollinear bug.
+  - Fixed setOwner and isValidOwner bug.
+  - Fixed Rect64.intersects bug.
+
 ### version 0.0.4
 #### Changes
-  - Added a new join type `JoinType.Bevel`` for offsetting.
+  - Added a new join type `JoinType.Bevel` for offsetting.
   - Followed rounding rules of the original code.
 
 ### version 0.0.3  

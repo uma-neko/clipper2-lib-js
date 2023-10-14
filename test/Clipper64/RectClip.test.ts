@@ -65,12 +65,11 @@ describe(
 
     test("2. Unexpected spike when clipping a long and narrow rectangle.", async () => {
       const sub = new Paths64();
-      let sol: Paths64;
       const rect = new Rect64(54690n, 0n, 65628n, 6000n);
       sub.push(
         Clipper.makePath64([700000, 6000, 0, 6000, 0, 5925, 700000, 5925]),
       );
-      sol = Clipper.rectClip(rect, sub);
+      const sol = Clipper.rectClip(rect, sub);
       expect(sol.length).toBe(1);
       expect(sol[0].length).toBe(4);
     });
@@ -78,7 +77,6 @@ describe(
     test("3. Infinite loop.", async () => {
       const sub = new Paths64();
       const clip = new Paths64();
-      let sol: Paths64;
       const rect = new Rect64(
         -1800000000n,
         -137573171n,
@@ -98,7 +96,7 @@ describe(
         ]),
       );
       clip.push(rect.asPath());
-      sol = Clipper.rectClip(rect, sub);
+      const sol = Clipper.rectClip(rect, sub);
       expect(sol.length).toBe(1);
     });
   },

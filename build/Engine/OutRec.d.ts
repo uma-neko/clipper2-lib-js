@@ -11,7 +11,7 @@ export type OutRec = {
     pts?: OutPt;
     polypath?: PolyPathBase;
     bounds: Rect64;
-    path: IPath64;
+    path?: IPath64;
     isOpen: boolean;
     splits?: number[];
     recursiveSplit?: OutRec;

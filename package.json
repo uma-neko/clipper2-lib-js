@@ -1,6 +1,6 @@
 {
   "name": "clipper2-lib-js",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "type": "module",
   "files": [
     "build",
@@ -23,8 +23,9 @@
     "prettier:test": "prettier --write test/",
     "check": "npm run test || npm run typecheck",
     "typecheck": "tsc",
-    "build": "npm run build:src",
-    "build:src": "npm run lint:all || npm run prettier:all && npm run vite build && npm run build:type",
+    "prebuild": "npm run lint:all && npm run prettier:all",
+    "build": "npm run build:src && npm run build:type",
+    "build:src": "npm run vite build",
     "build:type": "tsc --project tsconfig.build.json",
     "vite": "vite",
     "test": "vitest run"
