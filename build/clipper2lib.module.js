@@ -91,8 +91,8 @@ const getIntersectPoint = (ln1a, ln1b, ln2a, ln2b) => {
     return {
       result: true,
       ip: {
-        x: ln1a.x + numberToBigInt(t * Number(dx1)),
-        y: ln1a.y + numberToBigInt(t * Number(dy1))
+        x: numberToBigInt(Number(ln1a.x) + t * Number(dx1)),
+        y: numberToBigInt(Number(ln1a.y) + t * Number(dy1))
       }
     };
   }
@@ -118,14 +118,14 @@ const getClosestPtOnSegment = (offPt, seg1, seg2) => {
   const dx = seg2.x - seg1.x;
   const dy = seg2.y - seg1.y;
   const q = Number((offPt.x - seg1.x) * dx + (offPt.y - seg1.y) * dy) / Number(dx * dx + dy * dy);
-  if (q < 0) {
+  if (q <= 0) {
     return Point64.clone(seg1);
-  } else if (q > 1) {
+  } else if (q >= 1) {
     return Point64.clone(seg2);
   }
   return {
-    x: seg1.x + BigInt(Math.trunc(q * Number(dx))),
-    y: seg1.y + BigInt(Math.trunc(q * Number(dy)))
+    x: seg1.x + BigInt(roundToEven(q * Number(dx))),
+    y: seg1.y + BigInt(roundToEven(q * Number(dy)))
   };
 };
 const pointInPolygon$1 = (pt, polygon) => {
@@ -436,11 +436,7 @@ class PathDTypedArray {
     if (this._innerLength === 0) {
       return void 0;
     }
-    const orig = this.get(this._innerLength);
-    const result = {
-      x: orig.x,
-      y: orig.y
-    };
+    const result = this.getClone(this._innerLength - 1);
     this._innerLength--;
     return result;
   }
@@ -635,7 +631,7 @@ class Path64TypedArray {
     if (this._innerLength === 0) {
       return void 0;
     }
-    const result = this.getClone(this._innerLength);
+    const result = this.getClone(this._innerLength - 1);
     this._innerLength--;
     return result;
   }
@@ -964,7 +960,7 @@ class Rect64 {
     return this.bottom <= this.top || this.right <= this.left;
   }
   intersects(rec) {
-    return (this.left >= rec.left ? this.left : rec.left) <= (this.right >= rec.right ? this.right : rec.right) && (this.top >= rec.top ? this.top : rec.top) <= (this.bottom >= rec.bottom ? this.bottom : rec.bottom);
+    return (this.left >= rec.left ? this.left : rec.left) <= (this.right <= rec.right ? this.right : rec.right) && (this.top >= rec.top ? this.top : rec.top) <= (this.bottom <= rec.bottom ? this.bottom : rec.bottom);
   }
 }
 const EmptyRect64 = new Rect64();
@@ -1309,7 +1305,7 @@ const swapOutrecs = (ae1, ae2) => {
   ae2.outrec = or1;
 };
 const setOwner = (outrec, newOwner) => {
-  while (newOwner.owner !== void 0 && newOwner.owner.pts !== void 0) {
+  while (newOwner.owner !== void 0 && newOwner.owner.pts === void 0) {
     newOwner.owner = newOwner.owner.owner;
   }
   let tmp = newOwner;
@@ -1345,7 +1341,7 @@ const isValidOwner = (outrec, testOwner) => {
   while (testOwner !== void 0 && testOwner !== outrec) {
     testOwner = testOwner.owner;
   }
-  return testOwner !== void 0;
+  return testOwner === void 0;
 };
 const uncoupleOutRec = (ae) => {
   const outrec = ae.outrec;
@@ -2315,7 +2311,6 @@ class ClipperBase {
     const result = {
       idx: this._outrecList.length,
       bounds: EmptyRect64,
-      path: new Path64TypedArray(),
       isOpen: false
     };
     this._outrecList.push(result);
@@ -3226,7 +3221,11 @@ class ClipperBase {
       return true;
     }
     this.cleanCollinear(outrec);
-    if (outrec.pts === void 0 || !buildPath(outrec.pts, this.reverseSolution, false, outrec.path)) {
+    if (outrec.pts === void 0) {
+      return false;
+    }
+    outrec.path ?? (outrec.path = new Path64TypedArray());
+    if (!buildPath(outrec.pts, this.reverseSolution, false, outrec.path)) {
       return false;
     }
     outrec.bounds = getBounds$1(outrec.path);
@@ -3265,7 +3264,7 @@ class ClipperBase {
       outrec.owner = outrec.owner.owner;
     }
     if (outrec.owner !== void 0) {
-      if (outrec.owner.polypath !== void 0) {
+      if (outrec.owner.polypath === void 0) {
         this.recursiveCheckOwners(outrec.owner, polypath);
       }
       outrec.polypath = outrec.owner.polypath.addChild(outrec.path);
@@ -6293,7 +6292,7 @@ function trimCollinear(path, isOpenOrPrecision, mayBeIsOpen = false) {
         len--;
       }
     }
-    if (len - 1 < 3) {
+    if (len - i < 3) {
       if (!isOpen2 || len < 2 || Point64.equals(path.getClone(0), path.getClone(1))) {
         return new Path64TypedArray();
       }
@@ -6301,6 +6300,7 @@ function trimCollinear(path, isOpenOrPrecision, mayBeIsOpen = false) {
     }
     const result = new Path64TypedArray();
     let last = path.getClone(i);
+    result.push(last);
     for (i++; i < len - 1; i++) {
       if (crossProduct64(last, path.getClone(i), path.getClone(i + 1)) === 0n) {
         continue;
