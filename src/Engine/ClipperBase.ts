@@ -1453,7 +1453,6 @@ export class ClipperBase {
     const result: OutRec = {
       idx: this._outrecList.length,
       bounds: EmptyRect64,
-      path: new Path64TypedArray(),
       isOpen: false,
     };
 
@@ -2610,10 +2609,13 @@ export class ClipperBase {
 
     this.cleanCollinear(outrec);
 
-    if (
-      outrec.pts === undefined ||
-      !buildPath(outrec.pts, this.reverseSolution, false, outrec.path)
-    ) {
+    if (outrec.pts === undefined) {
+      return false;
+    }
+
+    outrec.path ??= new Path64TypedArray();
+
+    if (!buildPath(outrec.pts, this.reverseSolution, false, outrec.path)) {
       return false;
     }
 
@@ -2683,9 +2685,9 @@ export class ClipperBase {
       if (outrec.owner.polypath === undefined) {
         this.recursiveCheckOwners(outrec.owner, polypath);
       }
-      outrec.polypath = outrec.owner.polypath!.addChild(outrec.path);
+      outrec.polypath = outrec.owner.polypath!.addChild(outrec.path!);
     } else {
-      outrec.polypath = polypath.addChild(outrec.path);
+      outrec.polypath = polypath.addChild(outrec.path!);
     }
   }
 
