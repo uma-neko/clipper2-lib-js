@@ -25,6 +25,8 @@ import { EmptyRect64, Rect64 } from "../Core/Rect64";
 import type { IPath64 } from "../Core/IPath64";
 import { Path64TypedArray } from "../Core/Path64TypedArray";
 import { bigintAbs } from "../CommonUtils";
+import { BigInt64ArrayPool } from "../Core/BigInt64ArrayPool";
+import { PooledPath64 } from "../Core/PooledPath64";
 
 const isOdd = (val: number) => {
   return (val & 1) !== 0;
@@ -868,6 +870,7 @@ export class ClipperBase {
   _succeeded: boolean;
   preserveCollinear: boolean;
   reverseSolution: boolean;
+  _arrayPool: BigInt64ArrayPool;
 
   constructor() {
     this._cliptype = ClipType.None;
@@ -887,6 +890,7 @@ export class ClipperBase {
     this._succeeded = false;
     this.preserveCollinear = true;
     this.reverseSolution = false;
+    this._arrayPool = new BigInt64ArrayPool();
   }
 
   clearSolutionOnly() {
@@ -898,6 +902,7 @@ export class ClipperBase {
     this._outrecList = [];
     this._horzSegList = [];
     this._horzJoinList = [];
+    this._arrayPool = new BigInt64ArrayPool();
   }
 
   clear() {
@@ -2613,7 +2618,7 @@ export class ClipperBase {
       return false;
     }
 
-    outrec.path ??= new Path64TypedArray();
+    outrec.path ??= new PooledPath64(this._arrayPool);
 
     if (!buildPath(outrec.pts, this.reverseSolution, false, outrec.path)) {
       return false;
