@@ -30,6 +30,7 @@ import { ClipperOffset } from "./Offset/ClipperOffset";
 import { EndType, JoinType } from "./Offset/OffsetEnums";
 import { RectClip64 } from "./RectClip/RectClip64";
 import { RectClipLines64 } from "./RectClip/RectClipLines64";
+import { longToDouble, doubleToLong } from "./CommonUtils";
 
 // If cast double to long, truncated. (ex. 0.5 => 0, 1.5 => 1)
 // If use C# round or std::nearbyint, round half to even. (ex. 0.5 => 0, 1.5 => 2)
@@ -49,7 +50,7 @@ export const awayFromZeroRounding = (num: number): number =>
   num >= 0 ? Math.trunc(num + 0.5) : Math.trunc(num - 0.5);
 
 export function numberToBigInt(num: number): bigint {
-  return BigInt(awayFromZeroRounding(num));
+  return doubleToLong(awayFromZeroRounding(num));
 }
 
 export function perpendicDistFromLineSqrd(
