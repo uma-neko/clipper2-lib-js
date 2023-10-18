@@ -3,6 +3,7 @@ import { IScalablePath } from "./IScalablePath";
 import { IPath64, Path64TypeName } from "./IPath64";
 import { PathDTypedArray } from "./PathDTypedArray";
 import { Point64 } from "./Point64";
+import { longToDouble } from "../CommonUtils";
 
 type Point64ProxyInner = {
   index: number;
@@ -204,8 +205,8 @@ export class Path64TypedArray implements IPath64, IScalablePath {
       const scaledPath = new Path64TypedArray(this._innerLength);
       for (let index = 0; index < this._innerLength; index++) {
         scaledPath.pushDecomposed(
-          numberToBigInt(Number(this.getX(index)) * scale),
-          numberToBigInt(Number(this.getY(index)) * scale),
+          numberToBigInt(longToDouble(this.getX(index)) * scale),
+          numberToBigInt(longToDouble(this.getY(index)) * scale),
         );
       }
       return scaledPath;
@@ -216,8 +217,8 @@ export class Path64TypedArray implements IPath64, IScalablePath {
     const scaledPath = new PathDTypedArray(this._innerLength);
     for (let index = 0; index < this._innerLength; index++) {
       scaledPath.pushDecomposed(
-        Number(this.getX(index)) * scale,
-        Number(this.getY(index)) * scale,
+        longToDouble(this.getX(index)) * scale,
+        longToDouble(this.getY(index)) * scale,
       );
     }
     return scaledPath;

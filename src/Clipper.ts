@@ -90,7 +90,7 @@ export function perpendicDistFromLineSqrd64(
   }
   const x1 = pt.x - line1.x;
   const y1 = pt.y - line1.y;
-  return sqr(Number(x1 * y2 - x2 * y1)) / Number(x2 * x2 + y2 * y2);
+  return sqr(longToDouble(x1 * y2 - x2 * y1)) / longToDouble(x2 * x2 + y2 * y2);
 }
 
 export function perpendicDistFromLineSqrdD(
@@ -557,7 +557,7 @@ export function area(pathOrPaths: IPath64 | IPathD | Paths64 | PathsD): number {
     for (let i = 0, len = pathOrPaths.length; i < len; i++) {
       const currX = pathOrPaths.getX(i);
       const currY = pathOrPaths.getY(i);
-      resultArea += Number((prevY + currY) * (prevX - currX));
+      resultArea += longToDouble((prevY + currY) * (prevX - currX));
       prevX = currX;
       prevY = currY;
     }
@@ -631,15 +631,15 @@ export function offsetPath(path: IPath64, dx: bigint, dy: bigint): IPath64 {
 
 export function scalePoint64(pt: Point64, scale: number): Point64 {
   return {
-    x: numberToBigInt(Number(pt.x) * scale),
-    y: numberToBigInt(Number(pt.y) * scale),
+    x: numberToBigInt(longToDouble(pt.x) * scale),
+    y: numberToBigInt(longToDouble(pt.y) * scale),
   };
 }
 
 export function scalePointD(pt: Point64, scale: number): PointD {
   return {
-    x: Number(pt.x) * scale,
-    y: Number(pt.y) * scale,
+    x: longToDouble(pt.x) * scale,
+    y: longToDouble(pt.y) * scale,
   };
 }
 
@@ -666,8 +666,8 @@ export function scalePath(
 
     for (let i = 0, len = path.length; i < len; i++) {
       result.push({
-        x: numberToBigInt(Number(path.getX(i)) * scale),
-        y: numberToBigInt(Number(path.getY(i)) * scale),
+        x: numberToBigInt(longToDouble(path.getX(i)) * scale),
+        y: numberToBigInt(longToDouble(path.getY(i)) * scale),
       });
     }
     return result;
@@ -702,8 +702,8 @@ export function scalePaths(
       const tmpPath = new Path64TypedArray(path.length);
       for (let i = 0, len = path.length; i < len; i++) {
         tmpPath.push({
-          x: numberToBigInt(Number(path.getX(i)) * scale),
-          y: numberToBigInt(Number(path.getY(i)) * scale),
+          x: numberToBigInt(longToDouble(path.getX(i)) * scale),
+          y: numberToBigInt(longToDouble(path.getY(i)) * scale),
         });
       }
       result.push(tmpPath);
@@ -745,8 +745,8 @@ export function scalePathD(path: IPath64, scale: number): IPathD {
   const result = new PathDTypedArray(path.length);
   for (let i = 0, len = path.length; i < len; i++) {
     result.push({
-      x: Number(path.getX(i)) * scale,
-      y: Number(path.getY(i)) * scale,
+      x: longToDouble(path.getX(i)) * scale,
+      y: longToDouble(path.getY(i)) * scale,
     });
   }
   return result;

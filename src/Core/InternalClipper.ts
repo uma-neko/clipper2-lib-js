@@ -3,6 +3,7 @@ import { Point64 } from "./Point64";
 import { PointD } from "./PointD";
 import { PointInPolygonResult } from "../Engine/EngineEnums";
 import { numberToBigInt, roundToEven } from "../Clipper";
+import { longToDouble } from "../CommonUtils";
 
 const floatingPointTolerance = 1e-12;
 
@@ -52,7 +53,8 @@ export const getIntersectPoint = (
   }
 
   const t =
-    Number((ln1a.x - ln2a.x) * dy2 - (ln1a.y - ln2a.y) * dx2) / Number(det);
+    longToDouble((ln1a.x - ln2a.x) * dy2 - (ln1a.y - ln2a.y) * dx2) /
+    longToDouble(det);
   if (t <= 0.0) {
     return { result: true, ip: Point64.clone(ln1a) };
   } else if (t >= 1.0) {
@@ -61,8 +63,8 @@ export const getIntersectPoint = (
     return {
       result: true,
       ip: {
-        x: numberToBigInt(Number(ln1a.x) + t * Number(dx1)),
-        y: numberToBigInt(Number(ln1a.y) + t * Number(dy1)),
+        x: ln1a.x + numberToBigInt(t * longToDouble(dx1)),
+        y: ln1a.y + numberToBigInt(t * longToDouble(dy1)),
       },
     };
   }
@@ -104,16 +106,16 @@ export const getClosestPtOnSegment = (
   const dx = seg2.x - seg1.x;
   const dy = seg2.y - seg1.y;
   const q =
-    Number((offPt.x - seg1.x) * dx + (offPt.y - seg1.y) * dy) /
-    Number(dx * dx + dy * dy);
+    longToDouble((offPt.x - seg1.x) * dx + (offPt.y - seg1.y) * dy) /
+    longToDouble(dx * dx + dy * dy);
   if (q < 0) {
     return Point64.clone(seg1);
   } else if (q > 1) {
     return Point64.clone(seg2);
   }
   return {
-    x: seg1.x + BigInt(roundToEven(q * Number(dx))),
-    y: seg1.y + BigInt(roundToEven(q * Number(dy))),
+    x: seg1.x + BigInt(roundToEven(q * longToDouble(dx))),
+    y: seg1.y + BigInt(roundToEven(q * longToDouble(dy))),
   };
 };
 

@@ -26,6 +26,7 @@ import { PolyTree64 } from "../Engine/PolyTree64";
 import type { IPath64 } from "../Core/IPath64";
 import { Path64TypedArray } from "../Core/Path64TypedArray";
 import { PathDTypedArray } from "../Core/PathDTypedArray";
+import { longToDouble } from "../CommonUtils";
 
 export type DeltaCallback64 = (
   path: IPath64,
@@ -158,8 +159,8 @@ export class ClipperOffset {
   }
 
   getUnitNormal(pt1: Point64, pt2: Point64): PointD {
-    let dx = Number(pt2.x - pt1.x);
-    let dy = Number(pt2.y - pt1.y);
+    let dx = longToDouble(pt2.x - pt1.x);
+    let dy = longToDouble(pt2.y - pt1.y);
     if (dx === 0 && dy === 0) {
       return { x: 0, y: 0 };
     }
@@ -274,8 +275,8 @@ export class ClipperOffset {
 
   getPerpendicD(pt: Point64, norm: PointD): PointD {
     return {
-      x: Number(pt.x) + norm.x * this._groupDelta,
-      y: Number(pt.y) + norm.y * this._groupDelta,
+      x: longToDouble(pt.x) + norm.x * this._groupDelta,
+      y: longToDouble(pt.y) + norm.y * this._groupDelta,
     };
   }
 
@@ -326,7 +327,10 @@ export class ClipperOffset {
 
     const absDelta = Math.abs(this._groupDelta);
 
-    let ptQ: PointD = { x: Number(path.getX(j)), y: Number(path.getY(j)) };
+    let ptQ: PointD = {
+      x: longToDouble(path.getX(j)),
+      y: longToDouble(path.getY(j)),
+    };
     ptQ = this.translatePoint(ptQ, absDelta * vec.x, absDelta * vec.y);
 
     const pt1 = this.translatePoint(

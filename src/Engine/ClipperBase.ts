@@ -24,7 +24,7 @@ import { Point64 } from "../Core/Point64";
 import { EmptyRect64, Rect64 } from "../Core/Rect64";
 import type { IPath64 } from "../Core/IPath64";
 import { Path64TypedArray } from "../Core/Path64TypedArray";
-import { bigintAbs } from "../CommonUtils";
+import { bigintAbs, longToDouble } from "../CommonUtils";
 
 const isOdd = (val: number) => {
   return (val & 1) !== 0;
@@ -68,7 +68,7 @@ const isFront = (ae: Active) => {
 const getDx = (pt1: Point64, pt2: Point64): number => {
   const dy = pt2.y - pt1.y;
   if (dy !== 0n) {
-    return Number(pt2.x - pt1.x) / Number(dy);
+    return longToDouble(pt2.x - pt1.x) / longToDouble(dy);
   } else if (pt2.x > pt1.x) {
     return -Infinity;
   }
@@ -81,7 +81,9 @@ const topX = (ae: Active, currentY: bigint): bigint => {
   } else if (currentY === ae.bot.y) {
     return ae.bot.x;
   }
-  return ae.bot.x + BigInt(roundToEven(ae.dx * Number(currentY - ae.bot.y)));
+  return (
+    ae.bot.x + BigInt(roundToEven(ae.dx * longToDouble(currentY - ae.bot.y)))
+  );
 };
 
 const isHorizontal = (ae: Active) => {
@@ -236,11 +238,11 @@ const area = (op: OutPt): number => {
     area += (op2.prev.pt.y + op2.pt.y) * (op2.prev.pt.x - op2.pt.x);
     op2 = op2.next!;
   } while (op2 !== op);
-  return Number(area) * 0.5;
+  return longToDouble(area) * 0.5;
 };
 
 const areaTriangle = (pt1: Point64, pt2: Point64, pt3: Point64): number => {
-  return Number(
+  return longToDouble(
     (pt3.y + pt1.y) * (pt3.x - pt1.x) +
       (pt1.y + pt2.y) * (pt1.x - pt2.x) +
       (pt2.y + pt3.y) * (pt2.x - pt3.x),

@@ -1,5 +1,5 @@
 import { numberToBigInt } from "../Clipper";
-import { isNotNullish } from "../CommonUtils";
+import { longToDouble, isNotNullish } from "../CommonUtils";
 import type { IPath64 } from "./IPath64";
 import { Path64TypedArray } from "./Path64TypedArray";
 import { Point64, isPoint64 } from "./Point64";
@@ -121,10 +121,10 @@ export class Rect64 {
   }
 
   scale(scale: number) {
-    this.top = numberToBigInt(Number(this.top) * scale);
-    this.bottom = numberToBigInt(Number(this.bottom) * scale);
-    this.left = numberToBigInt(Number(this.left) * scale);
-    this.right = numberToBigInt(Number(this.right) * scale);
+    this.top = numberToBigInt(longToDouble(this.top) * scale);
+    this.bottom = numberToBigInt(longToDouble(this.bottom) * scale);
+    this.left = numberToBigInt(longToDouble(this.left) * scale);
+    this.right = numberToBigInt(longToDouble(this.right) * scale);
   }
 
   isEmpty() {
