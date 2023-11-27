@@ -600,7 +600,7 @@ export class ClipperOffset {
 
       this._groupDelta = group.pathsReversed ? -this._delta : this._delta;
     } else {
-      this._groupDelta = Math.abs(this._delta) * 0.5;
+      this._groupDelta = Math.abs(this._delta);
     }
 
     const absDelta = Math.abs(this._groupDelta);
