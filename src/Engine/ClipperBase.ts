@@ -2047,11 +2047,13 @@ export class ClipperBase {
         if (isLeftToRight) {
           this.intersectEdges(horz, ae, pt);
           this.swapPositionsInAEL(horz, ae);
+          this.checkJoinLeft(ae, pt);
           horz.curX = ae.curX;
           ae = horz.nextInAEL;
         } else {
           this.intersectEdges(ae, horz, pt);
           this.swapPositionsInAEL(ae, horz);
+          this.checkJoinRight(ae, pt);
           horz.curX = ae.curX;
           ae = horz.prevInAEL;
         }
