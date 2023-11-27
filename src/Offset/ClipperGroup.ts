@@ -84,7 +84,6 @@ export class ClipperGroup {
 
     this.boundsList = getMultiBounds(this.inPaths, endType);
 
-
     if (endType === EndType.Polygon) {
       this.lowestPathIdx = getLowestPathIdx(this.boundsList);
 
@@ -94,15 +93,19 @@ export class ClipperGroup {
         this.isHoleList.push(area(path) < 0);
       }
 
-      this.pathsReversed = this.lowestPathIdx >= 0 && this.isHoleList[this.lowestPathIdx];
-      if(this.pathsReversed ){
-        for(let i = 0; i< this.isHoleList.length;i++){
+      this.pathsReversed =
+        this.lowestPathIdx >= 0 && this.isHoleList[this.lowestPathIdx];
+      if (this.pathsReversed) {
+        for (let i = 0; i < this.isHoleList.length; i++) {
           this.isHoleList[i] = !this.isHoleList[i];
         }
       }
-    }else{
+    } else {
       this.lowestPathIdx = -1;
-      this.isHoleList = Array.from({ length: this.inPaths.length }, () => false);
+      this.isHoleList = Array.from(
+        { length: this.inPaths.length },
+        () => false,
+      );
       this.pathsReversed = false;
     }
   }
