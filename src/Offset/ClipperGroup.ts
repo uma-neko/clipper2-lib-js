@@ -61,6 +61,7 @@ const getLowestPathIdx = (boundsList: Rect64[]): number => {
 export class ClipperGroup {
   inPaths: Paths64;
   boundsList: Rect64[];
+  isHoleList: boolean[];
   joinType: JoinType;
   endType: EndType;
   pathsReversed: boolean;
@@ -83,12 +84,26 @@ export class ClipperGroup {
 
     this.boundsList = getMultiBounds(this.inPaths, endType);
 
-    this.lowestPathIdx = getLowestPathIdx(this.boundsList);
-
-    this.pathsReversed = false;
 
     if (endType === EndType.Polygon) {
-      this.pathsReversed = area(this.inPaths[this.lowestPathIdx]) < 0;
+      this.lowestPathIdx = getLowestPathIdx(this.boundsList);
+
+      this.isHoleList = [];
+
+      for (const path of this.inPaths) {
+        this.isHoleList.push(area(path) < 0);
+      }
+
+      this.pathsReversed = this.lowestPathIdx >= 0 && this.isHoleList[this.lowestPathIdx];
+      if(this.pathsReversed ){
+        for(let i = 0; i< this.isHoleList.length;i++){
+          this.isHoleList[i] = !this.isHoleList[i];
+        }
+      }
+    }else{
+      this.lowestPathIdx = -1;
+      this.isHoleList = Array.from({ length: this.inPaths.length }, () => false);
+      this.pathsReversed = false;
     }
   }
 }

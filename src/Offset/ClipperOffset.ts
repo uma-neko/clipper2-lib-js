@@ -629,8 +629,9 @@ export class ClipperOffset {
 
     let i = 0;
     for (const p of group.inPaths) {
-      const pathBounds = group.boundsList[i++];
-
+      const pathBounds = group.boundsList[i];
+      const isHole = group.isHoleList[i];
+      i++;
       if (!pathBounds.isValid()) {
         continue;
       }
@@ -663,7 +664,7 @@ export class ClipperOffset {
       }
 
       if (
-        this._groupDelta < 0 &&
+        (this._groupDelta < 0) !== isHole &&
         (pathBounds.width > pathBounds.height
           ? pathBounds.height
           : pathBounds.width) < -(this._groupDelta * 2)
