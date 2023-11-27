@@ -2,6 +2,8 @@ import { PolyPathBase } from "./PolyPathBase";
 import { area as clipperArea, scalePathD } from "../Clipper";
 import type { IPath64 } from "../Core/IPath64";
 import { IPathD } from "../Core/IPathD";
+import { isPath64 } from "../Core/Path64";
+import { isPathD } from "../Core/PathD";
 
 export class PolyPathD extends PolyPathBase {
   scale: number;
@@ -12,12 +14,21 @@ export class PolyPathD extends PolyPathBase {
     this.scale = 0;
   }
 
-  override addChild(p: IPath64): PolyPathBase {
-    const newChild = new PolyPathD(this);
-    newChild.scale = this.scale;
-    newChild.polygon = scalePathD(p, 1 / this.scale);
-    this._childs.push(newChild);
-    return newChild;
+  override addChild(p: IPath64 | IPathD): PolyPathBase {
+    if (isPath64(p)) {
+      const newChild = new PolyPathD(this);
+      newChild.scale = this.scale;
+      newChild.polygon = scalePathD(p, 1 / this.scale);
+      this._childs.push(newChild);
+      return newChild;
+    } else if (isPathD(p)) {
+      const newChild = new PolyPathD(this);
+      newChild.scale = this.scale;
+      newChild.polygon = p.clone();
+      this._childs.push(newChild);
+      return newChild;
+    }
+    throw new TypeError("Invalid argument types.");
   }
 
   area() {

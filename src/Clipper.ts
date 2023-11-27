@@ -1190,6 +1190,206 @@ export function getPrior(
   return current;
 }
 
+export function simplifyPath64(
+  path: IPath64,
+  epsilon: number,
+  isClosedPath: boolean = true,
+): IPath64 {
+  const len = path.length;
+  const high = len - 1;
+  const epsSqr = sqr(epsilon);
+
+  if (len < 4) {
+    return path.clone();
+  }
+
+  const flags: boolean[] = Array.from({ length: len }, () => false);
+  const dsq: number[] = Array.from({ length: len }, () => 0);
+  let curr: number = 0;
+  let prev: number;
+  let start: number;
+  let next: number;
+  let prior2: number;
+
+  if (isClosedPath) {
+    dsq[0] = perpendicDistFromLineSqrd64(
+      path.getClone(0),
+      path.getClone(high),
+      path.getClone(1),
+    );
+    dsq[high] = perpendicDistFromLineSqrd64(
+      path.getClone(high),
+      path.getClone(0),
+      path.getClone(high - 1),
+    );
+  } else {
+    dsq[0] = Infinity;
+    dsq[high] = Infinity;
+  }
+
+  for (let i = 1; i < high; i++) {
+    dsq[i] = perpendicDistFromLineSqrd64(
+      path.getClone(i),
+      path.getClone(i - 1),
+      path.getClone(i + 1),
+    );
+  }
+
+  while (true) {
+    if (dsq[curr] > epsSqr) {
+      start = curr;
+      do {
+        curr = getNext(curr, high, flags);
+      } while (curr !== start && dsq[curr] > epsSqr);
+      if (curr === start) {
+        break;
+      }
+    }
+
+    prev = getPrior(curr, high, flags);
+    next = getNext(curr, high, flags);
+
+    if (next === prev) {
+      break;
+    }
+
+    if (dsq[next] < dsq[curr]) {
+      prior2 = prev;
+      prev = curr;
+      curr = next;
+      next = getNext(next, high, flags);
+    } else {
+      prior2 = getPrior(prev, high, flags);
+    }
+
+    flags[curr] = true;
+    curr = next;
+    next = getNext(next, high, flags);
+
+    if (isClosedPath || (curr !== high && curr !== 0)) {
+      dsq[curr] = perpendicDistFromLineSqrd64(
+        path.getClone(curr),
+        path.getClone(prev),
+        path.getClone(next),
+      );
+    }
+    if (isClosedPath || (prev !== 0 && prev !== high)) {
+      dsq[prev] = perpendicDistFromLineSqrd64(
+        path.getClone(prev),
+        path.getClone(prior2),
+        path.getClone(curr),
+      );
+    }
+  }
+
+  const result = new Path64TypedArray();
+  for (let i = 0; i < len; i++) {
+    if (!flags[i]) {
+      result.push(path.getClone(i));
+    }
+  }
+  return result;
+}
+
+export function simplifyPathD(
+  path: IPathD,
+  epsilon: number,
+  isClosedPath: boolean = true,
+): IPathD {
+  const len = path.length;
+  const high = len - 1;
+  const epsSqr = sqr(epsilon);
+  if (len < 4) {
+    return path.clone();
+  }
+
+  const flags: boolean[] = Array.from({ length: len }, () => false);
+  const dsq: number[] = Array.from({ length: len }, () => 0);
+  let curr: number = 0;
+  let prev: number;
+  let start: number;
+  let next: number;
+  let prior2: number;
+
+  if (isClosedPath) {
+    dsq[0] = perpendicDistFromLineSqrdD(
+      path.getClone(0),
+      path.getClone(high),
+      path.getClone(1),
+    );
+    dsq[high] = perpendicDistFromLineSqrdD(
+      path.getClone(high),
+      path.getClone(0),
+      path.getClone(high - 1),
+    );
+  } else {
+    dsq[0] = Infinity;
+    dsq[high] = Infinity;
+  }
+
+  for (let i = 1; i < high; i++) {
+    dsq[i] = perpendicDistFromLineSqrdD(
+      path.getClone(i),
+      path.getClone(i - 1),
+      path.getClone(i + 1),
+    );
+  }
+
+  while (true) {
+    if (dsq[curr] > epsSqr) {
+      start = curr;
+      do {
+        curr = getNext(curr, high, flags);
+      } while (curr !== start && dsq[curr] > epsSqr);
+      if (curr === start) {
+        break;
+      }
+    }
+
+    prev = getPrior(curr, high, flags);
+    next = getNext(curr, high, flags);
+
+    if (next === prev) {
+      break;
+    }
+
+    if (dsq[next] < dsq[curr]) {
+      prior2 = prev;
+      prev = curr;
+      curr = next;
+      next = getNext(next, high, flags);
+    } else {
+      prior2 = getNext(prev, high, flags);
+    }
+
+    flags[curr] = true;
+    curr = next;
+    next = getNext(next, high, flags);
+
+    if (isClosedPath || (curr !== high && curr !== 0)) {
+      dsq[curr] = perpendicDistFromLineSqrdD(
+        path.getClone(curr),
+        path.getClone(prev),
+        path.getClone(next),
+      );
+    }
+    if (isClosedPath || (prev !== 0 && prev !== high)) {
+      dsq[prev] = perpendicDistFromLineSqrdD(
+        path.getClone(prev),
+        path.getClone(prior2),
+        path.getClone(curr),
+      );
+    }
+  }
+  const result = new PathDTypedArray();
+  for (let i = 0; i < len; i++) {
+    if (!flags[i]) {
+      result.push(path.getClone(i));
+    }
+  }
+  return result;
+}
+
 export function simplifyPath(
   path: IPath64,
   epsilon: number,
@@ -1205,215 +1405,10 @@ export function simplifyPath(
   epsilon: number,
   isClosedPath?: boolean,
 ): IPath64 | IPathD {
-  const len = path.length;
-  const high = len - 1;
-  const epsSqr = sqr(epsilon);
-
   if (isPath64(path)) {
-    if (len < 4) {
-      return path.clone();
-    }
-    isClosedPath ??= false;
-
-    const flags: boolean[] = Array.from({ length: len }, () => false);
-    const dsq: number[] = Array.from({ length: len }, () => 0);
-    let prev: number = high;
-    let curr: number = 0;
-    let start: number;
-    let next: number;
-    let prior2: number;
-    let next2: number;
-
-    if (isClosedPath) {
-      dsq[0] = perpendicDistFromLineSqrd64(
-        path.getClone(0),
-        path.getClone(high),
-        path.getClone(1),
-      );
-      dsq[high] = perpendicDistFromLineSqrd64(
-        path.getClone(high),
-        path.getClone(0),
-        path.getClone(high - 1),
-      );
-    } else {
-      dsq[0] = Infinity;
-      dsq[high] = Infinity;
-    }
-
-    for (let i = 1; i < high; i++) {
-      dsq[i] = perpendicDistFromLineSqrd64(
-        path.getClone(i),
-        path.getClone(i - 1),
-        path.getClone(i + 1),
-      );
-    }
-
-    while (true) {
-      if (dsq[curr] > epsSqr) {
-        start = curr;
-        do {
-          curr = getNext(curr, high, flags);
-        } while (curr !== start && dsq[curr] > epsSqr);
-        if (curr === start) {
-          break;
-        }
-      }
-
-      prev = getPrior(curr, high, flags);
-      next = getNext(curr, high, flags);
-
-      if (next === prev) {
-        break;
-      }
-
-      if (dsq[next] < dsq[curr]) {
-        flags[next] = true;
-
-        next = getNext(next, high, flags);
-        next2 = getNext(next, high, flags);
-        dsq[curr] = perpendicDistFromLineSqrd64(
-          path.getClone(curr),
-          path.getClone(prev),
-          path.getClone(next),
-        );
-        if (next !== high || isClosedPath) {
-          dsq[curr] = perpendicDistFromLineSqrd64(
-            path.getClone(next),
-            path.getClone(curr),
-            path.getClone(next2),
-          );
-        }
-        curr = next;
-      } else {
-        flags[curr] = true;
-        curr = next;
-
-        next = getNext(next, high, flags);
-        prior2 = getNext(prev, high, flags);
-        dsq[curr] = perpendicDistFromLineSqrd64(
-          path.getClone(curr),
-          path.getClone(prev),
-          path.getClone(next),
-        );
-        if (prev !== 0 || isClosedPath) {
-          dsq[prev] = perpendicDistFromLineSqrd64(
-            path.getClone(prev),
-            path.getClone(prior2),
-            path.getClone(curr),
-          );
-        }
-      }
-    }
-
-    const result = new Path64TypedArray();
-    for (let i = 0; i < len; i++) {
-      if (!flags[i]) {
-        result.push(path.getClone(i));
-      }
-    }
-    return result;
+    return simplifyPath64(path, epsilon, isClosedPath);
   } else if (isPathD(path)) {
-    if (len < 4) {
-      return path.clone();
-    }
-    isClosedPath ??= true;
-
-    const flags: boolean[] = Array.from({ length: len }, () => false);
-    const dsq: number[] = Array.from({ length: len }, () => 0);
-    let prev: number = high;
-    let curr: number = 0;
-    let start: number;
-    let next: number;
-    let prior2: number;
-    let next2: number;
-
-    if (isClosedPath) {
-      dsq[0] = perpendicDistFromLineSqrdD(
-        path.getClone(0),
-        path.getClone(high),
-        path.getClone(1),
-      );
-      dsq[high] = perpendicDistFromLineSqrdD(
-        path.getClone(high),
-        path.getClone(0),
-        path.getClone(high - 1),
-      );
-    } else {
-      dsq[0] = Infinity;
-      dsq[high] = Infinity;
-    }
-
-    for (let i = 1; i < high; i++) {
-      dsq[i] = perpendicDistFromLineSqrdD(
-        path.getClone(i),
-        path.getClone(i - 1),
-        path.getClone(i + 1),
-      );
-    }
-
-    while (true) {
-      if (dsq[curr] > epsSqr) {
-        start = curr;
-        do {
-          curr = getNext(curr, high, flags);
-        } while (curr !== start && dsq[curr] > epsSqr);
-        if (curr === start) {
-          break;
-        }
-      }
-
-      prev = getPrior(curr, high, flags);
-      next = getNext(curr, high, flags);
-
-      if (next === prev) {
-        break;
-      }
-
-      if (dsq[next] < dsq[curr]) {
-        flags[next] = true;
-
-        next = getNext(next, high, flags);
-        next2 = getNext(next, high, flags);
-        dsq[curr] = perpendicDistFromLineSqrdD(
-          path.getClone(curr),
-          path.getClone(prev),
-          path.getClone(next),
-        );
-        if (next !== high || isClosedPath) {
-          dsq[curr] = perpendicDistFromLineSqrdD(
-            path.getClone(next),
-            path.getClone(curr),
-            path.getClone(next2),
-          );
-        }
-        curr = next;
-      } else {
-        flags[curr] = true;
-        curr = next;
-
-        next = getNext(next, high, flags);
-        prior2 = getNext(prev, high, flags);
-        dsq[curr] = perpendicDistFromLineSqrdD(
-          path.getClone(curr),
-          path.getClone(prev),
-          path.getClone(next),
-        );
-        if (prev !== 0 || isClosedPath) {
-          dsq[prev] = perpendicDistFromLineSqrdD(
-            path.getClone(prev),
-            path.getClone(prior2),
-            path.getClone(curr),
-          );
-        }
-      }
-    }
-    const result = new PathDTypedArray();
-    for (let i = 0; i < len; i++) {
-      if (!flags[i]) {
-        result.push(path.getClone(i));
-      }
-    }
-    return result;
+    return simplifyPathD(path, epsilon, isClosedPath);
   } else {
     throw new TypeError("Invalid argument types.");
   }
@@ -1437,13 +1432,13 @@ export function simplifyPaths(
   if (isPaths64(paths)) {
     const result = new Paths64();
     for (const path of paths) {
-      result.push(simplifyPath(path, epsilon, isClosedPaths));
+      result.push(simplifyPath64(path, epsilon, isClosedPaths));
     }
     return result;
   } else if (isPathsD(paths)) {
     const result = new PathsD();
     for (const path of paths) {
-      result.push(simplifyPath(path, epsilon, isClosedPaths));
+      result.push(simplifyPathD(path, epsilon, isClosedPaths));
     }
     return result;
   }

@@ -322,11 +322,6 @@ const resetHorzDirection = (
   };
 };
 
-const horzIsSpike = (horz: Active): boolean => {
-  const nextPt = nextVertex(horz).pt;
-  return horz.bot.x < horz.top.x !== horz.top.x < nextPt.x;
-};
-
 const trimHorz = (horzEdge: Active, preserveCollinear: boolean) => {
   let wasTrimmed = false;
   let pt = nextVertex(horzEdge).pt;
@@ -1493,6 +1488,9 @@ export class ClipperBase {
     }
 
     if (isHorizontal(ae)) {
+      if (!isOpen(ae)) {
+        trimHorz(ae, this.preserveCollinear);
+      }
       return;
     }
 
@@ -1969,13 +1967,6 @@ export class ClipperBase {
     const vertex_max = horzIsOpen
       ? getCurrYMaximaVertex_Open(horz)
       : getCurrYMaximaVertex(horz);
-    if (
-      vertex_max !== undefined &&
-      !horzIsOpen &&
-      vertex_max !== horz.vertexTop
-    ) {
-      trimHorz(horz, this.preserveCollinear);
-    }
 
     let {
       result: isLeftToRight,
@@ -2047,11 +2038,13 @@ export class ClipperBase {
         if (isLeftToRight) {
           this.intersectEdges(horz, ae, pt);
           this.swapPositionsInAEL(horz, ae);
+          this.checkJoinLeft(ae, pt);
           horz.curX = ae.curX;
           ae = horz.nextInAEL;
         } else {
           this.intersectEdges(ae, horz, pt);
           this.swapPositionsInAEL(ae, horz);
+          this.checkJoinRight(ae, pt);
           horz.curX = ae.curX;
           ae = horz.prevInAEL;
         }
@@ -2082,10 +2075,6 @@ export class ClipperBase {
       }
 
       this.updateEdgeIntoAEL(horz);
-
-      if (this.preserveCollinear && !horzIsOpen && horzIsSpike(horz)) {
-        trimHorz(horz, true);
-      }
 
       ({
         result: isLeftToRight,

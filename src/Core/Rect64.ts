@@ -131,6 +131,10 @@ export class Rect64 {
     return this.bottom <= this.top || this.right <= this.left;
   }
 
+  isValid(): boolean {
+    return this.left < 9223372036854775808n;
+  }
+
   intersects(rec: Rect64) {
     return (
       (this.left >= rec.left ? this.left : rec.left) <=
