@@ -1,14 +1,6 @@
 import { ClipperGroup } from "./ClipperGroup";
 import { EndType, JoinType } from "./OffsetEnums";
-import {
-  area,
-  ellipse,
-  getBounds,
-  numberToBigInt,
-  reversePath,
-  sqr,
-  stripDuplicates,
-} from "../Clipper";
+import { ellipse, numberToBigInt, reversePath, sqr } from "../Clipper";
 import { ClipType, FillRule } from "../Core/CoreEnums";
 import {
   crossProductD,
@@ -36,8 +28,13 @@ export type DeltaCallback64 = (
 
 const tolerance = 1.0e-12;
 
+const maxCoord = 2305843009213693951n;
+const minCoord = -2305843009213693951n;
+
 export class ClipperOffset {
   _groupList: ClipperGroup[];
+  _inPath: IPath64;
+  _pathOut: IPath64;
   _normals: IPathD;
   _solution: Paths64;
   _groupDelta: number;
@@ -67,6 +64,8 @@ export class ClipperOffset {
     this.preserveCollinear = preserveCollinear;
     this.reverseSolution = reverseSolution;
     this._groupList = [];
+    this._inPath = new Path64TypedArray();
+    this._pathOut = new Path64TypedArray();
     this._normals = new PathDTypedArray();
     this._solution = new Paths64();
     this._groupDelta = 0;
@@ -114,14 +113,27 @@ export class ClipperOffset {
           this._solution.push(path);
         }
       }
-    } else {
-      this._delta = delta;
-      this._mitLimSqr = this.miterLimit <= 1 ? 2.0 : 2.0 / sqr(this.miterLimit);
+      return;
+    }
+    this._delta = delta;
+    this._mitLimSqr = this.miterLimit <= 1 ? 2.0 : 2.0 / sqr(this.miterLimit);
 
-      for (const group of this._groupList) {
-        this.doGroupOffset(group);
+    for (const group of this._groupList) {
+      this.doGroupOffset(group);
+    }
+  }
+
+  checkPathReversed(): boolean {
+    let result: boolean = false;
+
+    for (const g of this._groupList) {
+      if (g.endType === EndType.Polygon) {
+        result = g.pathsReversed;
+        break;
       }
     }
+
+    return result;
   }
 
   execute(
@@ -143,16 +155,19 @@ export class ClipperOffset {
       return;
     }
 
+    const pathsReversed = this.checkPathReversed();
+
+    const fillRule = pathsReversed ? FillRule.Negative : FillRule.Positive;
+
     const c = new Clipper64();
     c.preserveCollinear = this.preserveCollinear;
-    c.reverseSolution =
-      this.reverseSolution !== this._groupList[0].pathsReversed;
+    c.reverseSolution = this.reverseSolution !== pathsReversed;
 
     c.addSubject(this._solution);
 
     c.execute(
       ClipType.Union,
-      this._groupList[0].pathsReversed ? FillRule.Negative : FillRule.Positive,
+      fillRule,
       solutionOrPolyTree as Paths64 & PolyTree64,
     );
   }
@@ -172,35 +187,23 @@ export class ClipperOffset {
     return { x: dy, y: -dx };
   }
 
-  getBoundsAndLowestPolyIdx(paths: Paths64): { index: number; rec: Rect64 } {
-    const rec = new Rect64(false);
-    let lpx: bigint = -9223372036854775808n; //long.min
+  validateBounds(boundsList: Rect64[], delta: number): boolean {
+    const intDelta = numberToBigInt(Math.trunc(delta));
 
-    let index = -1;
-    let i = 0;
-    for (const path of paths) {
-      for (let j = 0, len = path.length; j < len; j++) {
-        const ptX = path.getX(j);
-        const ptY = path.getY(j);
-        if (ptY >= rec.bottom) {
-          if (ptY > rec.bottom || ptX < lpx) {
-            index = i;
-            lpx = ptX;
-            rec.bottom = ptY;
-          }
-        } else if (ptY < rec.top) {
-          rec.top = ptY;
-        }
-
-        if (ptX > rec.right) {
-          rec.right = ptX;
-        } else if (ptX < rec.left) {
-          rec.left = ptX;
-        }
+    for (const r of boundsList) {
+      if (!r.isValid()) {
+        continue;
+      } else if (
+        r.left < minCoord + intDelta ||
+        r.right > maxCoord + intDelta ||
+        r.top < minCoord + intDelta ||
+        r.bottom > maxCoord + intDelta
+      ) {
+        return false;
       }
-      i++;
     }
-    return { rec: rec, index: index };
+
+    return true;
   }
 
   translatePoint(pt: PointD, dx: number, dy: number): PointD {
@@ -279,38 +282,42 @@ export class ClipperOffset {
     };
   }
 
-  doBevel(group: ClipperGroup, path: IPath64, j: number, k: number): void {
+  doBevel(path: IPath64, j: number, k: number): void {
+    let pt1: Point64;
+    let pt2: Point64;
     if (j == k) {
       const absDelta = Math.abs(this._groupDelta);
-      group.outPath.push({
+      pt1 = {
         x: path.getX(j) - numberToBigInt(absDelta * this._normals.getX(j)),
         y: path.getY(j) - numberToBigInt(absDelta * this._normals.getY(j)),
-      });
-      group.outPath.push({
+      };
+      pt2 = {
         x: path.getX(j) + numberToBigInt(absDelta * this._normals.getX(j)),
         y: path.getY(j) + numberToBigInt(absDelta * this._normals.getY(j)),
-      });
+      };
     } else {
-      group.outPath.push({
+      pt1 = {
         x:
           path.getX(j) +
           numberToBigInt(this._groupDelta * this._normals.getX(k)),
         y:
           path.getY(j) +
           numberToBigInt(this._groupDelta * this._normals.getY(k)),
-      });
-      group.outPath.push({
+      };
+      pt2 = {
         x:
           path.getX(j) +
           numberToBigInt(this._groupDelta * this._normals.getX(j)),
         y:
           path.getY(j) +
           numberToBigInt(this._groupDelta * this._normals.getY(j)),
-      });
+      };
     }
+    this._pathOut.push(pt1);
+    this._pathOut.push(pt2);
   }
 
-  doSquare(group: ClipperGroup, path: IPath64, j: number, k: number): void {
+  doSquare(path: IPath64, j: number, k: number): void {
     let vec: PointD;
     const kNormalPt = this._normals.getClone(k);
     const jNormalPt = this._normals.getClone(j);
@@ -349,11 +356,11 @@ export class ClipperOffset {
 
       const pt = this.intersectPoint(pt1, pt2, pt3, pt4);
       const rPt = this.reflectPoint(pt, ptQ);
-      group.outPath.push({
+      this._pathOut.push({
         x: numberToBigInt(rPt.x),
         y: numberToBigInt(rPt.y),
       });
-      group.outPath.push({
+      this._pathOut.push({
         x: numberToBigInt(pt.x),
         y: numberToBigInt(pt.y),
       });
@@ -361,42 +368,30 @@ export class ClipperOffset {
       const pt4 = this.getPerpendicD(path.getClone(j), kNormalPt);
       const pt = this.intersectPoint(pt1, pt2, pt3, pt4);
 
-      group.outPath.push({
+      this._pathOut.push({
         x: numberToBigInt(pt.x),
         y: numberToBigInt(pt.y),
       });
 
       const rPt = this.reflectPoint(pt, ptQ);
-      group.outPath.push({
+      this._pathOut.push({
         x: numberToBigInt(rPt.x),
         y: numberToBigInt(rPt.y),
       });
     }
   }
 
-  doMiter(
-    group: ClipperGroup,
-    path: IPath64,
-    j: number,
-    k: number,
-    cosA: number,
-  ) {
+  doMiter(path: IPath64, j: number, k: number, cosA: number) {
     const q = this._groupDelta / (cosA + 1);
     const kNormalPt = this._normals.getClone(k);
     const jNormalPt = this._normals.getClone(j);
-    group.outPath.push({
+    this._pathOut.push({
       x: path.getX(j) + numberToBigInt((kNormalPt.x + jNormalPt.x) * q),
       y: path.getY(j) + numberToBigInt((kNormalPt.y + jNormalPt.y) * q),
     });
   }
 
-  doRound(
-    group: ClipperGroup,
-    path: IPath64,
-    j: number,
-    k: number,
-    angle: number,
-  ) {
+  doRound(path: IPath64, j: number, k: number, angle: number) {
     if (this.deltaCallback !== undefined) {
       const absDelta = Math.abs(this._groupDelta);
       const arcTol =
@@ -425,7 +420,7 @@ export class ClipperOffset {
       offsetVec.y = -offsetVec.y;
     }
 
-    group.outPath.push({
+    this._pathOut.push({
       x: pt.x + numberToBigInt(offsetVec.x),
       y: pt.y + numberToBigInt(offsetVec.y),
     });
@@ -438,13 +433,13 @@ export class ClipperOffset {
         y: offsetVec.x * this._stepSin + offsetVec.y * this._stepCos,
       };
 
-      group.outPath.push({
+      this._pathOut.push({
         x: pt.x + numberToBigInt(offsetVec.x),
         y: pt.y + numberToBigInt(offsetVec.y),
       });
     }
 
-    group.outPath.push(this.getPerpendic(pt, jNormalPt));
+    this._pathOut.push(this.getPerpendic(pt, jNormalPt));
   }
 
   bulidNormals(path: IPath64) {
@@ -487,51 +482,43 @@ export class ClipperOffset {
     const jPath = path.getClone(j);
 
     if (Math.abs(this._groupDelta) < tolerance) {
-      group.outPath.push(jPath);
+      this._pathOut.push(jPath);
       return k;
     }
 
     if (cosA > -0.99 && sinA * this._groupDelta < 0) {
-      group.outPath.push(this.getPerpendic(jPath, kNormalPt));
-      group.outPath.push(jPath);
-      group.outPath.push(this.getPerpendic(jPath, jNormalPt));
+      this._pathOut.push(this.getPerpendic(jPath, kNormalPt));
+      this._pathOut.push(jPath);
+      this._pathOut.push(this.getPerpendic(jPath, jNormalPt));
     } else if (cosA > 0.999) {
-      this.doMiter(group, path, j, k, cosA);
+      this.doMiter(path, j, k, cosA);
     } else if (this._joinType === JoinType.Miter) {
       if (cosA > this._mitLimSqr - 1) {
-        this.doMiter(group, path, j, k, cosA);
+        this.doMiter(path, j, k, cosA);
       } else {
-        this.doSquare(group, path, j, k);
+        this.doSquare(path, j, k);
       }
     } else if (cosA > 0.99 || this._joinType === JoinType.Bevel) {
-      this.doBevel(group, path, j, k);
+      this.doBevel(path, j, k);
     } else if (this._joinType === JoinType.Round) {
-      this.doRound(group, path, j, k, Math.atan2(sinA, cosA));
+      this.doRound(path, j, k, Math.atan2(sinA, cosA));
     } else {
-      this.doSquare(group, path, j, k);
+      this.doSquare(path, j, k);
     }
 
     return j;
   }
 
   offsetPolygon(group: ClipperGroup, path: IPath64) {
-    const a = area(path);
-    if (a < 0 !== this._groupDelta < 0) {
-      const rec = getBounds(path);
-      const offsetMinDim = Math.abs(this._groupDelta) * 2;
-      if (offsetMinDim > rec.width || offsetMinDim > rec.height) {
-        return;
-      }
-    }
-
+    this._pathOut = new Path64TypedArray();
     const cnt = path.length;
-    group.outPath = new Path64TypedArray(cnt + 1);
     let prev = cnt - 1;
 
     for (let i = 0; i < cnt; i++) {
       prev = this.offsetPoint(group, path, i, prev);
     }
-    group.outPaths.push(group.outPath);
+
+    this._solution.push(this._pathOut);
   }
 
   offsetOpenJoined(group: ClipperGroup, path: IPath64) {
@@ -542,7 +529,7 @@ export class ClipperOffset {
   }
 
   offsetOpenPath(group: ClipperGroup, path: IPath64) {
-    group.outPath = new Path64TypedArray();
+    this._pathOut = new Path64TypedArray();
     const highI = path.length - 1;
 
     if (this.deltaCallback !== undefined) {
@@ -551,17 +538,17 @@ export class ClipperOffset {
 
     const startPt = path.getClone(0);
     if (Math.abs(this._groupDelta) < tolerance) {
-      group.outPath.push(startPt);
+      this._pathOut.push(startPt);
     } else {
       switch (this._endType) {
         case EndType.Butt:
-          this.doBevel(group, path, 0, 0);
+          this.doBevel(path, 0, 0);
           break;
         case EndType.Round:
-          this.doRound(group, path, 0, 0, Math.PI);
+          this.doRound(path, 0, 0, Math.PI);
           break;
         default:
-          this.doSquare(group, path, 0, 0);
+          this.doSquare(path, 0, 0);
           break;
       }
     }
@@ -583,17 +570,17 @@ export class ClipperOffset {
 
     const highPt = path.getClone(highI);
     if (Math.abs(this._groupDelta) < tolerance) {
-      group.outPath.push(highPt);
+      this._pathOut.push(highPt);
     } else {
       switch (this._endType) {
         case EndType.Butt:
-          this.doBevel(group, path, highI, highI);
+          this.doBevel(path, highI, highI);
           break;
         case EndType.Round:
-          this.doRound(group, path, highI, highI, Math.PI);
+          this.doRound(path, highI, highI, Math.PI);
           break;
         default:
-          this.doSquare(group, path, highI, highI);
+          this.doSquare(path, highI, highI);
           break;
       }
     }
@@ -601,40 +588,31 @@ export class ClipperOffset {
     for (let i = highI, k = 0; i > 0; i--) {
       k = this.offsetPoint(group, path, i, k);
     }
-    group.outPaths.push(group.outPath);
+
+    this._solution.push(this._pathOut);
   }
 
   doGroupOffset(group: ClipperGroup) {
     if (group.endType === EndType.Polygon) {
-      const { index: lowestIdx } = this.getBoundsAndLowestPolyIdx(
-        group.inPaths,
-      );
-      if (lowestIdx < 0) {
+      if (group.lowestPathIdx < 0) {
         return;
       }
 
-      const calcedArea = area(group.inPaths[lowestIdx]);
-
-      group.pathsReversed = calcedArea < 0;
-
-      if (group.pathsReversed) {
-        this._groupDelta = -this._delta;
-      } else {
-        this._groupDelta = this._delta;
-      }
+      this._groupDelta = group.pathsReversed ? -this._delta : this._delta;
     } else {
-      group.pathsReversed = false;
       this._groupDelta = Math.abs(this._delta) * 0.5;
     }
 
     const absDelta = Math.abs(this._groupDelta);
+
+    if (!this.validateBounds(group.boundsList, absDelta)) {
+      throw new RangeError("Coordinate range is invalid.");
+    }
+
     this._joinType = group.joinType;
     this._endType = group.endType;
 
-    if (
-      this.deltaCallback === undefined &&
-      (group.joinType === JoinType.Round || group.endType === EndType.Round)
-    ) {
+    if (group.joinType === JoinType.Round || group.endType === EndType.Round) {
       const arcTol =
         this.arcTolerance > 0.01
           ? this.arcTolerance
@@ -649,23 +627,27 @@ export class ClipperOffset {
       this._stepsPerRad = stepsPer360 / (2 * Math.PI);
     }
 
-    const isJoined =
-      group.endType === EndType.Joined || group.endType === EndType.Polygon;
-
+    let i = 0;
     for (const p of group.inPaths) {
-      const path = stripDuplicates(p, isJoined);
-      const cnt = path.length;
+      const pathBounds = group.boundsList[i++];
+
+      if (!pathBounds.isValid()) {
+        continue;
+      }
+
+      const cnt = p.length;
       if (cnt === 0 || (cnt < 3 && this._endType === EndType.Polygon)) {
         continue;
       }
 
+      this._pathOut = new Path64TypedArray();
+
       if (cnt === 1) {
-        group.outPath = new Path64TypedArray();
-        const startPt = path.getClone(0);
+        const startPt = p.getClone(0);
         if (group.endType === EndType.Round) {
           const r = absDelta;
           const steps = Math.ceil(this._stepsPerRad * 2 * Math.PI);
-          group.outPath = ellipse(startPt, r, r, steps);
+          this._pathOut = ellipse(startPt, r, r, steps);
         } else {
           const d = BigInt(Math.ceil(this._groupDelta));
           const r = new Rect64(
@@ -674,32 +656,36 @@ export class ClipperOffset {
             startPt.x + d,
             startPt.y + d,
           );
-          group.outPath = r.asPath();
+          this._pathOut = r.asPath();
         }
-        group.outPaths.push(group.outPath);
-      } else {
-        if (cnt == 2 && group.endType === EndType.Joined) {
-          if (group.joinType === JoinType.Round) {
-            this._endType = EndType.Round;
-          } else {
-            this._endType = EndType.Square;
-          }
-        }
-        this.bulidNormals(path);
-        if (this._endType === EndType.Polygon) {
-          this.offsetPolygon(group, path);
-        } else if (this._endType === EndType.Joined) {
-          this.offsetOpenJoined(group, path);
+        this._solution.push(this._pathOut);
+        continue;
+      }
+
+      if (
+        this._groupDelta < 0 &&
+        (pathBounds.width > pathBounds.height
+          ? pathBounds.height
+          : pathBounds.width) < -(this._groupDelta * 2)
+      ) {
+        continue;
+      }
+
+      if (cnt == 2 && group.endType === EndType.Joined) {
+        if (group.joinType === JoinType.Round) {
+          this._endType = EndType.Round;
         } else {
-          this.offsetOpenPath(group, path);
+          this._endType = EndType.Square;
         }
       }
+      this.bulidNormals(p);
+      if (this._endType === EndType.Polygon) {
+        this.offsetPolygon(group, p);
+      } else if (this._endType === EndType.Joined) {
+        this.offsetOpenJoined(group, p);
+      } else {
+        this.offsetOpenPath(group, p);
+      }
     }
-
-    for (const path of group.outPaths) {
-      this._solution.push(path);
-    }
-
-    group.outPaths.clear();
   }
 }
