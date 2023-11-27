@@ -2,7 +2,8 @@ import { PolyPathBase } from "./PolyPathBase";
 import { area as clipperArea, scalePathD } from "../Clipper";
 import type { IPath64 } from "../Core/IPath64";
 import { IPathD } from "../Core/IPathD";
-import { isPath64, isPathD } from "../clipper2lib";
+import { isPath64 } from "../Core/Path64";
+import { isPathD } from "../Core/PathD";
 
 export class PolyPathD extends PolyPathBase {
   scale: number;

@@ -1194,7 +1194,7 @@ export function simplifyPath64(
   path: IPath64,
   epsilon: number,
   isClosedPath: boolean = true,
-): IPath64{
+): IPath64 {
   const len = path.length;
   const high = len - 1;
   const epsSqr = sqr(epsilon);
@@ -1253,13 +1253,12 @@ export function simplifyPath64(
       break;
     }
 
-    if (dsq[next] < dsq[curr])
-    {
+    if (dsq[next] < dsq[curr]) {
       prior2 = prev;
       prev = curr;
       curr = next;
       next = getNext(next, high, flags);
-    }else{
+    } else {
       prior2 = getPrior(prev, high, flags);
     }
 
@@ -1267,7 +1266,7 @@ export function simplifyPath64(
     curr = next;
     next = getNext(next, high, flags);
 
-    if(isClosedPath || ( curr !== high && curr !== 0 ) ){
+    if (isClosedPath || (curr !== high && curr !== 0)) {
       dsq[curr] = perpendicDistFromLineSqrd64(
         path.getClone(curr),
         path.getClone(prev),
@@ -1296,8 +1295,7 @@ export function simplifyPathD(
   path: IPathD,
   epsilon: number,
   isClosedPath: boolean = true,
-): IPathD
-{
+): IPathD {
   const len = path.length;
   const high = len - 1;
   const epsSqr = sqr(epsilon);
@@ -1363,12 +1361,12 @@ export function simplifyPathD(
     } else {
       prior2 = getNext(prev, high, flags);
     }
-    
+
     flags[curr] = true;
     curr = next;
     next = getNext(next, high, flags);
 
-    if(isClosedPath || ( curr !== high && curr !== 0 ) ){
+    if (isClosedPath || (curr !== high && curr !== 0)) {
       dsq[curr] = perpendicDistFromLineSqrdD(
         path.getClone(curr),
         path.getClone(prev),
@@ -1408,9 +1406,9 @@ export function simplifyPath(
   isClosedPath?: boolean,
 ): IPath64 | IPathD {
   if (isPath64(path)) {
-    return simplifyPath64(path,epsilon,isClosedPath);
+    return simplifyPath64(path, epsilon, isClosedPath);
   } else if (isPathD(path)) {
-    return simplifyPathD(path,epsilon,isClosedPath);
+    return simplifyPathD(path, epsilon, isClosedPath);
   } else {
     throw new TypeError("Invalid argument types.");
   }
