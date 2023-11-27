@@ -491,17 +491,22 @@ export class ClipperOffset {
       this._pathOut.push(jPath);
       this._pathOut.push(this.getPerpendic(jPath, jNormalPt));
     } else if (cosA > 0.999) {
-      this.doMiter(path, j, k, cosA);
+      if (this._joinType === JoinType.Round) {
+        this._pathOut.push(this.getPerpendic(jPath, kNormalPt));
+        this._pathOut.push(this.getPerpendic(jPath, jNormalPt));
+      } else {
+        this.doMiter(path, j, k, cosA);
+      }
     } else if (this._joinType === JoinType.Miter) {
       if (cosA > this._mitLimSqr - 1) {
         this.doMiter(path, j, k, cosA);
       } else {
         this.doSquare(path, j, k);
       }
-    } else if (cosA > 0.99 || this._joinType === JoinType.Bevel) {
-      this.doBevel(path, j, k);
     } else if (this._joinType === JoinType.Round) {
       this.doRound(path, j, k, Math.atan2(sinA, cosA));
+    } else if (this._joinType === JoinType.Bevel) {
+      this.doBevel(path, j, k);
     } else {
       this.doSquare(path, j, k);
     }
@@ -664,7 +669,7 @@ export class ClipperOffset {
       }
 
       if (
-        (this._groupDelta < 0) !== isHole &&
+        this._groupDelta < 0 !== isHole &&
         (pathBounds.width > pathBounds.height
           ? pathBounds.height
           : pathBounds.width) < -(this._groupDelta * 2)
