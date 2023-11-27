@@ -490,13 +490,8 @@ export class ClipperOffset {
       this._pathOut.push(this.getPerpendic(jPath, kNormalPt));
       this._pathOut.push(jPath);
       this._pathOut.push(this.getPerpendic(jPath, jNormalPt));
-    } else if (cosA > 0.999) {
-      if (this._joinType === JoinType.Round) {
-        this._pathOut.push(this.getPerpendic(jPath, kNormalPt));
-        this._pathOut.push(this.getPerpendic(jPath, jNormalPt));
-      } else {
+    } else if (cosA > 0.999 && this._joinType !== JoinType.Round) {
         this.doMiter(path, j, k, cosA);
-      }
     } else if (this._joinType === JoinType.Miter) {
       if (cosA > this._mitLimSqr - 1) {
         this.doMiter(path, j, k, cosA);
