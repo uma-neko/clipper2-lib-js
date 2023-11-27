@@ -671,8 +671,8 @@ export class ClipperOffset {
           const r = new Rect64(
             startPt.x - d,
             startPt.y - d,
-            startPt.x - d,
-            startPt.y - d,
+            startPt.x + d,
+            startPt.y + d,
           );
           group.outPath = r.asPath();
         }
