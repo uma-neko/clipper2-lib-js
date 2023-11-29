@@ -3,11 +3,10 @@ import { Paths64 } from "../Core/Paths64";
 import { Rect64 } from "../Core/Rect64";
 import { area, stripDuplicates } from "../Clipper";
 
-const getMultiBounds = (paths: Paths64, endType: EndType): Rect64[] => {
+const getMultiBounds = (paths: Paths64): Rect64[] => {
   const boundsList: Rect64[] = [];
-  const minPathLen = endType === EndType.Polygon ? 3 : 1;
   for (const path of paths) {
-    if (path.length < minPathLen) {
+    if (path.length < 1) {
       boundsList.push(new Rect64(false));
       continue;
     }
@@ -82,7 +81,7 @@ export class ClipperGroup {
       this.inPaths.push(stripDuplicates(path, isJoined));
     }
 
-    this.boundsList = getMultiBounds(this.inPaths, endType);
+    this.boundsList = getMultiBounds(this.inPaths);
 
     if (endType === EndType.Polygon) {
       this.lowestPathIdx = getLowestPathIdx(this.boundsList);
