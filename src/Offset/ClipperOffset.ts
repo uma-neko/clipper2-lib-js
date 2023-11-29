@@ -595,7 +595,7 @@ export class ClipperOffset {
   doGroupOffset(group: ClipperGroup) {
     if (group.endType === EndType.Polygon) {
       if (group.lowestPathIdx < 0) {
-        return;
+        this._delta = Math.abs(this._delta);
       }
 
       this._groupDelta = group.pathsReversed ? -this._delta : this._delta;
@@ -663,11 +663,12 @@ export class ClipperOffset {
         continue;
       }
 
+      // ToggleBoolIf is xor.
       if (
-        this._groupDelta < 0 !== isHole &&
+        this._groupDelta > 0 === !(isHole === group.pathsReversed) &&
         (pathBounds.width > pathBounds.height
           ? pathBounds.height
-          : pathBounds.width) < -(this._groupDelta * 2)
+          : pathBounds.width) <= -(this._groupDelta * 2)
       ) {
         continue;
       }
