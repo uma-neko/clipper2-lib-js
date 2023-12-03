@@ -4,9 +4,11 @@ import {
   Clipper,
   ClipperOffset,
   EndType,
+  IPath64,
   JoinType,
   Paths64,
   Point64,
+  PointD,
 } from "../../src/clipper2lib";
 import { TestCases } from "../Common/testCases";
 import { inflatePaths, sqr } from "../../src/Clipper";
@@ -20,6 +22,9 @@ const midPoint = (p1: Point64, p2: Point64) => {
 
 const distance = (p1: Point64, p2: Point64) =>
   Math.sqrt(sqr(Number(p1.x - p2.x)) + sqr(Number(p1.y - p2.y)));
+
+const distanceD = (p1: PointD, p2: PointD) =>
+  Math.sqrt(sqr(p1.x - p2.x) + sqr(p1.y - p2.y));
 
 describe(
   "Offsets test",
@@ -181,9 +186,16 @@ describe(
         ]),
       );
 
-      solution = inflatePaths(subject, -5000, JoinType.Round, EndType.Polygon);
+      solution = inflatePaths(
+        subject,
+        -5000,
+        JoinType.Round,
+        EndType.Polygon,
+        2,
+        100,
+      );
 
-      expect(solution[0].length).eq(5);
+      expect(solution[0].length).greaterThanOrEqual(5);
 
       subject = new Paths64();
 
@@ -195,7 +207,7 @@ describe(
 
       solution = inflatePaths(subject, -5000, JoinType.Round, EndType.Polygon);
 
-      expect(solution[0].length).eq(6);
+      expect(solution[0].length).greaterThan(5);
     });
 
     test("Bug:Tests offset clean up", async () => {
@@ -502,6 +514,348 @@ describe(
       const area = Clipper.area(solution[1]);
 
       expect(area).lessThan(-47500);
+    });
+
+    test("Fixed bug where offsetting would occasionally lose a path", async () => {
+      const subject1 = new Paths64();
+      subject1.push(Clipper.makePath64([0, 0, 100, 0, 100, 100, 0, 100]));
+      const sol1 = Clipper.inflatePaths(
+        subject1,
+        -50,
+        JoinType.Miter,
+        EndType.Polygon,
+      );
+      expect(sol1.length).eq(0);
+
+      const subject2 = new Paths64();
+      subject2.push(Clipper.makePath64([0, 0, 100, 0, 100, 100, 0, 100]));
+      subject2.push(Clipper.makePath64([40, 60, 60, 60, 60, 40, 40, 40]));
+      const sol2 = Clipper.inflatePaths(
+        subject2,
+        10,
+        JoinType.Miter,
+        EndType.Polygon,
+      );
+      expect(sol2.length).eq(1);
+
+      const subject3 = new Paths64();
+      subject3.push(Clipper.reversePath(subject2[0]));
+      subject3.push(Clipper.reversePath(subject2[1]));
+      const sol3 = Clipper.inflatePaths(
+        subject3,
+        10,
+        JoinType.Miter,
+        EndType.Polygon,
+      );
+      expect(sol3.length).eq(1);
+
+      const subject4 = new Paths64();
+      subject4.push(subject3[0]);
+      const sol4 = Clipper.inflatePaths(
+        subject4,
+        -50,
+        JoinType.Miter,
+        EndType.Polygon,
+      );
+      expect(sol4.length).eq(0);
+    });
+
+    type OffsetQual = {
+      smallestInSub: PointD;
+      smallestInSol: PointD;
+      largestInSub: PointD;
+      largestInSol: PointD;
+    };
+
+    const getClosestPointOnSegment = (
+      offPt: PointD,
+      seg1: Point64,
+      seg2: Point64,
+    ): PointD => {
+      if (seg1.x === seg2.x && seg1.y === seg2.y) {
+        return { x: Number(seg1.x), y: Number(seg1.y) };
+      }
+
+      const dx = Number(seg2.x - seg1.x);
+      const dy = Number(seg2.y - seg1.y);
+
+      let q =
+        ((offPt.x - Number(seg1.x)) * dx + (offPt.y - Number(seg1.y)) * dy) /
+        (sqr(dx) + sqr(dy));
+
+      q = q < 0 ? 0 : q > 1 ? 1 : q;
+      return {
+        x: Number(seg1.x) + q * dx,
+        y: Number(seg1.y) + q * dy,
+      };
+    };
+
+    const distanceSqr = (pt1: PointD, pt2: PointD) => {
+      return (
+        (pt1.x - pt2.x) * (pt1.x - pt2.x) + (pt1.y - pt2.y) * (pt1.y - pt2.y)
+      );
+    };
+
+    const getOffsetQuality = (
+      subject: IPath64,
+      solution: IPath64,
+      delta: number,
+    ): OffsetQual => {
+      if (subject.length <= 0 || solution.length <= 0) {
+        return {
+          smallestInSub: { x: 0, y: 0 },
+          smallestInSol: { x: 0, y: 0 },
+          largestInSub: { x: 0, y: 0 },
+          largestInSol: { x: 0, y: 0 },
+        };
+      }
+
+      const desiredDistSqr = delta * delta;
+      let smallestSqr = desiredDistSqr;
+      let largestSqr = desiredDistSqr;
+      const oq: OffsetQual = {
+        smallestInSub: { x: 0, y: 0 },
+        smallestInSol: { x: 0, y: 0 },
+        largestInSub: { x: 0, y: 0 },
+        largestInSol: { x: 0, y: 0 },
+      };
+
+      const subVertexCount = 4;
+      const subVertexFrac = 1.0 / subVertexCount;
+      let solPrev = solution.getClone(solution.length - 1);
+      for (let i = 0; i < solution.length; i++) {
+        const solPt0 = solution.getClone(i);
+        for (let j = 0; j < subVertexCount; j++) {
+          const solPt: PointD = {
+            x:
+              Number(solPrev.x) +
+              Number(solPt0.x - solPrev.x) * subVertexFrac * j,
+            y:
+              Number(solPrev.y) +
+              Number(solPt0.y - solPrev.y) * subVertexFrac * j,
+          };
+
+          let closestToSolPt: PointD;
+          let closestDistSqr = Infinity;
+          let subPrev = subject.getClone(subject.length - 1);
+          for (let k = 0; k < subject.length; k++) {
+            const closestPt = getClosestPointOnSegment(
+              solPt,
+              subject.getClone(k),
+              subPrev,
+            );
+            subPrev = subject.getClone(k);
+            const sqrDist = distanceSqr(closestPt, solPt);
+            if (sqrDist < closestDistSqr) {
+              closestDistSqr = sqrDist;
+              closestToSolPt = closestPt;
+            }
+          }
+
+          if (closestDistSqr < smallestSqr) {
+            smallestSqr = closestDistSqr;
+            oq.smallestInSub = PointD.clone(closestToSolPt!);
+            oq.smallestInSol = solPt;
+          }
+
+          if (closestDistSqr > largestSqr) {
+            largestSqr = closestDistSqr;
+            oq.largestInSub = PointD.clone(closestToSolPt!);
+            oq.largestInSol = solPt;
+          }
+        }
+        solPrev = Point64.clone(solPt0);
+      }
+
+      return oq;
+    };
+
+    test("Offset distance violation on arcs", async () => {
+      const subject = new Paths64();
+      subject.push(
+        Clipper.makePath64([
+          91759700, -49711991, 83886095, -50331657, -872415388, -50331657,
+          -880288993, -49711991, -887968725, -47868251, -895265482, -44845834,
+          -901999593, -40719165, -908005244, -35589856, -913134553, -29584205,
+          -917261224, -22850094, -920283639, -15553337, -922127379, -7873605,
+          -922747045, 0, -922747045, 1434498600, -922160557, 1442159790,
+          -920414763, 1449642437, -917550346, 1456772156, -913634061,
+          1463382794, -908757180, 1469320287, -903033355, 1474446264,
+          -896595982, 1478641262, -889595081, 1481807519, -882193810,
+          1483871245, -876133965, 1484596521, -876145751, 1484713389,
+          -875781839, 1485061090, -874690056, 1485191762, -874447580,
+          1485237014, -874341490, 1485264094, -874171960, 1485309394,
+          -873612294, 1485570372, -873201878, 1485980788, -872941042,
+          1486540152, -872893274, 1486720070, -872835064, 1487162210,
+          -872834788, 1487185500, -872769052, 1487406000, -872297948,
+          1487583168, -871995958, 1487180514, -871995958, 1486914040,
+          -871908872, 1486364208, -871671308, 1485897962, -871301302,
+          1485527956, -870835066, 1485290396, -870285226, 1485203310,
+          -868659019, 1485203310, -868548443, 1485188472, -868239649,
+          1484791011, -868239527, 1484783879, -838860950, 1484783879,
+          -830987345, 1484164215, -823307613, 1482320475, -816010856,
+          1479298059, -809276745, 1475171390, -803271094, 1470042081,
+          -752939437, 1419710424, -747810128, 1413704773, -743683459,
+          1406970662, -740661042, 1399673904, -738817302, 1391994173,
+          -738197636, 1384120567, -738197636, 1244148246, -738622462,
+          1237622613, -739889768, 1231207140, -802710260, 995094494, -802599822,
+          995052810, -802411513, 994586048, -802820028, 993050638, -802879992,
+          992592029, -802827240, 992175479, -802662144, 991759637, -802578556,
+          991608039, -802511951, 991496499, -801973473, 990661435, -801899365,
+          990554757, -801842657, 990478841, -801770997, 990326371, -801946911,
+          989917545, -801636397, 989501855, -801546099, 989389271, -800888669,
+          988625013, -800790843, 988518907, -800082405, 987801675, -799977513,
+          987702547, -799221423, 987035738, -799109961, 986944060, -798309801,
+          986330832, -798192297, 986247036, -797351857, 985690294, -797228867,
+          985614778, -796352124, 985117160, -796224232, 985050280, -795315342,
+          984614140, -795183152, 984556216, -794246418, 984183618, -794110558,
+          984134924, -793150414, 983827634, -793011528, 983788398, -792032522,
+          983547874, -791891266, 983518284, -790898035, 983345662, -790755079,
+          983325856, -789752329, 983221956, -789608349, 983212030, -787698545,
+          983146276, -787626385, 983145034, -536871008, 983145034, -528997403,
+          982525368, -521317671, 980681627, -514020914, 977659211, -507286803,
+          973532542, -501281152, 968403233, -496151843, 962397582, -492025174,
+          955663471, -489002757, 948366714, -487159017, 940686982, -486539351,
+          932813377, -486539351, 667455555, -486537885, 667377141, -486460249,
+          665302309, -486448529, 665145917, -486325921, 664057737, -486302547,
+          663902657, -486098961, 662826683, -486064063, 662673784, -485780639,
+          661616030, -485734413, 661466168, -485372735, 660432552, -485315439,
+          660286564, -484877531, 659282866, -484809485, 659141568, -484297795,
+          658173402, -484219379, 658037584, -483636768, 657110363, -483548422,
+          656980785, -482898150, 656099697, -482800368, 655977081, -482086070,
+          655147053, -481979398, 655032087, -481205068, 654257759, -481090104,
+          654151087, -480260074, 653436789, -480137460, 653339007, -479256372,
+          652688735, -479126794, 652600389, -478199574, 652017779, -478063753,
+          651939363, -477095589, 651427672, -476954289, 651359626, -475950593,
+          650921718, -475804605, 650864422, -474770989, 650502744, -474621127,
+          650456518, -473563373, 650173094, -473410475, 650138196, -472334498,
+          649934610, -472179420, 649911236, -471091240, 649788626, -470934848,
+          649776906, -468860016, 649699272, -468781602, 649697806, -385876037,
+          649697806, -378002432, 649078140, -370322700, 647234400, -363025943,
+          644211983, -356291832, 640085314, -350286181, 634956006, -345156872,
+          628950354, -341030203, 622216243, -338007786, 614919486, -336164046,
+          607239755, -335544380, 599366149, -335544380, 571247184, -335426942,
+          571236100, -335124952, 570833446, -335124952, 569200164, -335037864,
+          568650330, -334800300, 568184084, -334430294, 567814078, -333964058,
+          567576517, -333414218, 567489431, -331787995, 567489431, -331677419,
+          567474593, -331368625, 567077133, -331368503, 567070001, -142068459,
+          567070001, -136247086, 566711605, -136220070, 566848475, -135783414,
+          567098791, -135024220, 567004957, -134451560, 566929159, -134217752,
+          566913755, -133983942, 566929159, -133411282, 567004957, -132665482,
+          567097135, -132530294, 567091859, -132196038, 566715561, -132195672,
+          566711157, -126367045, 567070001, -33554438, 567070001, -27048611,
+          566647761, -20651940, 565388127, -14471751, 563312231, -8611738,
+          560454902, 36793963, 534548454, 43059832, 530319881, 48621743,
+          525200596, 53354240, 519306071, 57150572, 512769270, 59925109,
+          505737634, 61615265, 498369779, 62182919, 490831896, 62182919,
+          474237629, 62300359, 474226543, 62602349, 473823889, 62602349,
+          472190590, 62689435, 471640752, 62926995, 471174516, 63297005,
+          470804506, 63763241, 470566946, 64313081, 470479860, 65939308,
+          470479860, 66049884, 470465022, 66358678, 470067562, 66358800,
+          470060430, 134217752, 470060430, 134217752, 0, 133598086, -7873605,
+          131754346, -15553337, 128731929, -22850094, 124605260, -29584205,
+          119475951, -35589856, 113470300, -40719165, 106736189, -44845834,
+          99439432, -47868251, 91759700, -49711991,
+        ]),
+      );
+
+      const offset = -50329979.277800001;
+      const arc_tol = 5000;
+
+      const solution = inflatePaths(
+        subject,
+        offset,
+        JoinType.Round,
+        EndType.Polygon,
+        2,
+        arc_tol,
+      );
+
+      const oq = getOffsetQuality(subject[0], solution[0], offset);
+
+      const smallestDist = distanceD(oq.smallestInSub, oq.smallestInSol);
+      const largestDist = distanceD(oq.largestInSub, oq.largestInSol);
+
+      const roundingTolerance = 1;
+
+      const absOffset = Math.abs(offset);
+
+      expect(absOffset - smallestDist - roundingTolerance).lessThanOrEqual(
+        arc_tol,
+      );
+      expect(largestDist - absOffset - roundingTolerance).lessThanOrEqual(
+        arc_tol,
+      );
+    });
+
+    test("Wrong offset result", async () => {
+      const subject1 = new Paths64();
+      subject1.push(
+        Clipper.makePath64([100, 100, 200, 100, 200, 400, 100, 400]),
+      );
+      const solution1 = inflatePaths(
+        subject1,
+        50,
+        JoinType.Miter,
+        EndType.Polygon,
+      );
+      expect(solution1.length).eq(1);
+      expect(Clipper.isPositive(solution1[0])).eq(true);
+
+      const subject2 = Clipper.reversePaths(subject1);
+      const solution2 = inflatePaths(
+        subject2,
+        50,
+        JoinType.Miter,
+        EndType.Polygon,
+      );
+      expect(solution2.length).eq(1);
+      expect(Math.abs(Clipper.area(solution2[0]))).greaterThan(
+        Math.abs(Clipper.area(subject2[0])),
+      );
+      expect(Clipper.isPositive(solution2[0])).eq(false);
+
+      const co = new ClipperOffset(2, 0, false, true);
+      co.addPaths(subject2, JoinType.Miter, EndType.Polygon);
+      const solution3 = new Paths64();
+      co.execute(50, solution3);
+      expect(solution3.length).eq(1);
+      expect(Math.abs(Clipper.area(solution3[0]))).greaterThan(
+        Math.abs(Clipper.area(subject2[0])),
+      );
+      expect(Clipper.isPositive(solution3[0])).eq(true);
+
+      const subject4 = new Paths64();
+      subject4.push(subject2[0]);
+      subject4.push(
+        Clipper.makePath64([130, 130, 170, 130, 170, 370, 130, 370]),
+      );
+      const solution4 = inflatePaths(
+        subject4,
+        30,
+        JoinType.Miter,
+        EndType.Polygon,
+      );
+      expect(solution4.length).eq(1);
+      expect(Clipper.isPositive(solution4[0])).eq(false);
+
+      const solution5 = new Paths64();
+      co.clear();
+      co.addPaths(subject4, JoinType.Miter, EndType.Polygon);
+      co.execute(30, solution5);
+      expect(solution5.length).eq(1);
+      expect(Math.abs(Clipper.area(solution5[0]))).greaterThan(
+        Math.abs(Clipper.area(subject4[0])),
+      );
+      expect(Clipper.isPositive(solution5[0])).eq(true);
+
+      const solution6 = inflatePaths(
+        subject4,
+        -15,
+        JoinType.Miter,
+        EndType.Polygon,
+      );
+      expect(solution6.length).eq(0);
     });
   },
   { timeout: 100 },

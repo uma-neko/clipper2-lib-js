@@ -83,6 +83,26 @@ describe(
         expect(mesuredCount).eq(mesuredCountPolytree);
       });
     }
+
+    test("Incorrect union output.", async () => {
+      const clipper = new Clipper64();
+      const subject = new Paths64();
+      const solution = new PolyTree64();
+
+      subject.push(
+        Clipper.makePath64([
+          1600, 0, 1600, 100, 2050, 100, 2050, 300, 450, 300, 450, 0,
+        ]),
+      );
+      subject.push(
+        Clipper.makePath64([
+          1800, 200, 1800, 100, 1600, 100, 2000, 100, 2000, 200,
+        ]),
+      );
+      clipper.addSubject(subject);
+      clipper.execute(ClipType.Union, FillRule.NonZero, solution);
+      expect(solution.length).greaterThanOrEqual(1);
+    });
   },
   { timeout: 10 },
 );
