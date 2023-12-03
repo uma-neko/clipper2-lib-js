@@ -381,6 +381,7 @@ export function inflatePaths(
   joinType: JoinType,
   endType: EndType,
   miterLimit?: number,
+  arcTolerance?: number,
 ): Paths64;
 export function inflatePaths(
   paths: PathsD,
@@ -389,6 +390,7 @@ export function inflatePaths(
   endType: EndType,
   miterLimit?: number,
   precision?: number,
+  arcTolerance?: number,
 ): PathsD;
 export function inflatePaths(
   paths: Paths64 | PathsD,
@@ -397,9 +399,10 @@ export function inflatePaths(
   endType: EndType,
   miterLimit: number = 2.0,
   precision: number = 2,
+  arcTolerance: number = 0.0,
 ): Paths64 | PathsD {
   if (isPaths64(paths)) {
-    const co = new ClipperOffset(miterLimit);
+    const co = new ClipperOffset(miterLimit, arcTolerance);
     co.addPaths(paths, joinType, endType);
     const solution = new Paths64();
     co.execute(delta, solution);
@@ -408,7 +411,7 @@ export function inflatePaths(
     checkPrecision(precision);
     const scale = Math.pow(10, precision);
     const tmp = scalePaths64(paths, scale);
-    const co = new ClipperOffset(miterLimit);
+    const co = new ClipperOffset(miterLimit, arcTolerance);
     co.addPaths(tmp, joinType, endType);
     co.execute(delta * scale, tmp);
     return scalePathsD(tmp, 1 / scale);
