@@ -5,6 +5,6 @@ export declare class PolyPathD extends PolyPathBase {
     scale: number;
     polygon?: IPathD;
     constructor(parent?: PolyPathBase);
-    addChild(p: IPath64): PolyPathBase;
+    addChild(p: IPath64 | IPathD): PolyPathBase;
     area(): number;
 }

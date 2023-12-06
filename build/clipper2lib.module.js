@@ -118,9 +118,9 @@ const getClosestPtOnSegment = (offPt, seg1, seg2) => {
   const dx = seg2.x - seg1.x;
   const dy = seg2.y - seg1.y;
   const q = Number((offPt.x - seg1.x) * dx + (offPt.y - seg1.y) * dy) / Number(dx * dx + dy * dy);
-  if (q <= 0) {
+  if (q < 0) {
     return Point64.clone(seg1);
-  } else if (q >= 1) {
+  } else if (q > 1) {
     return Point64.clone(seg2);
   }
   return {
@@ -959,6 +959,9 @@ class Rect64 {
   isEmpty() {
     return this.bottom <= this.top || this.right <= this.left;
   }
+  isValid() {
+    return this.left < 9223372036854775808n;
+  }
   intersects(rec) {
     return (this.left >= rec.left ? this.left : rec.left) <= (this.right <= rec.right ? this.right : rec.right) && (this.top >= rec.top ? this.top : rec.top) <= (this.bottom <= rec.bottom ? this.bottom : rec.bottom);
   }
@@ -1389,10 +1392,6 @@ const resetHorzDirection = (horz, vertexMax) => {
     rightX: horz.curX,
     result: false
   };
-};
-const horzIsSpike = (horz) => {
-  const nextPt = nextVertex(horz).pt;
-  return horz.bot.x < horz.top.x !== horz.top.x < nextPt.x;
 };
 const trimHorz = (horzEdge, preserveCollinear) => {
   let wasTrimmed = false;
@@ -2343,6 +2342,9 @@ class ClipperBase {
       this.split(ae, ae.bot);
     }
     if (isHorizontal$1(ae)) {
+      if (!isOpen(ae)) {
+        trimHorz(ae, this.preserveCollinear);
+      }
       return;
     }
     this.insertScanLine(ae.top.y);
@@ -2739,9 +2741,6 @@ class ClipperBase {
     const horzIsOpen = isOpen(horz);
     const y = horz.bot.y;
     const vertex_max = horzIsOpen ? getCurrYMaximaVertex_Open(horz) : getCurrYMaximaVertex(horz);
-    if (vertex_max !== void 0 && !horzIsOpen && vertex_max !== horz.vertexTop) {
-      trimHorz(horz, this.preserveCollinear);
-    }
     let {
       result: isLeftToRight,
       leftX,
@@ -2792,11 +2791,13 @@ class ClipperBase {
         if (isLeftToRight) {
           this.intersectEdges(horz, ae, pt);
           this.swapPositionsInAEL(horz, ae);
+          this.checkJoinLeft(ae, pt);
           horz.curX = ae.curX;
           ae = horz.nextInAEL;
         } else {
           this.intersectEdges(ae, horz, pt);
           this.swapPositionsInAEL(ae, horz);
+          this.checkJoinRight(ae, pt);
           horz.curX = ae.curX;
           ae = horz.prevInAEL;
         }
@@ -2823,9 +2824,6 @@ class ClipperBase {
         addOutPt(horz, horz.top);
       }
       this.updateEdgeIntoAEL(horz);
-      if (this.preserveCollinear && !horzIsOpen && horzIsSpike(horz)) {
-        trimHorz(horz, true);
-      }
       ({
         result: isLeftToRight,
         leftX,
@@ -3474,11 +3472,20 @@ class PolyPathD extends PolyPathBase {
     this.scale = 0;
   }
   addChild(p) {
-    const newChild = new PolyPathD(this);
-    newChild.scale = this.scale;
-    newChild.polygon = scalePathD(p, 1 / this.scale);
-    this._childs.push(newChild);
-    return newChild;
+    if (isPath64(p)) {
+      const newChild = new PolyPathD(this);
+      newChild.scale = this.scale;
+      newChild.polygon = scalePathD(p, 1 / this.scale);
+      this._childs.push(newChild);
+      return newChild;
+    } else if (isPathD(p)) {
+      const newChild = new PolyPathD(this);
+      newChild.scale = this.scale;
+      newChild.polygon = p.clone();
+      this._childs.push(newChild);
+      return newChild;
+    }
+    throw new TypeError("Invalid argument types.");
   }
   area() {
     let result = this.polygon === void 0 ? 0 : area(this.polygon);
@@ -3671,26 +3678,97 @@ const EndType = {
   Square: 3,
   Round: 4
 };
+const getMultiBounds = (paths) => {
+  const boundsList = [];
+  for (const path of paths) {
+    if (path.length < 1) {
+      boundsList.push(new Rect64(false));
+      continue;
+    }
+    const pt1x = path.getX(0);
+    const pt1y = path.getY(0);
+    const r = new Rect64(pt1x, pt1y, pt1x, pt1y);
+    for (let i = 0; i < path.length; i++) {
+      const ptx = path.getX(i);
+      const pty = path.getY(i);
+      if (pty > r.bottom) {
+        r.bottom = pty;
+      } else if (pty < r.top) {
+        r.top = pty;
+      }
+      if (ptx > r.right) {
+        r.right = ptx;
+      } else if (ptx < r.left) {
+        r.left = ptx;
+      }
+    }
+    boundsList.push(r);
+  }
+  return boundsList;
+};
+const getLowestPathIdx = (boundsList) => {
+  let result = -1;
+  let botPtX = 9223372036854775807n;
+  let botPtY = -9223372036854775808n;
+  for (let i = 0; i < boundsList.length; i++) {
+    const r = boundsList[i];
+    if (!r.isValid()) {
+      continue;
+    } else if (r.bottom > botPtY || r.bottom === botPtY && r.left < botPtX) {
+      botPtX = r.left;
+      botPtY = r.bottom;
+      result = i;
+    }
+  }
+  return result;
+};
 class ClipperGroup {
   constructor(paths, joinType, endType = EndType.Polygon) {
     __publicField(this, "inPaths");
-    __publicField(this, "outPath");
-    __publicField(this, "outPaths");
+    __publicField(this, "boundsList");
+    __publicField(this, "isHoleList");
     __publicField(this, "joinType");
     __publicField(this, "endType");
     __publicField(this, "pathsReversed");
-    this.inPaths = Paths64.clone(paths);
+    __publicField(this, "lowestPathIdx");
     this.joinType = joinType;
     this.endType = endType;
-    this.outPath = new Path64TypedArray();
-    this.outPaths = new Paths64();
-    this.pathsReversed = false;
+    const isJoined2 = endType === EndType.Polygon || endType === EndType.Joined;
+    this.inPaths = new Paths64();
+    for (const path of paths) {
+      this.inPaths.push(stripDuplicates(path, isJoined2));
+    }
+    this.boundsList = getMultiBounds(this.inPaths);
+    if (endType === EndType.Polygon) {
+      this.lowestPathIdx = getLowestPathIdx(this.boundsList);
+      this.isHoleList = [];
+      for (const path of this.inPaths) {
+        this.isHoleList.push(area(path) < 0);
+      }
+      this.pathsReversed = this.lowestPathIdx >= 0 && this.isHoleList[this.lowestPathIdx];
+      if (this.pathsReversed) {
+        for (let i = 0; i < this.isHoleList.length; i++) {
+          this.isHoleList[i] = !this.isHoleList[i];
+        }
+      }
+    } else {
+      this.lowestPathIdx = -1;
+      this.isHoleList = Array.from(
+        { length: this.inPaths.length },
+        () => false
+      );
+      this.pathsReversed = false;
+    }
   }
 }
 const tolerance = 1e-12;
+const maxCoord = 2305843009213693951n;
+const minCoord = -2305843009213693951n;
 class ClipperOffset {
   constructor(miterLimit = 2, arcTolerance = 0, preserveCollinear = false, reverseSolution = false) {
     __publicField(this, "_groupList");
+    __publicField(this, "_inPath");
+    __publicField(this, "_pathOut");
     __publicField(this, "_normals");
     __publicField(this, "_solution");
     __publicField(this, "_groupDelta");
@@ -3713,6 +3791,8 @@ class ClipperOffset {
     this.preserveCollinear = preserveCollinear;
     this.reverseSolution = reverseSolution;
     this._groupList = [];
+    this._inPath = new Path64TypedArray();
+    this._pathOut = new Path64TypedArray();
     this._normals = new PathDTypedArray();
     this._solution = new Paths64();
     this._groupDelta = 0;
@@ -3754,13 +3834,23 @@ class ClipperOffset {
           this._solution.push(path);
         }
       }
-    } else {
-      this._delta = delta;
-      this._mitLimSqr = this.miterLimit <= 1 ? 2 : 2 / sqr(this.miterLimit);
-      for (const group of this._groupList) {
-        this.doGroupOffset(group);
+      return;
+    }
+    this._delta = delta;
+    this._mitLimSqr = this.miterLimit <= 1 ? 2 : 2 / sqr(this.miterLimit);
+    for (const group of this._groupList) {
+      this.doGroupOffset(group);
+    }
+  }
+  checkPathReversed() {
+    let result = false;
+    for (const g of this._groupList) {
+      if (g.endType === EndType.Polygon) {
+        result = g.pathsReversed;
+        break;
       }
     }
+    return result;
   }
   execute(deltaOrDeltaCallback, solutionOrPolyTree) {
     let delta;
@@ -3775,13 +3865,15 @@ class ClipperOffset {
     if (this._groupList.length === 0) {
       return;
     }
+    const pathsReversed = this.checkPathReversed();
+    const fillRule = pathsReversed ? FillRule.Negative : FillRule.Positive;
     const c = new Clipper64();
     c.preserveCollinear = this.preserveCollinear;
-    c.reverseSolution = this.reverseSolution !== this._groupList[0].pathsReversed;
+    c.reverseSolution = this.reverseSolution !== pathsReversed;
     c.addSubject(this._solution);
     c.execute(
       ClipType.Union,
-      this._groupList[0].pathsReversed ? FillRule.Negative : FillRule.Positive,
+      fillRule,
       solutionOrPolyTree
     );
   }
@@ -3796,33 +3888,16 @@ class ClipperOffset {
     dy *= f;
     return { x: dy, y: -dx };
   }
-  getBoundsAndLowestPolyIdx(paths) {
-    const rec = new Rect64(false);
-    let lpx = -9223372036854775808n;
-    let index = -1;
-    let i = 0;
-    for (const path of paths) {
-      for (let j = 0, len = path.length; j < len; j++) {
-        const ptX = path.getX(j);
-        const ptY = path.getY(j);
-        if (ptY >= rec.bottom) {
-          if (ptY > rec.bottom || ptX < lpx) {
-            index = i;
-            lpx = ptX;
-            rec.bottom = ptY;
-          }
-        } else if (ptY < rec.top) {
-          rec.top = ptY;
-        }
-        if (ptX > rec.right) {
-          rec.right = ptX;
-        } else if (ptX < rec.left) {
-          rec.left = ptX;
-        }
+  validateBounds(boundsList, delta) {
+    const intDelta = numberToBigInt(Math.trunc(delta));
+    for (const r of boundsList) {
+      if (!r.isValid()) {
+        continue;
+      } else if (r.left < minCoord + intDelta || r.right > maxCoord + intDelta || r.top < minCoord + intDelta || r.bottom > maxCoord + intDelta) {
+        return false;
       }
-      i++;
     }
-    return { rec, index };
+    return true;
   }
   translatePoint(pt, dx, dy) {
     return { x: pt.x + dx, y: pt.y + dy };
@@ -3884,29 +3959,33 @@ class ClipperOffset {
       y: Number(pt.y) + norm.y * this._groupDelta
     };
   }
-  doBevel(group, path, j, k) {
+  doBevel(path, j, k) {
+    let pt1;
+    let pt2;
     if (j == k) {
       const absDelta = Math.abs(this._groupDelta);
-      group.outPath.push({
+      pt1 = {
         x: path.getX(j) - numberToBigInt(absDelta * this._normals.getX(j)),
         y: path.getY(j) - numberToBigInt(absDelta * this._normals.getY(j))
-      });
-      group.outPath.push({
+      };
+      pt2 = {
         x: path.getX(j) + numberToBigInt(absDelta * this._normals.getX(j)),
         y: path.getY(j) + numberToBigInt(absDelta * this._normals.getY(j))
-      });
+      };
     } else {
-      group.outPath.push({
+      pt1 = {
         x: path.getX(j) + numberToBigInt(this._groupDelta * this._normals.getX(k)),
         y: path.getY(j) + numberToBigInt(this._groupDelta * this._normals.getY(k))
-      });
-      group.outPath.push({
+      };
+      pt2 = {
         x: path.getX(j) + numberToBigInt(this._groupDelta * this._normals.getX(j)),
         y: path.getY(j) + numberToBigInt(this._groupDelta * this._normals.getY(j))
-      });
+      };
     }
+    this._pathOut.push(pt1);
+    this._pathOut.push(pt2);
   }
-  doSquare(group, path, j, k) {
+  doSquare(path, j, k) {
     let vec;
     const kNormalPt = this._normals.getClone(k);
     const jNormalPt = this._normals.getClone(j);
@@ -3939,38 +4018,38 @@ class ClipperOffset {
       };
       const pt = this.intersectPoint(pt1, pt2, pt3, pt4);
       const rPt = this.reflectPoint(pt, ptQ);
-      group.outPath.push({
+      this._pathOut.push({
         x: numberToBigInt(rPt.x),
         y: numberToBigInt(rPt.y)
       });
-      group.outPath.push({
+      this._pathOut.push({
         x: numberToBigInt(pt.x),
         y: numberToBigInt(pt.y)
       });
     } else {
       const pt4 = this.getPerpendicD(path.getClone(j), kNormalPt);
       const pt = this.intersectPoint(pt1, pt2, pt3, pt4);
-      group.outPath.push({
+      this._pathOut.push({
         x: numberToBigInt(pt.x),
         y: numberToBigInt(pt.y)
       });
       const rPt = this.reflectPoint(pt, ptQ);
-      group.outPath.push({
+      this._pathOut.push({
         x: numberToBigInt(rPt.x),
         y: numberToBigInt(rPt.y)
       });
     }
   }
-  doMiter(group, path, j, k, cosA) {
+  doMiter(path, j, k, cosA) {
     const q = this._groupDelta / (cosA + 1);
     const kNormalPt = this._normals.getClone(k);
     const jNormalPt = this._normals.getClone(j);
-    group.outPath.push({
+    this._pathOut.push({
       x: path.getX(j) + numberToBigInt((kNormalPt.x + jNormalPt.x) * q),
       y: path.getY(j) + numberToBigInt((kNormalPt.y + jNormalPt.y) * q)
     });
   }
-  doRound(group, path, j, k, angle) {
+  doRound(path, j, k, angle) {
     if (this.deltaCallback !== void 0) {
       const absDelta = Math.abs(this._groupDelta);
       const arcTol = this.arcTolerance > 0.01 ? this.arcTolerance : Math.log10(2 + absDelta) * defaultArcTolerance;
@@ -3993,7 +4072,7 @@ class ClipperOffset {
       offsetVec.x = -offsetVec.x;
       offsetVec.y = -offsetVec.y;
     }
-    group.outPath.push({
+    this._pathOut.push({
       x: pt.x + numberToBigInt(offsetVec.x),
       y: pt.y + numberToBigInt(offsetVec.y)
     });
@@ -4003,12 +4082,12 @@ class ClipperOffset {
         x: offsetVec.x * this._stepCos - this._stepSin * offsetVec.y,
         y: offsetVec.x * this._stepSin + offsetVec.y * this._stepCos
       };
-      group.outPath.push({
+      this._pathOut.push({
         x: pt.x + numberToBigInt(offsetVec.x),
         y: pt.y + numberToBigInt(offsetVec.y)
       });
     }
-    group.outPath.push(this.getPerpendic(pt, jNormalPt));
+    this._pathOut.push(this.getPerpendic(pt, jNormalPt));
   }
   bulidNormals(path) {
     const cnt = path.length;
@@ -4040,46 +4119,38 @@ class ClipperOffset {
     }
     const jPath = path.getClone(j);
     if (Math.abs(this._groupDelta) < tolerance) {
-      group.outPath.push(jPath);
+      this._pathOut.push(jPath);
       return k;
     }
     if (cosA > -0.99 && sinA * this._groupDelta < 0) {
-      group.outPath.push(this.getPerpendic(jPath, kNormalPt));
-      group.outPath.push(jPath);
-      group.outPath.push(this.getPerpendic(jPath, jNormalPt));
-    } else if (cosA > 0.999) {
-      this.doMiter(group, path, j, k, cosA);
+      this._pathOut.push(this.getPerpendic(jPath, kNormalPt));
+      this._pathOut.push(jPath);
+      this._pathOut.push(this.getPerpendic(jPath, jNormalPt));
+    } else if (cosA > 0.999 && this._joinType !== JoinType.Round) {
+      this.doMiter(path, j, k, cosA);
     } else if (this._joinType === JoinType.Miter) {
       if (cosA > this._mitLimSqr - 1) {
-        this.doMiter(group, path, j, k, cosA);
+        this.doMiter(path, j, k, cosA);
       } else {
-        this.doSquare(group, path, j, k);
+        this.doSquare(path, j, k);
       }
-    } else if (cosA > 0.99 || this._joinType === JoinType.Bevel) {
-      this.doBevel(group, path, j, k);
     } else if (this._joinType === JoinType.Round) {
-      this.doRound(group, path, j, k, Math.atan2(sinA, cosA));
+      this.doRound(path, j, k, Math.atan2(sinA, cosA));
+    } else if (this._joinType === JoinType.Bevel) {
+      this.doBevel(path, j, k);
     } else {
-      this.doSquare(group, path, j, k);
+      this.doSquare(path, j, k);
     }
     return j;
   }
   offsetPolygon(group, path) {
-    const a = area(path);
-    if (a < 0 !== this._groupDelta < 0) {
-      const rec = getBounds(path);
-      const offsetMinDim = Math.abs(this._groupDelta) * 2;
-      if (offsetMinDim > rec.width || offsetMinDim > rec.height) {
-        return;
-      }
-    }
+    this._pathOut = new Path64TypedArray();
     const cnt = path.length;
-    group.outPath = new Path64TypedArray(cnt + 1);
     let prev = cnt - 1;
     for (let i = 0; i < cnt; i++) {
       prev = this.offsetPoint(group, path, i, prev);
     }
-    group.outPaths.push(group.outPath);
+    this._solution.push(this._pathOut);
   }
   offsetOpenJoined(group, path) {
     this.offsetPolygon(group, path);
@@ -4088,24 +4159,24 @@ class ClipperOffset {
     this.offsetPolygon(group, path);
   }
   offsetOpenPath(group, path) {
-    group.outPath = new Path64TypedArray();
+    this._pathOut = new Path64TypedArray();
     const highI = path.length - 1;
     if (this.deltaCallback !== void 0) {
       this._groupDelta = this.deltaCallback(path, this._normals, 0, 0);
     }
     const startPt = path.getClone(0);
     if (Math.abs(this._groupDelta) < tolerance) {
-      group.outPath.push(startPt);
+      this._pathOut.push(startPt);
     } else {
       switch (this._endType) {
         case EndType.Butt:
-          this.doBevel(group, path, 0, 0);
+          this.doBevel(path, 0, 0);
           break;
         case EndType.Round:
-          this.doRound(group, path, 0, 0, Math.PI);
+          this.doRound(path, 0, 0, Math.PI);
           break;
         default:
-          this.doSquare(group, path, 0, 0);
+          this.doSquare(path, 0, 0);
           break;
       }
     }
@@ -4123,48 +4194,41 @@ class ClipperOffset {
     }
     const highPt = path.getClone(highI);
     if (Math.abs(this._groupDelta) < tolerance) {
-      group.outPath.push(highPt);
+      this._pathOut.push(highPt);
     } else {
       switch (this._endType) {
         case EndType.Butt:
-          this.doBevel(group, path, highI, highI);
+          this.doBevel(path, highI, highI);
           break;
         case EndType.Round:
-          this.doRound(group, path, highI, highI, Math.PI);
+          this.doRound(path, highI, highI, Math.PI);
           break;
         default:
-          this.doSquare(group, path, highI, highI);
+          this.doSquare(path, highI, highI);
           break;
       }
     }
     for (let i = highI, k = 0; i > 0; i--) {
       k = this.offsetPoint(group, path, i, k);
     }
-    group.outPaths.push(group.outPath);
+    this._solution.push(this._pathOut);
   }
   doGroupOffset(group) {
     if (group.endType === EndType.Polygon) {
-      const { index: lowestIdx } = this.getBoundsAndLowestPolyIdx(
-        group.inPaths
-      );
-      if (lowestIdx < 0) {
-        return;
+      if (group.lowestPathIdx < 0) {
+        this._delta = Math.abs(this._delta);
       }
-      const calcedArea = area(group.inPaths[lowestIdx]);
-      group.pathsReversed = calcedArea < 0;
-      if (group.pathsReversed) {
-        this._groupDelta = -this._delta;
-      } else {
-        this._groupDelta = this._delta;
-      }
+      this._groupDelta = group.pathsReversed ? -this._delta : this._delta;
     } else {
-      group.pathsReversed = false;
-      this._groupDelta = Math.abs(this._delta) * 0.5;
+      this._groupDelta = Math.abs(this._delta);
     }
     const absDelta = Math.abs(this._groupDelta);
+    if (!this.validateBounds(group.boundsList, absDelta)) {
+      throw new RangeError("Coordinate range is invalid.");
+    }
     this._joinType = group.joinType;
     this._endType = group.endType;
-    if (this.deltaCallback === void 0 && (group.joinType === JoinType.Round || group.endType === EndType.Round)) {
+    if (group.joinType === JoinType.Round || group.endType === EndType.Round) {
       const arcTol = this.arcTolerance > 0.01 ? this.arcTolerance : Math.log10(2 + absDelta) * defaultArcTolerance;
       const stepsPer360 = Math.PI / Math.acos(1 - arcTol / absDelta);
       this._stepSin = Math.sin(2 * Math.PI / stepsPer360);
@@ -4174,53 +4238,57 @@ class ClipperOffset {
       }
       this._stepsPerRad = stepsPer360 / (2 * Math.PI);
     }
-    const isJoined2 = group.endType === EndType.Joined || group.endType === EndType.Polygon;
+    let i = 0;
     for (const p of group.inPaths) {
-      const path = stripDuplicates(p, isJoined2);
-      const cnt = path.length;
+      const pathBounds = group.boundsList[i];
+      const isHole = group.isHoleList[i];
+      i++;
+      if (!pathBounds.isValid()) {
+        continue;
+      }
+      const cnt = p.length;
       if (cnt === 0 || cnt < 3 && this._endType === EndType.Polygon) {
         continue;
       }
+      this._pathOut = new Path64TypedArray();
       if (cnt === 1) {
-        group.outPath = new Path64TypedArray();
-        const startPt = path.getClone(0);
+        const startPt = p.getClone(0);
         if (group.endType === EndType.Round) {
           const r = absDelta;
           const steps = Math.ceil(this._stepsPerRad * 2 * Math.PI);
-          group.outPath = ellipse(startPt, r, r, steps);
+          this._pathOut = ellipse(startPt, r, r, steps);
         } else {
           const d = BigInt(Math.ceil(this._groupDelta));
           const r = new Rect64(
             startPt.x - d,
             startPt.y - d,
-            startPt.x - d,
-            startPt.y - d
+            startPt.x + d,
+            startPt.y + d
           );
-          group.outPath = r.asPath();
+          this._pathOut = r.asPath();
         }
-        group.outPaths.push(group.outPath);
-      } else {
-        if (cnt == 2 && group.endType === EndType.Joined) {
-          if (group.joinType === JoinType.Round) {
-            this._endType = EndType.Round;
-          } else {
-            this._endType = EndType.Square;
-          }
-        }
-        this.bulidNormals(path);
-        if (this._endType === EndType.Polygon) {
-          this.offsetPolygon(group, path);
-        } else if (this._endType === EndType.Joined) {
-          this.offsetOpenJoined(group, path);
+        this._solution.push(this._pathOut);
+        continue;
+      }
+      if (this._groupDelta > 0 === !(isHole === group.pathsReversed) && (pathBounds.width > pathBounds.height ? pathBounds.height : pathBounds.width) <= -(this._groupDelta * 2)) {
+        continue;
+      }
+      if (cnt == 2 && group.endType === EndType.Joined) {
+        if (group.joinType === JoinType.Round) {
+          this._endType = EndType.Round;
         } else {
-          this.offsetOpenPath(group, path);
+          this._endType = EndType.Square;
         }
       }
+      this.bulidNormals(p);
+      if (this._endType === EndType.Polygon) {
+        this.offsetPolygon(group, p);
+      } else if (this._endType === EndType.Joined) {
+        this.offsetOpenJoined(group, p);
+      } else {
+        this.offsetOpenPath(group, p);
+      }
     }
-    for (const path of group.outPaths) {
-      this._solution.push(path);
-    }
-    group.outPaths.clear();
   }
 }
 const Location = {
@@ -5442,9 +5510,9 @@ function booleanOp(clipType, subject, clip, fillRuleOrPolyTree, precisionOrFillR
   }
   throw new TypeError("Invalid argument types.");
 }
-function inflatePaths(paths, delta, joinType, endType, miterLimit = 2, precision = 2) {
+function inflatePaths(paths, delta, joinType, endType, miterLimit = 2, precision = 2, arcTolerance = 0) {
   if (isPaths64(paths)) {
-    const co = new ClipperOffset(miterLimit);
+    const co = new ClipperOffset(miterLimit, arcTolerance);
     co.addPaths(paths, joinType, endType);
     const solution = new Paths64();
     co.execute(delta, solution);
@@ -5453,7 +5521,7 @@ function inflatePaths(paths, delta, joinType, endType, miterLimit = 2, precision
     checkPrecision(precision);
     const scale = Math.pow(10, precision);
     const tmp = scalePaths64(paths, scale);
-    const co = new ClipperOffset(miterLimit);
+    const co = new ClipperOffset(miterLimit, arcTolerance);
     co.addPaths(tmp, joinType, endType);
     co.execute(delta * scale, tmp);
     return scalePathsD(tmp, 1 / scale);
@@ -6051,196 +6119,181 @@ function getPrior(current, high, flags) {
   }
   return current;
 }
-function simplifyPath(path, epsilon, isClosedPath) {
+function simplifyPath64(path, epsilon, isClosedPath = true) {
   const len = path.length;
   const high = len - 1;
   const epsSqr = sqr(epsilon);
+  if (len < 4) {
+    return path.clone();
+  }
+  const flags = Array.from({ length: len }, () => false);
+  const dsq = Array.from({ length: len }, () => 0);
+  let curr = 0;
+  let prev;
+  let start;
+  let next;
+  let prior2;
+  if (isClosedPath) {
+    dsq[0] = perpendicDistFromLineSqrd64(
+      path.getClone(0),
+      path.getClone(high),
+      path.getClone(1)
+    );
+    dsq[high] = perpendicDistFromLineSqrd64(
+      path.getClone(high),
+      path.getClone(0),
+      path.getClone(high - 1)
+    );
+  } else {
+    dsq[0] = Infinity;
+    dsq[high] = Infinity;
+  }
+  for (let i = 1; i < high; i++) {
+    dsq[i] = perpendicDistFromLineSqrd64(
+      path.getClone(i),
+      path.getClone(i - 1),
+      path.getClone(i + 1)
+    );
+  }
+  while (true) {
+    if (dsq[curr] > epsSqr) {
+      start = curr;
+      do {
+        curr = getNext(curr, high, flags);
+      } while (curr !== start && dsq[curr] > epsSqr);
+      if (curr === start) {
+        break;
+      }
+    }
+    prev = getPrior(curr, high, flags);
+    next = getNext(curr, high, flags);
+    if (next === prev) {
+      break;
+    }
+    if (dsq[next] < dsq[curr]) {
+      prior2 = prev;
+      prev = curr;
+      curr = next;
+      next = getNext(next, high, flags);
+    } else {
+      prior2 = getPrior(prev, high, flags);
+    }
+    flags[curr] = true;
+    curr = next;
+    next = getNext(next, high, flags);
+    if (isClosedPath || curr !== high && curr !== 0) {
+      dsq[curr] = perpendicDistFromLineSqrd64(
+        path.getClone(curr),
+        path.getClone(prev),
+        path.getClone(next)
+      );
+    }
+    if (isClosedPath || prev !== 0 && prev !== high) {
+      dsq[prev] = perpendicDistFromLineSqrd64(
+        path.getClone(prev),
+        path.getClone(prior2),
+        path.getClone(curr)
+      );
+    }
+  }
+  const result = new Path64TypedArray();
+  for (let i = 0; i < len; i++) {
+    if (!flags[i]) {
+      result.push(path.getClone(i));
+    }
+  }
+  return result;
+}
+function simplifyPathD(path, epsilon, isClosedPath = true) {
+  const len = path.length;
+  const high = len - 1;
+  const epsSqr = sqr(epsilon);
+  if (len < 4) {
+    return path.clone();
+  }
+  const flags = Array.from({ length: len }, () => false);
+  const dsq = Array.from({ length: len }, () => 0);
+  let curr = 0;
+  let prev;
+  let start;
+  let next;
+  let prior2;
+  if (isClosedPath) {
+    dsq[0] = perpendicDistFromLineSqrdD(
+      path.getClone(0),
+      path.getClone(high),
+      path.getClone(1)
+    );
+    dsq[high] = perpendicDistFromLineSqrdD(
+      path.getClone(high),
+      path.getClone(0),
+      path.getClone(high - 1)
+    );
+  } else {
+    dsq[0] = Infinity;
+    dsq[high] = Infinity;
+  }
+  for (let i = 1; i < high; i++) {
+    dsq[i] = perpendicDistFromLineSqrdD(
+      path.getClone(i),
+      path.getClone(i - 1),
+      path.getClone(i + 1)
+    );
+  }
+  while (true) {
+    if (dsq[curr] > epsSqr) {
+      start = curr;
+      do {
+        curr = getNext(curr, high, flags);
+      } while (curr !== start && dsq[curr] > epsSqr);
+      if (curr === start) {
+        break;
+      }
+    }
+    prev = getPrior(curr, high, flags);
+    next = getNext(curr, high, flags);
+    if (next === prev) {
+      break;
+    }
+    if (dsq[next] < dsq[curr]) {
+      prior2 = prev;
+      prev = curr;
+      curr = next;
+      next = getNext(next, high, flags);
+    } else {
+      prior2 = getNext(prev, high, flags);
+    }
+    flags[curr] = true;
+    curr = next;
+    next = getNext(next, high, flags);
+    if (isClosedPath || curr !== high && curr !== 0) {
+      dsq[curr] = perpendicDistFromLineSqrdD(
+        path.getClone(curr),
+        path.getClone(prev),
+        path.getClone(next)
+      );
+    }
+    if (isClosedPath || prev !== 0 && prev !== high) {
+      dsq[prev] = perpendicDistFromLineSqrdD(
+        path.getClone(prev),
+        path.getClone(prior2),
+        path.getClone(curr)
+      );
+    }
+  }
+  const result = new PathDTypedArray();
+  for (let i = 0; i < len; i++) {
+    if (!flags[i]) {
+      result.push(path.getClone(i));
+    }
+  }
+  return result;
+}
+function simplifyPath(path, epsilon, isClosedPath) {
   if (isPath64(path)) {
-    if (len < 4) {
-      return path.clone();
-    }
-    isClosedPath ?? (isClosedPath = false);
-    const flags = Array.from({ length: len }, () => false);
-    const dsq = Array.from({ length: len }, () => 0);
-    let prev = high;
-    let curr = 0;
-    let start;
-    let next;
-    let prior2;
-    let next2;
-    if (isClosedPath) {
-      dsq[0] = perpendicDistFromLineSqrd64(
-        path.getClone(0),
-        path.getClone(high),
-        path.getClone(1)
-      );
-      dsq[high] = perpendicDistFromLineSqrd64(
-        path.getClone(high),
-        path.getClone(0),
-        path.getClone(high - 1)
-      );
-    } else {
-      dsq[0] = Infinity;
-      dsq[high] = Infinity;
-    }
-    for (let i = 1; i < high; i++) {
-      dsq[i] = perpendicDistFromLineSqrd64(
-        path.getClone(i),
-        path.getClone(i - 1),
-        path.getClone(i + 1)
-      );
-    }
-    while (true) {
-      if (dsq[curr] > epsSqr) {
-        start = curr;
-        do {
-          curr = getNext(curr, high, flags);
-        } while (curr !== start && dsq[curr] > epsSqr);
-        if (curr === start) {
-          break;
-        }
-      }
-      prev = getPrior(curr, high, flags);
-      next = getNext(curr, high, flags);
-      if (next === prev) {
-        break;
-      }
-      if (dsq[next] < dsq[curr]) {
-        flags[next] = true;
-        next = getNext(next, high, flags);
-        next2 = getNext(next, high, flags);
-        dsq[curr] = perpendicDistFromLineSqrd64(
-          path.getClone(curr),
-          path.getClone(prev),
-          path.getClone(next)
-        );
-        if (next !== high || isClosedPath) {
-          dsq[curr] = perpendicDistFromLineSqrd64(
-            path.getClone(next),
-            path.getClone(curr),
-            path.getClone(next2)
-          );
-        }
-        curr = next;
-      } else {
-        flags[curr] = true;
-        curr = next;
-        next = getNext(next, high, flags);
-        prior2 = getNext(prev, high, flags);
-        dsq[curr] = perpendicDistFromLineSqrd64(
-          path.getClone(curr),
-          path.getClone(prev),
-          path.getClone(next)
-        );
-        if (prev !== 0 || isClosedPath) {
-          dsq[prev] = perpendicDistFromLineSqrd64(
-            path.getClone(prev),
-            path.getClone(prior2),
-            path.getClone(curr)
-          );
-        }
-      }
-    }
-    const result = new Path64TypedArray();
-    for (let i = 0; i < len; i++) {
-      if (!flags[i]) {
-        result.push(path.getClone(i));
-      }
-    }
-    return result;
+    return simplifyPath64(path, epsilon, isClosedPath);
   } else if (isPathD(path)) {
-    if (len < 4) {
-      return path.clone();
-    }
-    isClosedPath ?? (isClosedPath = true);
-    const flags = Array.from({ length: len }, () => false);
-    const dsq = Array.from({ length: len }, () => 0);
-    let prev = high;
-    let curr = 0;
-    let start;
-    let next;
-    let prior2;
-    let next2;
-    if (isClosedPath) {
-      dsq[0] = perpendicDistFromLineSqrdD(
-        path.getClone(0),
-        path.getClone(high),
-        path.getClone(1)
-      );
-      dsq[high] = perpendicDistFromLineSqrdD(
-        path.getClone(high),
-        path.getClone(0),
-        path.getClone(high - 1)
-      );
-    } else {
-      dsq[0] = Infinity;
-      dsq[high] = Infinity;
-    }
-    for (let i = 1; i < high; i++) {
-      dsq[i] = perpendicDistFromLineSqrdD(
-        path.getClone(i),
-        path.getClone(i - 1),
-        path.getClone(i + 1)
-      );
-    }
-    while (true) {
-      if (dsq[curr] > epsSqr) {
-        start = curr;
-        do {
-          curr = getNext(curr, high, flags);
-        } while (curr !== start && dsq[curr] > epsSqr);
-        if (curr === start) {
-          break;
-        }
-      }
-      prev = getPrior(curr, high, flags);
-      next = getNext(curr, high, flags);
-      if (next === prev) {
-        break;
-      }
-      if (dsq[next] < dsq[curr]) {
-        flags[next] = true;
-        next = getNext(next, high, flags);
-        next2 = getNext(next, high, flags);
-        dsq[curr] = perpendicDistFromLineSqrdD(
-          path.getClone(curr),
-          path.getClone(prev),
-          path.getClone(next)
-        );
-        if (next !== high || isClosedPath) {
-          dsq[curr] = perpendicDistFromLineSqrdD(
-            path.getClone(next),
-            path.getClone(curr),
-            path.getClone(next2)
-          );
-        }
-        curr = next;
-      } else {
-        flags[curr] = true;
-        curr = next;
-        next = getNext(next, high, flags);
-        prior2 = getNext(prev, high, flags);
-        dsq[curr] = perpendicDistFromLineSqrdD(
-          path.getClone(curr),
-          path.getClone(prev),
-          path.getClone(next)
-        );
-        if (prev !== 0 || isClosedPath) {
-          dsq[prev] = perpendicDistFromLineSqrdD(
-            path.getClone(prev),
-            path.getClone(prior2),
-            path.getClone(curr)
-          );
-        }
-      }
-    }
-    const result = new PathDTypedArray();
-    for (let i = 0; i < len; i++) {
-      if (!flags[i]) {
-        result.push(path.getClone(i));
-      }
-    }
-    return result;
+    return simplifyPathD(path, epsilon, isClosedPath);
   } else {
     throw new TypeError("Invalid argument types.");
   }
@@ -6249,13 +6302,13 @@ function simplifyPaths(paths, epsilon, isClosedPaths) {
   if (isPaths64(paths)) {
     const result = new Paths64();
     for (const path of paths) {
-      result.push(simplifyPath(path, epsilon, isClosedPaths));
+      result.push(simplifyPath64(path, epsilon, isClosedPaths));
     }
     return result;
   } else if (isPathsD(paths)) {
     const result = new PathsD();
     for (const path of paths) {
-      result.push(simplifyPath(path, epsilon, isClosedPaths));
+      result.push(simplifyPathD(path, epsilon, isClosedPaths));
     }
     return result;
   }

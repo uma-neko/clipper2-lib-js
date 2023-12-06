@@ -10,6 +10,8 @@ import type { IPath64 } from "../Core/IPath64";
 export type DeltaCallback64 = (path: IPath64, path_norms: IPathD, currPt: number, prevPt: number) => number;
 export declare class ClipperOffset {
     _groupList: ClipperGroup[];
+    _inPath: IPath64;
+    _pathOut: IPath64;
     _normals: IPathD;
     _solution: Paths64;
     _groupDelta: number;
@@ -31,12 +33,10 @@ export declare class ClipperOffset {
     addPath(path: IPath64, joinType: JoinType, endType: EndType): void;
     addPaths(paths: Paths64, joinType: JoinType, endType: EndType): void;
     executeInternal(delta: number): void;
+    checkPathReversed(): boolean;
     execute(deltaOrDeltaCallback: number | DeltaCallback64, solutionOrPolyTree: Paths64 | PolyTree64): void;
     getUnitNormal(pt1: Point64, pt2: Point64): PointD;
-    getBoundsAndLowestPolyIdx(paths: Paths64): {
-        index: number;
-        rec: Rect64;
-    };
+    validateBounds(boundsList: Rect64[], delta: number): boolean;
     translatePoint(pt: PointD, dx: number, dy: number): PointD;
     reflectPoint(pt: PointD, pivot: PointD): PointD;
     almostZero(value: number, epsilon?: number): boolean;
@@ -46,10 +46,10 @@ export declare class ClipperOffset {
     intersectPoint(pt1a: PointD, pt1b: PointD, pt2a: PointD, pt2b: PointD): PointD;
     getPerpendic(pt: Point64, norm: PointD): Point64;
     getPerpendicD(pt: Point64, norm: PointD): PointD;
-    doBevel(group: ClipperGroup, path: IPath64, j: number, k: number): void;
-    doSquare(group: ClipperGroup, path: IPath64, j: number, k: number): void;
-    doMiter(group: ClipperGroup, path: IPath64, j: number, k: number, cosA: number): void;
-    doRound(group: ClipperGroup, path: IPath64, j: number, k: number, angle: number): void;
+    doBevel(path: IPath64, j: number, k: number): void;
+    doSquare(path: IPath64, j: number, k: number): void;
+    doMiter(path: IPath64, j: number, k: number, cosA: number): void;
+    doRound(path: IPath64, j: number, k: number, angle: number): void;
     bulidNormals(path: IPath64): void;
     offsetPoint(group: ClipperGroup, path: IPath64, j: number, k: number): number;
     offsetPolygon(group: ClipperGroup, path: IPath64): void;
