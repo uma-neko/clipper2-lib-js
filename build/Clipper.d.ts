@@ -40,8 +40,8 @@ export declare function booleanOp(clipType: ClipType, subject: Paths64, clip: Pa
 export declare function booleanOp(clipType: ClipType, subject: PathsD, clip: PathsD | undefined, fillRule: FillRule, precision?: number): PathsD;
 export declare function booleanOp(clipType: ClipType, subject: PathsD, clip: PathsD | undefined, polytree: PolyTreeD, fillRule: FillRule, precision?: number): void;
 export declare function booleanOp(clipType: ClipType, subject: Paths64 | PathsD, clip: Paths64 | PathsD | undefined, fillRuleOrPolyTree: FillRule | PolyTree64 | PolyTreeD, precisionOrFillRule?: number | FillRule, precision?: number): Paths64 | PathsD | void;
-export declare function inflatePaths(paths: Paths64, delta: number, joinType: JoinType, endType: EndType, miterLimit?: number): Paths64;
-export declare function inflatePaths(paths: PathsD, delta: number, joinType: JoinType, endType: EndType, miterLimit?: number, precision?: number): PathsD;
+export declare function inflatePaths(paths: Paths64, delta: number, joinType: JoinType, endType: EndType, miterLimit?: number, arcTolerance?: number): Paths64;
+export declare function inflatePaths(paths: PathsD, delta: number, joinType: JoinType, endType: EndType, miterLimit?: number, precision?: number, arcTolerance?: number): PathsD;
 export declare function rectClip(rect: Rect64, pathOrpaths: IPath64 | Paths64): Paths64;
 export declare function rectClip(rect: RectD, pathOrPaths: IPathD | PathsD, precision?: number): PathsD;
 export declare function rectClipLines(rect: Rect64, paths: Paths64): Paths64;
@@ -100,6 +100,8 @@ export declare function ramerDouglasPeucker(path: IPathD, epsilon: number): IPat
 export declare function ramerDouglasPeucker(path: PathsD, epsilon: number): PathsD;
 export declare function getNext(current: number, high: number, flags: boolean[]): number;
 export declare function getPrior(current: number, high: number, flags: boolean[]): number;
+export declare function simplifyPath64(path: IPath64, epsilon: number, isClosedPath?: boolean): IPath64;
+export declare function simplifyPathD(path: IPathD, epsilon: number, isClosedPath?: boolean): IPathD;
 export declare function simplifyPath(path: IPath64, epsilon: number, isClosedPath?: boolean): IPath64;
 export declare function simplifyPath(path: IPathD, epsilon: number, isClosedPath?: boolean): IPathD;
 export declare function simplifyPaths(paths: Paths64, epsilon: number, isClosedPaths?: boolean): Paths64;

@@ -22,6 +22,7 @@ export declare class Rect64 {
     contains(rec: Rect64): boolean;
     scale(scale: number): void;
     isEmpty(): boolean;
+    isValid(): boolean;
     intersects(rec: Rect64): boolean;
 }
 export declare const EmptyRect64: Readonly<Rect64>;
