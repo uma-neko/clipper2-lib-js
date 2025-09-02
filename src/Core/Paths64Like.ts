@@ -24,10 +24,6 @@ export class Paths64Like implements Iterable<Iterable<Point64>> {
     this._scale = scale;
   }
 
-  get length() {
-    return this._wrapedObject;
-  }
-
   *[Symbol.iterator]() {
     if (isScalablePath(this._wrapedObject)) {
       yield this._wrapedObject.asScaledPath64(this._scale);
