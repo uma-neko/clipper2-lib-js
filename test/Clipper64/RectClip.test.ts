@@ -1,6 +1,6 @@
 import { test, expect, describe } from "vitest";
-import { Rect64, Paths64, Clipper } from "../../src/clipper2lib";
-import { getBounds } from "../../src/Clipper";
+import { Rect64, Paths64, Clipper, RectClip64 } from "../../src/clipper2lib";
+import { getBounds, isPositive } from "../../src/Clipper";
 
 describe(
   "RectClip test",
@@ -98,6 +98,18 @@ describe(
       clip.push(rect.asPath());
       const sol = Clipper.rectClip(rect, sub);
       expect(sol.length).toBe(1);
+    });
+
+    test("#864", async () => {
+      const rect = new Rect64(1222n, 1323n, 3247n, 3348n);
+      const subject = Clipper.makePath64([
+        375, 1680, 1915, 4716, 5943, 586, 3987, 152,
+      ]);
+      const paths = new Paths64(subject);
+      const clip = new RectClip64(rect);
+      const sol = clip.execute(paths);
+      expect(sol.length).toBe(1);
+      expect(isPositive(subject)).toBe(isPositive(sol[0]));
     });
   },
   { timeout: 10 },

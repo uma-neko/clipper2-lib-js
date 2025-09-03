@@ -16,6 +16,14 @@ export const checkPrecision = (precision: number) => {
 export const isAlmostZero = (value: number): boolean =>
   Math.abs(value) <= floatingPointTolerance;
 
+export const isCollinear = (
+  pt1: Point64,
+  sharedPt: Point64,
+  pt2: Point64,
+): boolean =>
+  (sharedPt.x - pt1.x) * (pt2.y - sharedPt.y) ===
+  (sharedPt.y - pt1.y) * (pt2.x - sharedPt.x);
+
 export function crossProduct64(
   pt1: Point64,
   pt2: Point64,
@@ -36,7 +44,7 @@ export function dotProductD(vec1: PointD, vec2: PointD): number {
   return vec1.x * vec2.x + vec1.y * vec2.y;
 }
 
-export const getIntersectPoint = (
+export const getSegmentIntersectPt = (
   ln1a: Point64,
   ln1b: Point64,
   ln2a: Point64,

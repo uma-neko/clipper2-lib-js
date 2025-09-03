@@ -9,7 +9,7 @@ import {
   isAlmostZero,
 } from "../Core/InternalClipper";
 import { IPathD } from "../Core/IPathD";
-import { Paths64 } from "../Core/Paths64";
+import { isPaths64, Paths64 } from "../Core/Paths64";
 import { Point64 } from "../Core/Point64";
 import { PointD } from "../Core/PointD";
 import { Rect64 } from "../Core/Rect64";
@@ -18,6 +18,7 @@ import { PolyTree64 } from "../Engine/PolyTree64";
 import type { IPath64 } from "../Core/IPath64";
 import { Path64TypedArray } from "../Core/Path64TypedArray";
 import { PathDTypedArray } from "../Core/PathDTypedArray";
+import { Path64 } from "../Core/Path64";
 
 export type DeltaCallback64 = (
   path: IPath64,
@@ -37,6 +38,7 @@ export class ClipperOffset {
   _pathOut: IPath64;
   _normals: IPathD;
   _solution: Paths64;
+  _solutionTree?: PolyTree64;
   _groupDelta: number;
   _delta: number;
   _mitLimSqr: number;
@@ -68,6 +70,7 @@ export class ClipperOffset {
     this._pathOut = new Path64TypedArray();
     this._normals = new PathDTypedArray();
     this._solution = new Paths64();
+    this._solutionTree = undefined;
     this._groupDelta = 0;
     this._delta = 0;
     this._mitLimSqr = 0;
@@ -101,8 +104,20 @@ export class ClipperOffset {
     this._groupList.push(new ClipperGroup(paths, joinType, endType));
   }
 
+  checkPathReversed(): boolean {
+    let result: boolean = false;
+
+    for (const g of this._groupList) {
+      if (g.endType === EndType.Polygon) {
+        result = g.pathsReversed;
+        break;
+      }
+    }
+
+    return result;
+  }
+
   executeInternal(delta: number) {
-    this._solution.clear();
     if (this._groupList.length === 0) {
       return;
     }
@@ -121,36 +136,6 @@ export class ClipperOffset {
     for (const group of this._groupList) {
       this.doGroupOffset(group);
     }
-  }
-
-  checkPathReversed(): boolean {
-    let result: boolean = false;
-
-    for (const g of this._groupList) {
-      if (g.endType === EndType.Polygon) {
-        result = g.pathsReversed;
-        break;
-      }
-    }
-
-    return result;
-  }
-
-  execute(
-    deltaOrDeltaCallback: number | DeltaCallback64,
-    solutionOrPolyTree: Paths64 | PolyTree64,
-  ) {
-    let delta: number;
-
-    if (typeof deltaOrDeltaCallback === "number") {
-      delta = deltaOrDeltaCallback;
-    } else {
-      this.deltaCallback = deltaOrDeltaCallback;
-      delta = 1;
-    }
-
-    solutionOrPolyTree.clear();
-    this.executeInternal(delta);
     if (this._groupList.length === 0) {
       return;
     }
@@ -165,11 +150,38 @@ export class ClipperOffset {
 
     c.addSubject(this._solution);
 
-    c.execute(
-      ClipType.Union,
-      fillRule,
-      solutionOrPolyTree as Paths64 & PolyTree64,
-    );
+    if (this._solutionTree) {
+      c.execute(ClipType.Union, fillRule, this._solutionTree);
+    } else {
+      c.execute(ClipType.Union, fillRule, this._solution);
+    }
+  }
+
+  execute(delta: number, paths: Paths64): void;
+  execute(delta: number, polytree: PolyTree64): void;
+  execute(deltaCallback: DeltaCallback64, paths: Paths64): void;
+  execute(
+    deltaOrDeltaCallback: number | DeltaCallback64,
+    solutionOrPolyTree: Paths64 | PolyTree64,
+  ) {
+    let delta: number;
+
+    if (typeof deltaOrDeltaCallback === "number") {
+      delta = deltaOrDeltaCallback;
+    } else {
+      this.deltaCallback = deltaOrDeltaCallback;
+      delta = 1;
+    }
+
+    solutionOrPolyTree.clear();
+    if (isPaths64(solutionOrPolyTree)) {
+      this._solution = solutionOrPolyTree;
+    } else {
+      this._solutionTree = solutionOrPolyTree;
+      this._solution.clear();
+    }
+
+    this.executeInternal(delta);
   }
 
   getUnitNormal(pt1: Point64, pt2: Point64): PointD {
@@ -185,25 +197,6 @@ export class ClipperOffset {
     dy *= f;
 
     return { x: dy, y: -dx };
-  }
-
-  validateBounds(boundsList: Rect64[], delta: number): boolean {
-    const intDelta = numberToBigInt(Math.trunc(delta));
-
-    for (const r of boundsList) {
-      if (!r.isValid()) {
-        continue;
-      } else if (
-        r.left < minCoord + intDelta ||
-        r.right > maxCoord + intDelta ||
-        r.top < minCoord + intDelta ||
-        r.bottom > maxCoord + intDelta
-      ) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   translatePoint(pt: PointD, dx: number, dy: number): PointD {
@@ -445,6 +438,9 @@ export class ClipperOffset {
   bulidNormals(path: IPath64) {
     const cnt = path.length;
     this._normals.clear();
+    if (cnt === 0) {
+      return;
+    }
 
     for (let i = 0; i < cnt - 1; i++) {
       this._normals.push(
@@ -462,6 +458,9 @@ export class ClipperOffset {
     j: number,
     k: number,
   ): number {
+    if (path.get(j) === path.get(k)) {
+      return j;
+    }
     const kNormalPt = this._normals.getClone(k);
     const jNormalPt = this._normals.getClone(j);
     let sinA = crossProductD(jNormalPt, kNormalPt);
@@ -486,9 +485,11 @@ export class ClipperOffset {
       return k;
     }
 
-    if (cosA > -0.99 && sinA * this._groupDelta < 0) {
+    if (cosA > -0.999 && sinA * this._groupDelta < 0) {
       this._pathOut.push(this.getPerpendic(jPath, kNormalPt));
-      this._pathOut.push(jPath);
+      if (cosA < 0.99) {
+        this._pathOut.push(jPath);
+      }
       this._pathOut.push(this.getPerpendic(jPath, jNormalPt));
     } else if (cosA > 0.999 && this._joinType !== JoinType.Round) {
       this.doMiter(path, j, k, cosA);
@@ -585,7 +586,7 @@ export class ClipperOffset {
       }
     }
 
-    for (let i = highI, k = 0; i > 0; i--) {
+    for (let i = highI - 1, k = highI; i > 0; i--) {
       k = this.offsetPoint(group, path, i, k);
     }
 
@@ -603,11 +604,7 @@ export class ClipperOffset {
       this._groupDelta = Math.abs(this._delta);
     }
 
-    const absDelta = Math.abs(this._groupDelta);
-
-    if (!this.validateBounds(group.boundsList, absDelta)) {
-      throw new RangeError("Coordinate range is invalid.");
-    }
+    let absDelta = Math.abs(this._groupDelta);
 
     this._joinType = group.joinType;
     this._endType = group.endType;
@@ -627,24 +624,22 @@ export class ClipperOffset {
       this._stepsPerRad = stepsPer360 / (2 * Math.PI);
     }
 
-    let i = 0;
     for (const p of group.inPaths) {
-      const pathBounds = group.boundsList[i];
-      const isHole = group.isHoleList[i];
-      i++;
-      if (!pathBounds.isValid()) {
-        continue;
-      }
-
       const cnt = p.length;
-      if (cnt === 0 || (cnt < 3 && this._endType === EndType.Polygon)) {
-        continue;
-      }
 
       this._pathOut = new Path64TypedArray();
 
       if (cnt === 1) {
         const startPt = p.getClone(0);
+
+        if (this.deltaCallback !== undefined) {
+          this._groupDelta = this.deltaCallback(p, this._normals, 0, 0);
+          if (group.pathsReversed) {
+            this._groupDelta = -this._groupDelta;
+          }
+          absDelta = Math.abs(this._groupDelta);
+        }
+
         if (group.endType === EndType.Round) {
           const r = absDelta;
           const steps = Math.ceil(this._stepsPerRad * 2 * Math.PI);
@@ -660,16 +655,6 @@ export class ClipperOffset {
           this._pathOut = r.asPath();
         }
         this._solution.push(this._pathOut);
-        continue;
-      }
-
-      // ToggleBoolIf is xor.
-      if (
-        this._groupDelta > 0 === !(isHole === group.pathsReversed) &&
-        (pathBounds.width > pathBounds.height
-          ? pathBounds.height
-          : pathBounds.width) <= -(this._groupDelta * 2)
-      ) {
         continue;
       }
 

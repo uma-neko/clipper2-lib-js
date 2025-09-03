@@ -143,6 +143,13 @@ export class Rect64 {
         (this.bottom <= rec.bottom ? this.bottom : rec.bottom)
     );
   }
+
+  infrateRect(dx: bigint, dy: bigint) {
+    this.left -= dx;
+    this.right += dx;
+    this.top -= dy;
+    this.bottom += dy;
+  }
 }
 
 export const EmptyRect64: Readonly<Rect64> = new Rect64();

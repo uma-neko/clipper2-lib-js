@@ -2,7 +2,7 @@ import { Active } from "./Active";
 import { addPathsToVertexList } from "./ClipperEngine";
 import { JoinWith, PointInPolygonResult, VertexFlags } from "./EngineEnums";
 import { HorzJoin } from "./HorzJoin";
-import { HorzSegSorter, HorzSegment } from "./HorzSegment";
+import { HorzSegSort, HorzSegment } from "./HorzSegment";
 import { IntersectNode, IntersectNodeSorter } from "./IntersectNode";
 import { locMinSorter, LocalMinima } from "./LocalMinima";
 import { OutPt } from "./OutPt";
@@ -15,7 +15,8 @@ import {
   crossProduct64,
   dotProduct64,
   getClosestPtOnSegment,
-  getIntersectPoint,
+  getSegmentIntersectPt,
+  isCollinear,
   pointInPolygon,
   segsIntersect,
 } from "../Core/InternalClipper";
@@ -383,10 +384,7 @@ const isValidAelOrder = (resident: Active, newcomer: Active): boolean => {
     return newcomerIsLeft;
   }
 
-  if (
-    crossProduct64(prevPrevVertex(resident).pt, resident.bot, resident.top) ===
-    0n
-  ) {
+  if (isCollinear(prevPrevVertex(resident).pt, resident.bot, resident.top)) {
     return true;
   }
 
@@ -817,7 +815,7 @@ const buildPath = (
       op2 = op2.next!;
     }
   }
-  return !(path.length === 3 && isVerySmallTriangle(op));
+  return !(path.length === 3 && !isOpen && isVerySmallTriangle(op));
 };
 
 const getBounds = (path: IPath64): Rect64 => {
@@ -1500,12 +1498,12 @@ export class ClipperBase {
     this.checkJoinRight(ae, ae.bot, true);
   }
 
-  intersectEdges(ae1: Active, ae2: Active, pt: Point64): OutPt | undefined {
+  intersectEdges(ae1: Active, ae2: Active, pt: Point64): void {
     let resultOp: OutPt | undefined;
 
     if (this._hasOpenPaths && (isOpen(ae1) || isOpen(ae2))) {
       if (isOpen(ae1) && isOpen(ae2)) {
-        return undefined;
+        return;
       }
       if (isOpen(ae2)) {
         [ae1, ae2] = [ae2, ae1];
@@ -1516,7 +1514,7 @@ export class ClipperBase {
 
       if (this._cliptype === ClipType.Union) {
         if (!isHotEdge(ae2)) {
-          return undefined;
+          return;
         }
       } else if (ae2.localMinPolytype === PathType.Subject) {
         return undefined;
@@ -1561,13 +1559,13 @@ export class ClipperBase {
           } else {
             setSides(ae3.outrec!, ae3, ae1);
           }
-          return ae3.outrec!.pts;
+          return;
         }
         resultOp = this.startOpenPath(ae1, pt);
       } else {
         resultOp = this.startOpenPath(ae1, pt);
       }
-      return resultOp;
+      return;
     }
 
     if (isJoined(ae1)) {
@@ -1710,8 +1708,6 @@ export class ClipperBase {
         }
       }
     }
-
-    return resultOp;
   }
 
   deleteFromAEL(ae: Active) {
@@ -1807,7 +1803,8 @@ export class ClipperBase {
     let ip: Point64;
 
     if (
-      !({ ip } = getIntersectPoint(ae1.bot, ae1.top, ae2.bot, ae2.top)).result
+      !({ ip } = getSegmentIntersectPt(ae1.bot, ae1.top, ae2.bot, ae2.top))
+        .result
     ) {
       ip = { x: ae1.curX, y: topY };
     }
@@ -2196,10 +2193,12 @@ export class ClipperBase {
 
     if (
       prev === undefined ||
-      isOpen(e) ||
-      isOpen(prev) ||
       !isHotEdge(e) ||
-      !isHotEdge(prev)
+      !isHotEdge(prev) ||
+      isHorizontal(e) ||
+      isHorizontal(prev) ||
+      isOpen(e) ||
+      isOpen(prev)
     ) {
       return;
     }
@@ -2219,7 +2218,7 @@ export class ClipperBase {
       return;
     }
 
-    if (crossProduct64(e.top, pt, prev.top) !== 0n) {
+    if (!isCollinear(e.top, pt, prev.top)) {
       return;
     }
 
@@ -2291,7 +2290,7 @@ export class ClipperBase {
       return;
     }
 
-    this._horzSegList.sort(HorzSegSorter);
+    this._horzSegList.sort(HorzSegSort);
 
     for (let i = 0; i < k - 1; i++) {
       const hs1 = this._horzSegList[i];
@@ -2437,11 +2436,11 @@ export class ClipperBase {
 
     while (true) {
       if (
+        isCollinear(op2!.prev.pt, op2!.pt, op2!.next!.pt) &&
         (!this.preserveCollinear ||
           Point64.equals(op2!.pt, op2!.prev.pt) ||
           Point64.equals(op2!.pt, op2!.next!.pt) ||
-          dotProduct64(op2!.prev.pt, op2!.pt, op2!.next!.pt) < 0n) &&
-        crossProduct64(op2!.prev.pt, op2!.pt, op2!.next!.pt) === 0n
+          dotProduct64(op2!.prev.pt, op2!.pt, op2!.next!.pt) < 0n)
       ) {
         if (op2 === outrec.pts) {
           outrec.pts = op2!.prev;
@@ -2472,7 +2471,7 @@ export class ClipperBase {
     const nextNextOp = splitOp.next!.next!;
     outrec.pts = prevOp;
 
-    const { ip } = getIntersectPoint(
+    const { ip } = getSegmentIntersectPt(
       prevOp.pt,
       splitOp.pt,
       splitOp.next!.pt,

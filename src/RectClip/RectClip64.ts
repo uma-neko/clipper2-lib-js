@@ -2,7 +2,8 @@ import { OutPt2 } from "./OutPt2";
 import { getBounds } from "../Clipper";
 import {
   crossProduct64,
-  getIntersectPoint,
+  getSegmentIntersectPt,
+  isCollinear,
   pointInPolygon,
 } from "../Core/InternalClipper";
 import { Paths64 } from "../Core/Paths64";
@@ -299,7 +300,7 @@ const getSegmentIntersection = (
     return { result: false, ip };
   }
 
-  return getIntersectPoint(p1, p2, p3, p4);
+  return getSegmentIntersectPt(p1, p2, p3, p4);
 };
 
 export class RectClip64 {
@@ -312,7 +313,7 @@ export class RectClip64 {
   _currIdx: number;
 
   constructor(rect: Rect64) {
-    this._currIdx = -1;
+    this._currIdx = 0;
     this._rect = rect;
     this._mp = rect.midPoint();
     this._rectPath = rect.asPath();
@@ -703,6 +704,28 @@ export class RectClip64 {
     return { loc, i };
   }
 
+  startLocsAreClockwise(startLocs: Location[]) {
+    let result = 0;
+    for (let i = 1; i < startLocs.length; i++) {
+      const d = startLocs[i] - startLocs[i - 1];
+      switch (d) {
+        case -1:
+          result -= 1;
+          break;
+        case 1:
+          result += 1;
+          break;
+        case -3:
+          result += 1;
+          break;
+        case 3:
+          result -= 1;
+          break;
+      }
+    }
+    return result > 0;
+  }
+
   executeInternal(path: IPath64) {
     if (path.length < 3 || this._rect.isEmpty()) {
       return;
@@ -835,9 +858,11 @@ export class RectClip64 {
           this._pathBounds.contains(this._rect) &&
           path1ContainsPath2(path, this._rectPath)
         ) {
+          const startLocsClockwise = this.startLocsAreClockwise(startLocs);
           for (let j = 0; j < 4; j++) {
-            this.add(this._rectPath.getClone(j));
-            addToEdge(this._edges[j * 2], this._results[0]!);
+            const k = startLocsClockwise ? j : 3 - j;
+            this.add(this._rectPath.getClone(k));
+            addToEdge(this._edges[k * 2], this._results[0]!);
           }
         }
       }
@@ -915,7 +940,7 @@ export class RectClip64 {
       }
 
       do {
-        if (crossProduct64(op2!.prev!.pt, op2!.pt, op2!.next!.pt) === 0n) {
+        if (isCollinear(op2!.prev!.pt, op2!.pt, op2!.next!.pt)) {
           if (op2 === op) {
             op2 = unlinkOpBack(op2!);
             if (op2 === undefined) {
@@ -1121,7 +1146,7 @@ export class RectClip64 {
     let op2: OutPt2 | undefined = op.next;
 
     while (op2 !== undefined && op2 !== op) {
-      if (crossProduct64(op2.prev!.pt, op2.pt, op2.next!.pt) === 0n) {
+      if (isCollinear(op2.prev!.pt, op2.pt, op2.next!.pt)) {
         op = op2.prev;
         op2 = unlinkOp(op2);
       } else {

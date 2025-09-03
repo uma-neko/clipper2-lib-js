@@ -4,6 +4,7 @@ import {
   isAlmostZero,
   pointInPolygon as internalPointInPolygon,
   crossProduct64,
+  isCollinear,
 } from "./Core/InternalClipper";
 import { isPath64 } from "./Core/Path64";
 import type { IPath64 } from "./Core/IPath64";
@@ -110,6 +111,33 @@ export function perpendicDistFromLineSqrdD(
 
 export function sqr(value: number): number {
   return value * value;
+}
+export function bigSqr(value: bigint): number {
+  return Number(value * value);
+}
+
+export function distanceSqr(pt1: Point64, pt2: Point64): number {
+  return bigSqr(pt1.x - pt2.x) + bigSqr(pt1.y - pt2.y);
+}
+export function midPoint(pt1: Point64, pt2: Point64): Point64;
+export function midPoint(pt1: PointD, pt2: PointD): PointD;
+
+export function midPoint(
+  pt1: Point64 | PointD,
+  pt2: Point64 | PointD,
+): Point64 | PointD {
+  if (isPoint64(pt1) && isPoint64(pt2)) {
+    return {
+      x: (pt1.x + pt2.x) / 2n,
+      y: (pt1.y + pt2.y) / 2n,
+    };
+  } else if (isPointD(pt1) && isPointD(pt2)) {
+    return {
+      x: (pt1.x + pt2.x) / 2,
+      y: (pt1.y + pt2.y) / 2,
+    };
+  }
+  throw new TypeError("Invalid argument types.");
 }
 
 export function rdp(
@@ -941,7 +969,7 @@ export function getBounds(
         }
       }
     }
-    return result.left === Infinity ? new RectD() : result;
+    return isAlmostZero(result.left - Infinity) ? new RectD() : result;
   } else if (isPathD(pathOrPaths)) {
     const result = invalidRectD();
     for (let i = 0, len = pathOrPaths.length; i < len; i++) {
@@ -958,7 +986,7 @@ export function getBounds(
         result.bottom = pathOrPaths.getY(i);
       }
     }
-    return result.left === Infinity ? new RectD() : result;
+    return isAlmostZero(result.left - Infinity) ? new RectD() : result;
   }
   throw new TypeError("Invalid argument types.");
 }
@@ -1483,21 +1511,13 @@ export function trimCollinear(
     if (!isOpen) {
       while (
         i < len - 1 &&
-        crossProduct64(
-          path.getClone(len - 1),
-          path.getClone(i),
-          path.getClone(i + 1),
-        ) === 0n
+        isCollinear(path.get(len - 1), path.get(i), path.get(i + 1))
       ) {
         i++;
       }
       while (
         i < len - 1 &&
-        crossProduct64(
-          path.getClone(len - 2),
-          path.getClone(len - 1),
-          path.getClone(i),
-        ) === 0n
+        isCollinear(path.get(len - 2), path.get(len - 1), path.get(i))
       ) {
         len--;
       }
@@ -1520,7 +1540,7 @@ export function trimCollinear(
     result.push(last);
 
     for (i++; i < len - 1; i++) {
-      if (crossProduct64(last, path.getClone(i), path.getClone(i + 1)) === 0n) {
+      if (isCollinear(last, path.get(i), path.get(i + 1))) {
         continue;
       }
       last = path.getClone(i);
@@ -1529,19 +1549,17 @@ export function trimCollinear(
 
     if (isOpen) {
       result.push(path.getClone(len - 1));
-    } else if (
-      crossProduct64(last, path.getClone(len - 1), result.getClone(0)) !== 0n
-    ) {
+    } else if (!isCollinear(last, path.get(len - 1), result.get(0))) {
       result.push(path.getClone(len - 1));
     } else {
       const startPt = result.getClone(0);
       while (
         result.length > 2 &&
-        crossProduct64(
-          result.getClone(result.length - 1),
-          result.getClone(result.length - 2),
+        isCollinear(
+          result.get(result.length - 1),
+          result.get(result.length - 2),
           startPt,
-        ) === 0n
+        )
       ) {
         result.pop();
       }

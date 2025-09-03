@@ -6,7 +6,7 @@ export type HorzSegment = {
   leftToRight: boolean;
 };
 
-export const HorzSegSorter = (hs1?: HorzSegment, hs2?: HorzSegment) => {
+export const HorzSegSort = (hs1?: HorzSegment, hs2?: HorzSegment) => {
   if (hs1 === undefined || hs2 === undefined) {
     return 0;
   } else if (hs1.rightOp === undefined) {

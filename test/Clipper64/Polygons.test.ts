@@ -9,6 +9,7 @@ import {
   PolyTree64,
 } from "../../src/clipper2lib";
 import { TestCases } from "../Common/testCases";
+import { isPositive } from "../../src/Clipper";
 
 describe(
   "Polygons test",
@@ -102,6 +103,23 @@ describe(
       clipper.addSubject(subject);
       clipper.execute(ClipType.Union, FillRule.NonZero, solution);
       expect(solution.length).greaterThanOrEqual(1);
+    });
+
+    test("#777", async () => {
+      const clipper = new Clipper64();
+      const subject = new Paths64();
+      const solution = new Paths64();
+
+      subject.push(
+        Clipper.makePath64([0, -453054451, 0, -433253797, -455550000, 0]),
+      );
+      subject.push(Clipper.makePath64([0, -433253797, 0, 0, -455550000, 0]));
+      clipper.preserveCollinear = false;
+      clipper.addSubject(subject);
+      clipper.execute(ClipType.Union, FillRule.NonZero, solution);
+      expect(solution.length).eq(1);
+      expect(solution[0].length).eq(3);
+      expect(isPositive(subject[0])).eq(isPositive(solution[0]));
     });
   },
   { timeout: 10 },

@@ -77,6 +77,7 @@ export class RectClipLines64 extends RectClip64 {
         for (const pt of path) {
           this.add(pt);
         }
+        return;
       }
       if (prev === Location.inside) {
         loc = Location.inside;
@@ -124,7 +125,7 @@ export class RectClipLines64 extends RectClip64 {
           currPt,
           crossingLoc,
         ));
-        this.add(ip2);
+        this.add(ip2, true);
         this.add(ip);
       } else {
         this.add(ip);

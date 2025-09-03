@@ -135,4 +135,11 @@ export class RectD {
         (this.bottom >= rec.bottom ? this.bottom : rec.bottom)
     );
   }
+
+  infrateRect(dx: number, dy: number) {
+    this.left -= dx;
+    this.right += dx;
+    this.top -= dy;
+    this.bottom += dy;
+  }
 }
