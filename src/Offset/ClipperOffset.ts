@@ -18,7 +18,6 @@ import { PolyTree64 } from "../Engine/PolyTree64";
 import type { IPath64 } from "../Core/IPath64";
 import { Path64TypedArray } from "../Core/Path64TypedArray";
 import { PathDTypedArray } from "../Core/PathDTypedArray";
-import { Path64 } from "../Core/Path64";
 
 export type DeltaCallback64 = (
   path: IPath64,
@@ -28,9 +27,7 @@ export type DeltaCallback64 = (
 ) => number;
 
 const tolerance = 1.0e-12;
-
-const maxCoord = 2305843009213693951n;
-const minCoord = -2305843009213693951n;
+const arc_const = 0.002;
 
 export class ClipperOffset {
   _groupList: ClipperGroup[];
@@ -390,7 +387,7 @@ export class ClipperOffset {
       const arcTol =
         this.arcTolerance > 0.01
           ? this.arcTolerance
-          : Math.log10(2 + absDelta) * defaultArcTolerance;
+          : absDelta * arc_const;
       const stepsPer360 = Math.PI / Math.acos(1 - arcTol / absDelta);
       this._stepSin = Math.sin((2 * Math.PI) / stepsPer360);
       this._stepCos = Math.cos((2 * Math.PI) / stepsPer360);
@@ -487,9 +484,7 @@ export class ClipperOffset {
 
     if (cosA > -0.999 && sinA * this._groupDelta < 0) {
       this._pathOut.push(this.getPerpendic(jPath, kNormalPt));
-      if (cosA < 0.99) {
-        this._pathOut.push(jPath);
-      }
+      this._pathOut.push(jPath);
       this._pathOut.push(this.getPerpendic(jPath, jNormalPt));
     } else if (cosA > 0.999 && this._joinType !== JoinType.Round) {
       this.doMiter(path, j, k, cosA);
@@ -641,9 +636,8 @@ export class ClipperOffset {
         }
 
         if (group.endType === EndType.Round) {
-          const r = absDelta;
           const steps = Math.ceil(this._stepsPerRad * 2 * Math.PI);
-          this._pathOut = ellipse(startPt, r, r, steps);
+          this._pathOut = ellipse(startPt, absDelta, absDelta, steps);
         } else {
           const d = BigInt(Math.ceil(this._groupDelta));
           const r = new Rect64(

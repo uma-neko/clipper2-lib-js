@@ -731,12 +731,11 @@ const pointInOpPolygon = (pt: Point64, op: OutPt): PointInPolygonResult => {
 };
 
 const path1InsidePath2 = (op1: OutPt, op2: OutPt): boolean => {
-  let result: PointInPolygonResult;
   let outsize_cnt = 0;
   let op = op1;
 
   do {
-    result = pointInOpPolygon(op.pt, op2);
+    const result = pointInOpPolygon(op.pt, op2);
 
     if (result === PointInPolygonResult.IsOutside) {
       outsize_cnt++;
@@ -788,10 +787,10 @@ const buildPath = (
   }
 
   path.clear();
-
+  let op2: OutPt;
   if (reverse) {
     let lastPt: Point64 = op.pt;
-    let op2: OutPt = op.prev;
+    op2= op.prev;
     path.push(lastPt);
 
     while (op2 !== op) {
@@ -804,7 +803,7 @@ const buildPath = (
   } else {
     op = op.next!;
     let lastPt: Point64 = op.pt;
-    let op2: OutPt = op.next!;
+    op2 = op.next!;
     path.push(lastPt);
 
     while (op2 !== op) {
@@ -815,7 +814,7 @@ const buildPath = (
       op2 = op2.next!;
     }
   }
-  return !(path.length === 3 && !isOpen && isVerySmallTriangle(op));
+  return path.length !== 3 || isOpen || !isVerySmallTriangle(op2);
 };
 
 const getBounds = (path: IPath64): Rect64 => {
@@ -863,7 +862,7 @@ export class ClipperBase {
   reverseSolution: boolean;
 
   constructor() {
-    this._cliptype = ClipType.None;
+    this._cliptype = ClipType.NoClip;
     this._fillrule = FillRule.EvenOdd;
     this._minimaList = [];
     this._intersectList = [];
@@ -1199,12 +1198,9 @@ export class ClipperBase {
   }
 
   insertLocalMinimaIntoAEL(boty: bigint) {
-    let localMinima: LocalMinima;
-    let leftBound: Active | undefined;
-    let rightBound: Active | undefined;
-
     while (this.hasLocMinAtY(boty)) {
-      localMinima = this.popLocalMinima();
+      const localMinima = this.popLocalMinima();
+      let leftBound: Active | undefined;
       if (
         (localMinima.vertex.flags & VertexFlags.OpenStart) !==
         VertexFlags.None
@@ -1231,6 +1227,7 @@ export class ClipperBase {
         setDx(leftBound);
       }
 
+      let rightBound: Active | undefined;
       if (
         (localMinima.vertex.flags & VertexFlags.OpenEnd) !==
         VertexFlags.None
@@ -1737,17 +1734,13 @@ export class ClipperBase {
       ae.nextInSEL = ae.nextInAEL;
       ae.jump = ae.nextInSEL;
 
-      if (ae.joinWith === JoinWith.Left) {
-        ae.curX = ae.prevInAEL!.curX;
-      } else {
-        ae.curX = topX(ae, topY);
-      }
+      ae.curX = ae.joinWith === JoinWith.Left ? ae.prevInAEL!.curX : topX(ae, topY);
       ae = ae.nextInAEL;
     }
   }
 
   executeInternal(ct: ClipType, fillRule: FillRule) {
-    if (ct === ClipType.None) {
+    if (ct === ClipType.NoClip) {
       return;
     }
     this._fillrule = fillRule;
@@ -1789,10 +1782,11 @@ export class ClipperBase {
   }
 
   doIntersections(topY: bigint) {
-    if (this.buildIntersectList(topY)) {
-      this.processIntersectList();
-      this.disposeIntersectNodes();
+    if (!this.buildIntersectList(topY)) {
+      return;
     }
+    this.processIntersectList();
+    this.disposeIntersectNodes();
   }
 
   disposeIntersectNodes() {
@@ -1843,7 +1837,7 @@ export class ClipperBase {
   }
 
   buildIntersectList(topY: bigint): boolean {
-    if (this._actives === undefined || this._actives.nextInAEL === undefined) {
+    if (this._actives?.nextInAEL === undefined) {
       return false;
     }
 
@@ -1874,14 +1868,15 @@ export class ClipperBase {
             lEnd = right;
             insert1Before2InSEL(tmp, left!);
 
-            if (left === currBase) {
-              currBase = tmp;
-              currBase.jump = rEnd;
-              if (prevBase === undefined) {
-                this._sel = currBase;
-              } else {
-                prevBase.jump = currBase;
-              }
+            if (left !== currBase) {
+              continue;
+            }
+            currBase = tmp;
+            currBase.jump = rEnd;
+            if (prevBase === undefined) {
+              this._sel = currBase;
+            } else {
+              prevBase.jump = currBase;
             }
           } else {
             left = left!.nextInSEL;
@@ -2125,19 +2120,20 @@ export class ClipperBase {
         addOutPt(ae, ae.top);
       }
 
-      if (!isHorizontal(ae)) {
-        if (isHotEdge(ae)) {
-          if (isFront(ae)) {
-            ae.outrec!.frontEdge = undefined;
-          } else {
-            ae.outrec!.backEdge = undefined;
-          }
-          ae.outrec = undefined;
-        }
-        this.deleteFromAEL(ae);
+      if (isHorizontal(ae)) {
+        return nextE;
       }
-
+      if (isHotEdge(ae)) {
+        if (isFront(ae)) {
+          ae.outrec!.frontEdge = undefined;
+        } else {
+          ae.outrec!.backEdge = undefined;
+        }
+        ae.outrec = undefined;
+      }
+      this.deleteFromAEL(ae);
       return nextE;
+
     }
 
     const maxPair: Active | undefined = getMaximaPair(ae);

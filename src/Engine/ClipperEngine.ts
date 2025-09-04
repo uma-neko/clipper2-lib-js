@@ -29,7 +29,7 @@ export const addPathsToVertexList = (
       }
     }
 
-    if (prev_v === undefined || prev_v?.prev === undefined) {
+    if (prev_v?.prev === undefined) {
       continue;
     }
 

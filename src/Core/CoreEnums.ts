@@ -8,7 +8,7 @@ export const FillRule = {
 export type FillRule = (typeof FillRule)[keyof typeof FillRule];
 
 export const ClipType = {
-  None: 0,
+  NoClip: 0,
   Intersection: 1,
   Union: 2,
   Difference: 3,

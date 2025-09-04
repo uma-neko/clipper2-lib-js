@@ -3,7 +3,6 @@ import {
   checkPrecision,
   isAlmostZero,
   pointInPolygon as internalPointInPolygon,
-  crossProduct64,
   isCollinear,
 } from "./Core/InternalClipper";
 import { isPath64 } from "./Core/Path64";
@@ -147,18 +146,34 @@ export function rdp(
   epsSqrd: number,
   flags: boolean[],
 ): void {
-  let idx = 0;
-  let max_d = 0;
   if (isPath64(path)) {
-    const beginPt = path.getClone(begin);
-    while (end > begin && Point64.equals(beginPt, path.getClone(end))) {
+    rdp64(path,begin,end,epsSqrd,flags);
+  } else if (isPathD(path)) {
+    rdpD(path,begin,end,epsSqrd,flags);
+  } else {
+    throw new TypeError("Invalid argument types.");
+  }
+}
+
+function rdp64(
+  path: IPath64,
+  begin: number,
+  end: number,
+  epsSqrd: number,
+  flags: boolean[],
+): void {
+  while(true){
+    let idx = 0;
+    let max_d = 0;
+    const beginPt = path.get(begin);
+    while (end > begin && Point64.equals(beginPt, path.get(end))) {
       flags[end--] = false;
     }
 
     const endPt = path.get(end);
 
     for (let i = begin + 1; i < end; i++) {
-      const d = perpendicDistFromLineSqrd64(path.getClone(i), beginPt, endPt);
+      const d = perpendicDistFromLineSqrd64(path.get(i), beginPt, endPt);
       if (d <= max_d) {
         continue;
       }
@@ -171,19 +186,33 @@ export function rdp(
 
     flags[idx] = true;
     if (idx > begin + 1) {
-      rdp(path, begin, idx, epsSqrd, flags);
+      rdp64(path, begin, idx, epsSqrd, flags);
     }
     if (idx < end - 1) {
-      rdp(path, idx, end, epsSqrd, flags);
+      begin = idx;
+      continue;
     }
-  } else if (isPathD(path)) {
-    const beginPt = path.getClone(begin);
-    while (end > begin && PointD.equals(beginPt, path.getClone(end))) {
+    break;
+  }
+}
+
+function rdpD(
+  path: IPathD,
+  begin: number,
+  end: number,
+  epsSqrd: number,
+  flags: boolean[],
+): void {
+  while(true){
+    let idx = 0;
+    let max_d = 0;
+    const beginPt = path.get(begin);
+    while (end > begin && PointD.equals(beginPt, path.get(end))) {
       flags[end--] = false;
     }
-    const endPt = path.getClone(end);
+    const endPt = path.get(end);
     for (let i = begin + 1; i < end; i++) {
-      const d = perpendicDistFromLineSqrdD(path.getClone(i), beginPt, endPt);
+      const d = perpendicDistFromLineSqrdD(path.get(i), beginPt, endPt);
       if (d <= max_d) {
         continue;
       }
@@ -196,13 +225,13 @@ export function rdp(
 
     flags[idx] = true;
     if (idx > begin + 1) {
-      rdp(path, begin, idx, epsSqrd, flags);
+      rdpD(path, begin, idx, epsSqrd, flags);
     }
     if (idx < end - 1) {
-      rdp(path, idx, end, epsSqrd, flags);
+      begin = idx;
+      continue;
     }
-  } else {
-    throw new TypeError("Invalid argument types.");
+    break;
   }
 }
 
@@ -1237,10 +1266,6 @@ export function simplifyPath64(
   const flags: boolean[] = Array.from({ length: len }, () => false);
   const dsq: number[] = Array.from({ length: len }, () => 0);
   let curr: number = 0;
-  let prev: number;
-  let start: number;
-  let next: number;
-  let prior2: number;
 
   if (isClosedPath) {
     dsq[0] = perpendicDistFromLineSqrd64(
@@ -1268,7 +1293,7 @@ export function simplifyPath64(
 
   while (true) {
     if (dsq[curr] > epsSqr) {
-      start = curr;
+      const start = curr;
       do {
         curr = getNext(curr, high, flags);
       } while (curr !== start && dsq[curr] > epsSqr);
@@ -1277,13 +1302,14 @@ export function simplifyPath64(
       }
     }
 
-    prev = getPrior(curr, high, flags);
-    next = getNext(curr, high, flags);
+    let prev = getPrior(curr, high, flags);
+    let next = getNext(curr, high, flags);
 
     if (next === prev) {
       break;
     }
 
+    let prior2:number;
     if (dsq[next] < dsq[curr]) {
       prior2 = prev;
       prev = curr;
@@ -1337,10 +1363,6 @@ export function simplifyPathD(
   const flags: boolean[] = Array.from({ length: len }, () => false);
   const dsq: number[] = Array.from({ length: len }, () => 0);
   let curr: number = 0;
-  let prev: number;
-  let start: number;
-  let next: number;
-  let prior2: number;
 
   if (isClosedPath) {
     dsq[0] = perpendicDistFromLineSqrdD(
@@ -1368,7 +1390,7 @@ export function simplifyPathD(
 
   while (true) {
     if (dsq[curr] > epsSqr) {
-      start = curr;
+      const start = curr;
       do {
         curr = getNext(curr, high, flags);
       } while (curr !== start && dsq[curr] > epsSqr);
@@ -1377,13 +1399,14 @@ export function simplifyPathD(
       }
     }
 
-    prev = getPrior(curr, high, flags);
-    next = getNext(curr, high, flags);
+    let prev = getPrior(curr, high, flags);
+    let next = getNext(curr, high, flags);
 
     if (next === prev) {
       break;
     }
 
+    let prior2: number;
     if (dsq[next] < dsq[curr]) {
       prior2 = prev;
       prev = curr;

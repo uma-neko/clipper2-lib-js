@@ -853,18 +853,20 @@ export class RectClip64 {
     }
 
     if (firstCross === Location.inside) {
-      if (startingLoc !== Location.inside) {
-        if (
-          this._pathBounds.contains(this._rect) &&
-          path1ContainsPath2(path, this._rectPath)
-        ) {
-          const startLocsClockwise = this.startLocsAreClockwise(startLocs);
-          for (let j = 0; j < 4; j++) {
-            const k = startLocsClockwise ? j : 3 - j;
-            this.add(this._rectPath.getClone(k));
-            addToEdge(this._edges[k * 2], this._results[0]!);
-          }
-        }
+      if (startingLoc === Location.inside) {
+        return;
+      }
+      if (
+        !this._pathBounds.contains(this._rect) ||
+        !path1ContainsPath2(path, this._rectPath)
+      ) {
+        return;
+      }
+      const startLocsClockwise = this.startLocsAreClockwise(startLocs);
+      for (let j = 0; j < 4; j++) {
+        const k = startLocsClockwise ? j : 3 - j;
+        this.add(this._rectPath.get(k));
+        addToEdge(this._edges[k * 2], this._results[0]!);
       }
     } else if (
       loc !== Location.inside &&
@@ -901,7 +903,8 @@ export class RectClip64 {
 
       if (!this._rect.intersects(this._pathBounds)) {
         continue;
-      } else if (this._rect.contains(this._pathBounds)) {
+      } 
+      if (this._rect.contains(this._pathBounds)) {
         result.push(path);
         continue;
       }
@@ -972,12 +975,13 @@ export class RectClip64 {
           const combinedSet = edgeSet1 & edgeSet2;
 
           for (let j = 0; j < 4; ++j) {
-            if ((combinedSet & (1 << j)) !== 0) {
-              if (isHeadingClockwise(op2!.prev!.pt, op2!.pt, j)) {
-                addToEdge(this._edges[j * 2], op2!);
-              } else {
-                addToEdge(this._edges[j * 2 + 1], op2!);
-              }
+            if ((combinedSet & (1 << j)) === 0) {
+              continue;
+            }
+            if (isHeadingClockwise(op2!.prev!.pt, op2!.pt, j)) {
+              addToEdge(this._edges[j * 2], op2!);
+            } else {
+              addToEdge(this._edges[j * 2 + 1], op2!);
             }
           }
         }
@@ -1000,14 +1004,9 @@ export class RectClip64 {
     const cwIsTowardLarger = idx === 1 || idx === 2;
     let i = 0;
     let j = 0;
-    let p1: OutPt2 | undefined;
-    let p2: OutPt2 | undefined;
-    let p1a: OutPt2 | undefined;
-    let p2a: OutPt2 | undefined;
-    let op: OutPt2 | undefined;
-    let op2: OutPt2 | undefined;
 
     while (i < cw.length) {
+      let p1: OutPt2 | undefined;
       p1 = cw[i];
       if (p1 === undefined || p1.next === p1.prev) {
         cw[i++] = undefined;
@@ -1029,6 +1028,9 @@ export class RectClip64 {
         continue;
       }
 
+      let p2: OutPt2 | undefined;
+      let p1a: OutPt2 | undefined;
+      let p2a: OutPt2 | undefined;
       if (cwIsTowardLarger) {
         p1 = cw[i]!.prev!;
         p1a = cw[i];
@@ -1074,6 +1076,8 @@ export class RectClip64 {
         setNewOwner(p1a!, new_idx);
       }
 
+      let op: OutPt2 | undefined;
+      let op2: OutPt2 | undefined;
       if (cwIsTowardLarger) {
         op = p2;
         op2 = p1a;
